@@ -63,7 +63,7 @@ export default function Home() {
       <div className="relative h-64 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0a0a0a]" />
         <img
-          src="https://cdn.manus.space/file/manus-cdn/futlynk/hero-futsal-night.png"
+          src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663303543939/MhFZtOWemtNHloyp.png"
           alt="Futsal court"
           className="w-full h-full object-cover opacity-40"
         />
@@ -105,7 +105,7 @@ export default function Home() {
       </div>
 
       {/* Nearby Games */}
-      <div className="px-4 space-y-4">
+      <div className="px-4 space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-white">Nearby Games</h2>
           <span className="text-sm text-gray-500">{mockGames.length} available</span>
@@ -114,13 +114,22 @@ export default function Home() {
         {mockGames.map((game) => (
           <Link key={game.id} href={`/game/${game.id}`}>
             <div className="group bg-[#1a1a1a] hover:bg-[#222222] transition-colors relative overflow-hidden">
+              {/* Background image with dark overlay */}
+              <div className="absolute inset-0 opacity-10">
+                <img
+                  src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663303543939/MhFZtOWemtNHloyp.png"
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              
               {/* Diagonal cut */}
               <div
-                className="absolute top-0 right-0 w-12 h-12 bg-[#0a0a0a]"
+                className="absolute top-0 right-0 w-12 h-12 bg-[#0a0a0a] z-10"
                 style={{ clipPath: "polygon(100% 0, 100% 100%, 0 0)" }}
               />
 
-              <div className="p-5 space-y-4">
+              <div className="relative z-10 p-5 space-y-4">
                 {/* Header */}
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
