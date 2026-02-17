@@ -1,6 +1,7 @@
 /**
  * Game Details Page - Cyberpunk Athleticism
  * Shows single player list with tags, threshold confirmation, and chat (only after joining)
+ * Enhanced with modern tag designs and glassmorphism effects
  */
 
 import { useState } from "react";
@@ -22,6 +23,10 @@ import {
   DollarSign,
   Send,
   CheckCircle2,
+  Shield,
+  Award,
+  Target,
+  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -88,18 +93,18 @@ export default function GameDetails() {
     }
   };
 
-  const getTagColor = (tag: string) => {
-    const tagColors: Record<string, string> = {
-      "Reliable": "bg-blue-500/20 text-blue-400 border-blue-500/50",
-      "Team Player": "bg-green-500/20 text-green-400 border-green-500/50",
-      "Punctual": "bg-purple-500/20 text-purple-400 border-purple-500/50",
-      "Good Sport": "bg-yellow-500/20 text-yellow-400 border-yellow-500/50",
-      "Forward": "bg-red-500/20 text-red-400 border-red-500/50",
-      "Midfielder": "bg-cyan-500/20 text-cyan-400 border-cyan-500/50",
-      "Defender": "bg-indigo-500/20 text-indigo-400 border-indigo-500/50",
-      "Goalkeeper": "bg-orange-500/20 text-orange-400 border-orange-500/50",
+  const getTagConfig = (tag: string) => {
+    const configs: Record<string, { icon: any; gradient: string; iconColor: string }> = {
+      "Reliable": { icon: Shield, gradient: "from-blue-500/20 to-blue-600/20", iconColor: "text-blue-400" },
+      "Team Player": { icon: Users, gradient: "from-green-500/20 to-emerald-600/20", iconColor: "text-green-400" },
+      "Punctual": { icon: Clock, gradient: "from-purple-500/20 to-purple-600/20", iconColor: "text-purple-400" },
+      "Good Sport": { icon: Award, gradient: "from-yellow-500/20 to-yellow-600/20", iconColor: "text-yellow-400" },
+      "Forward": { icon: Zap, gradient: "from-red-500/20 to-orange-600/20", iconColor: "text-red-400" },
+      "Midfielder": { icon: Target, gradient: "from-cyan-500/20 to-blue-600/20", iconColor: "text-cyan-400" },
+      "Defender": { icon: Shield, gradient: "from-indigo-500/20 to-indigo-600/20", iconColor: "text-indigo-400" },
+      "Goalkeeper": { icon: Shield, gradient: "from-orange-500/20 to-red-600/20", iconColor: "text-orange-400" },
     };
-    return tagColors[tag] || "bg-gray-500/20 text-gray-400 border-gray-500/50";
+    return configs[tag] || { icon: Award, gradient: "from-gray-500/20 to-gray-600/20", iconColor: "text-gray-400" };
   };
 
   return (
@@ -108,7 +113,7 @@ export default function GameDetails() {
       <div className="bg-gradient-to-b from-[#0f0f0f] to-[#0a0a0a] border-b border-[#39ff14]/20 p-4">
         <div className="flex items-center gap-3 mb-2">
           <Link href="/">
-            <button className="text-gray-400 hover:text-white">
+            <button className="text-gray-400 hover:text-white transition-colors">
               <ArrowLeft className="w-5 h-5" />
             </button>
           </Link>
@@ -117,17 +122,19 @@ export default function GameDetails() {
       </div>
 
       <div className="p-4 space-y-4">
-        {/* Game Info Card */}
-        <Card className="bg-[#1a1a1a] border-[#39ff14]/20 p-4 space-y-4">
-          <div>
+        {/* Game Info Card - Glassmorphism */}
+        <div className="relative overflow-hidden rounded-2xl border border-[#39ff14]/30 bg-gradient-to-br from-[#1a1a1a]/80 to-[#0f0f0f]/80 backdrop-blur-xl p-5 space-y-4 shadow-[0_8px_32px_rgba(57,255,20,0.1)]">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#39ff14]/5 to-[#00d9ff]/5" />
+          
+          <div className="relative">
             <h2 className="text-xl font-bold text-white mb-1">{game.location}</h2>
             <div className="flex items-center gap-2 text-sm text-gray-400">
-              <MapPin className="w-4 h-4" />
+              <MapPin className="w-4 h-4 text-[#39ff14]" />
               <span>{game.address}</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="relative grid grid-cols-2 gap-3">
             <div className="flex items-center gap-2 text-sm">
               <Calendar className="w-4 h-4 text-[#39ff14]" />
               <span className="text-gray-300">{game.date}</span>
@@ -148,81 +155,94 @@ export default function GameDetails() {
             </div>
           </div>
 
-          <SkillBadge level={game.skillLevel} />
-        </Card>
+          <div className="relative">
+            <SkillBadge level={game.skillLevel} />
+          </div>
+        </div>
 
         {/* Threshold Confirmation */}
-        <Card className="bg-[#1a1a1a] border-[#39ff14]/20 p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-white">Confirmation Status</h3>
+        <div className="relative overflow-hidden rounded-2xl border border-[#39ff14]/20 bg-gradient-to-br from-[#1a1a1a] to-[#0f0f0f] p-5 space-y-3">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-[#39ff14]/10 to-transparent rounded-full blur-3xl" />
+          
+          <div className="relative flex items-center justify-between">
+            <h3 className="text-sm font-bold text-white">Confirmation Status</h3>
             <span className="text-xs text-gray-400">
               {game.playersJoined}/{game.maxPlayers} confirmed
             </span>
           </div>
 
-          <Progress value={thresholdPercentage} className="h-2" />
+          <Progress value={thresholdPercentage} className="h-2 relative" />
 
-          <div className="flex items-center gap-2">
+          <div className="relative flex items-center gap-2">
             {isThresholdMet ? (
               <>
                 <CheckCircle2 className="w-4 h-4 text-[#39ff14]" />
-                <span className="text-sm text-[#39ff14]">Game confirmed! 80% threshold met</span>
+                <span className="text-sm text-[#39ff14] font-semibold">Game confirmed! 80% threshold met</span>
               </>
             ) : (
               <>
                 <Clock className="w-4 h-4 text-yellow-400" />
-                <span className="text-sm text-yellow-400">
+                <span className="text-sm text-yellow-400 font-semibold">
                   Need {Math.ceil(game.maxPlayers * 0.8) - game.playersJoined} more to confirm
                 </span>
               </>
             )}
           </div>
-        </Card>
+        </div>
 
         {/* Player List */}
-        <Card className="bg-[#1a1a1a] border-[#39ff14]/20 p-4 space-y-3">
-          <h3 className="text-lg font-semibold text-white">Players ({game.playersJoined})</h3>
+        <div className="relative overflow-hidden rounded-2xl border border-[#39ff14]/20 bg-gradient-to-br from-[#1a1a1a] to-[#0f0f0f] p-5 space-y-3">
+          <h3 className="text-lg font-bold text-white">Players ({game.playersJoined})</h3>
           
-          <div className="space-y-2">
+          <div className="space-y-3">
             {game.players.map((player) => (
               <div
                 key={player.id}
-                className="flex items-start gap-3 p-3 bg-[#0f0f0f] rounded-lg"
+                className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-[#0a0a0a]/80 to-[#0f0f0f]/80 p-4 border border-[#39ff14]/10 hover:border-[#39ff14]/30 transition-all"
               >
-                <Avatar className="w-10 h-10 border-2 border-[#39ff14]/30">
-                  <AvatarFallback className="bg-[#39ff14]/10 text-[#39ff14] font-semibold">
-                    {player.name.split(" ").map((n) => n[0]).join("")}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="absolute inset-0 bg-gradient-to-r from-[#39ff14]/0 via-[#39ff14]/5 to-[#00d9ff]/0 opacity-0 group-hover:opacity-100 transition-opacity" />
                 
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-white">{player.name}</p>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {player.tags.map((tag) => (
-                      <Badge
-                        key={tag}
-                        className={`text-xs ${getTagColor(tag)}`}
-                      >
-                        {tag}
-                      </Badge>
-                    ))}
+                <div className="relative flex items-start gap-3">
+                  <Avatar className="w-12 h-12 border-2 border-[#39ff14]/30 group-hover:border-[#39ff14]/50 transition-colors">
+                    <AvatarFallback className="bg-gradient-to-br from-[#39ff14]/20 to-[#00d9ff]/20 text-[#39ff14] font-bold">
+                      {player.name.split(" ").map((n) => n[0]).join("")}
+                    </AvatarFallback>
+                  </Avatar>
+                  
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-white mb-2">{player.name}</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {player.tags.map((tag) => {
+                        const config = getTagConfig(tag);
+                        const Icon = config.icon;
+                        return (
+                          <div
+                            key={tag}
+                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gradient-to-r ${config.gradient} border border-white/10 backdrop-blur-sm`}
+                          >
+                            <Icon className={`w-3.5 h-3.5 ${config.iconColor}`} />
+                            <span className={`text-xs font-semibold ${config.iconColor}`}>{tag}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
             ))}
           </div>
-        </Card>
+        </div>
 
         {/* Chat Section - Only if joined */}
         {isJoined ? (
-          <Card className="bg-[#1a1a1a] border-[#39ff14]/20 p-4 space-y-3">
-            <h3 className="text-lg font-semibold text-white">Chat</h3>
+          <div className="relative overflow-hidden rounded-2xl border border-[#39ff14]/20 bg-gradient-to-br from-[#1a1a1a] to-[#0f0f0f] p-5 space-y-3">
+            <h3 className="text-lg font-bold text-white">Chat</h3>
             
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {chatMessages.map((msg) => (
-                <div key={msg.id} className="p-2 bg-[#0f0f0f] rounded-lg">
+                <div key={msg.id} className="p-3 bg-[#0a0a0a]/50 rounded-xl border border-[#39ff14]/10">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-semibold text-[#39ff14]">{msg.user}</span>
+                    <span className="text-xs font-bold text-[#39ff14]">{msg.user}</span>
                     <span className="text-xs text-gray-500">{msg.time}</span>
                   </div>
                   <p className="text-sm text-gray-300">{msg.message}</p>
@@ -237,31 +257,32 @@ export default function GameDetails() {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                className="bg-[#0f0f0f] border-[#39ff14]/30 text-white"
+                className="bg-[#0a0a0a]/50 border-[#39ff14]/30 text-white placeholder:text-gray-500 focus:border-[#39ff14]"
               />
               <Button
                 onClick={handleSendMessage}
-                className="bg-[#39ff14] text-black hover:bg-[#39ff14]/90"
+                className="bg-gradient-to-r from-[#39ff14] to-[#00d9ff] text-black hover:opacity-90"
               >
                 <Send className="w-4 h-4" />
               </Button>
             </div>
-          </Card>
+          </div>
         ) : (
-          <Card className="bg-[#1a1a1a] border-[#39ff14]/20 p-4">
-            <p className="text-center text-gray-400 text-sm">
+          <div className="relative overflow-hidden rounded-2xl border border-[#39ff14]/20 bg-gradient-to-br from-[#1a1a1a] to-[#0f0f0f] p-5">
+            <div className="absolute inset-0 bg-gradient-to-br from-[#39ff14]/5 to-transparent" />
+            <p className="relative text-center text-gray-400 text-sm">
               Join the game to access chat
             </p>
-          </Card>
+          </div>
         )}
 
         {/* Join/Leave Button */}
         <Button
           onClick={handleJoinGame}
-          className={`w-full py-6 text-lg font-semibold ${
+          className={`w-full py-6 text-lg font-bold transition-all ${
             isJoined
-              ? "bg-red-500 hover:bg-red-600 text-white"
-              : "bg-gradient-to-r from-[#39ff14] to-[#00d9ff] text-black hover:opacity-90"
+              ? "bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-[0_0_20px_rgba(239,68,68,0.3)]"
+              : "bg-gradient-to-r from-[#39ff14] to-[#00d9ff] text-black hover:opacity-90 shadow-[0_0_20px_rgba(57,255,20,0.3)] hover:shadow-[0_0_30px_rgba(57,255,20,0.5)]"
           }`}
         >
           {isJoined ? "Leave Game" : "Join Game"}
