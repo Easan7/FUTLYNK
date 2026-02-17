@@ -1,200 +1,196 @@
 /**
- * Post-Game Feedback Page - Cyberpunk Athleticism Design
- * Rate and tag players after a game
+ * Post-Game Feedback Page - Cyberpunk Athleticism
+ * Rate players after completed games (5 stars + optional sportsmanship flag)
  */
 
 import { useState } from "react";
-import { useRoute, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Star, Check, ThumbsUp, Clock, Users, Zap, Shield, Award } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Star, AlertTriangle, ArrowLeft, CheckCircle2 } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import { toast } from "sonner";
 
-interface Player {
-  id: number;
-  name: string;
-  skillLevel: string;
-  rating?: number;
-  tags?: string[];
+interface PlayerRating {
+  playerId: string;
+  rating: number;
+  sportsmanshipFlag: boolean;
 }
 
-const availableTags = [
-  { icon: Clock, label: "Punctual", color: "text-blue-400" },
-  { icon: ThumbsUp, label: "Good Sport", color: "text-green-400" },
-  { icon: Users, label: "Team Player", color: "text-purple-400" },
-  { icon: Zap, label: "Skilled", color: "text-yellow-400" },
-  { icon: Shield, label: "Reliable", color: "text-cyan-400" },
-  { icon: Award, label: "MVP", color: "text-orange-400" },
-];
+const mockCompletedGame = {
+  id: "completed-1",
+  location: "Downtown Sports Arena",
+  date: "Feb 10, 2026",
+  time: "7:00 PM",
+  players: [
+    { id: "1", name: "Marcus Chen" },
+    { id: "2", name: "Sarah Williams" },
+    { id: "3", name: "Diego Martinez" },
+    { id: "4", name: "Aisha Patel" },
+    { id: "5", name: "Tom Rodriguez" },
+    { id: "6", name: "Emma Johnson" },
+    { id: "7", name: "Liam Brown" },
+  ],
+};
 
 export default function PostGameFeedback() {
-  const [, params] = useRoute("/feedback/:gameId");
   const [, setLocation] = useLocation();
-  const gameId = params?.gameId || "1";
+  const [ratings, setRatings] = useState<PlayerRating[]>(
+    mockCompletedGame.players.map((p) => ({
+      playerId: p.id,
+      rating: 0,
+      sportsmanshipFlag: false,
+    }))
+  );
 
-  const [players] = useState<Player[]>([
-    { id: 1, name: "Marcus Chen", skillLevel: "Advanced" },
-    { id: 2, name: "Sarah Williams", skillLevel: "Intermediate" },
-    { id: 3, name: "Diego Martinez", skillLevel: "Advanced" },
-    { id: 4, name: "Aisha Patel", skillLevel: "Intermediate" },
-    { id: 5, name: "Tom Rodriguez", skillLevel: "Beginner" },
-    { id: 6, name: "Lisa Kim", skillLevel: "Intermediate" },
-  ]);
-
-  const [ratings, setRatings] = useState<Record<number, number>>({});
-  const [selectedTags, setSelectedTags] = useState<Record<number, string[]>>({});
-
-  const handleRating = (playerId: number, rating: number) => {
-    setRatings((prev) => ({ ...prev, [playerId]: rating }));
+  const handleRatingChange = (playerId: string, rating: number) => {
+    setRatings((prev) =>
+      prev.map((r) => (r.playerId === playerId ? { ...r, rating } : r))
+    );
   };
 
-  const handleTagToggle = (playerId: number, tag: string) => {
-    setSelectedTags((prev) => {
-      const playerTags = prev[playerId] || [];
-      const newTags = playerTags.includes(tag)
-        ? playerTags.filter((t) => t !== tag)
-        : [...playerTags, tag];
-      return { ...prev, [playerId]: newTags };
-    });
+  const handleSportsmanshipToggle = (playerId: string) => {
+    setRatings((prev) =>
+      prev.map((r) =>
+        r.playerId === playerId
+          ? { ...r, sportsmanshipFlag: !r.sportsmanshipFlag }
+          : r
+      )
+    );
   };
 
   const handleSubmit = () => {
-    const ratedCount = Object.keys(ratings).length;
-    if (ratedCount === 0) {
-      toast.error("Please rate at least one player");
+    const unratedPlayers = ratings.filter((r) => r.rating === 0);
+    if (unratedPlayers.length > 0) {
+      toast.error("Please rate all players before submitting");
       return;
     }
-    toast.success(`Feedback submitted for ${ratedCount} players!`);
+
+    toast.success("Feedback submitted successfully!");
     setTimeout(() => setLocation("/"), 1000);
   };
 
-  const handleSkip = () => {
-    setLocation("/");
+  const getRatingForPlayer = (playerId: string) => {
+    return ratings.find((r) => r.playerId === playerId)?.rating || 0;
   };
+
+  const getSportsmanshipFlag = (playerId: string) => {
+    return ratings.find((r) => r.playerId === playerId)?.sportsmanshipFlag || false;
+  };
+
+  const allRated = ratings.every((r) => r.rating > 0);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] pb-20">
       {/* Header */}
       <div className="bg-gradient-to-b from-[#0f0f0f] to-[#0a0a0a] border-b border-[#39ff14]/20 p-4">
-        <div className="flex items-center justify-between mb-2">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Post-Game Feedback</h1>
-            <p className="text-sm text-gray-400 mt-1">
-              Rate your teammates and help build a better community
-            </p>
-          </div>
+        <div className="flex items-center gap-3 mb-2">
+          <button onClick={() => setLocation("/")} className="text-gray-400 hover:text-white">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="text-2xl font-bold text-white">Rate Players</h1>
         </div>
+        <p className="text-sm text-gray-400">
+          {mockCompletedGame.location} • {mockCompletedGame.date}
+        </p>
       </div>
 
-      {/* Game Info */}
+      {/* Info Card */}
       <div className="p-4">
-        <Card className="bg-gradient-to-r from-[#39ff14]/10 to-[#00d9ff]/10 border-[#39ff14]/30 p-4">
-          <div className="flex items-center justify-between">
+        <Card className="bg-gradient-to-r from-[#39ff14]/5 to-[#00d9ff]/5 border-[#39ff14]/30 p-4">
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="w-5 h-5 text-[#39ff14] mt-1" />
             <div>
-              <h3 className="text-white font-semibold">Game #{gameId}</h3>
-              <p className="text-sm text-gray-400">Completed • 2 hours ago</p>
+              <h3 className="text-white font-semibold mb-1">Game Completed</h3>
+              <p className="text-sm text-gray-400">
+                Please rate each player's performance. Ratings help improve match quality.
+                Optionally flag poor sportsmanship.
+              </p>
             </div>
-            <Badge className="bg-[#39ff14]/20 text-[#39ff14] border-[#39ff14]/50">
-              6v6
-            </Badge>
           </div>
         </Card>
       </div>
 
-      {/* Players List */}
-      <div className="px-4 space-y-4">
-        <h2 className="text-lg font-semibold text-white">Rate Your Teammates</h2>
+      {/* Player Ratings */}
+      <div className="px-4 space-y-3">
+        {mockCompletedGame.players.map((player) => {
+          const playerRating = getRatingForPlayer(player.id);
+          const hasSportsmanshipFlag = getSportsmanshipFlag(player.id);
 
-        {players.map((player) => (
-          <Card
-            key={player.id}
-            className="bg-[#1a1a1a] border-[#39ff14]/20 p-4 hover:border-[#39ff14]/30 transition-all"
-          >
-            {/* Player Info */}
-            <div className="flex items-center justify-between mb-3">
+          return (
+            <Card key={player.id} className="bg-[#1a1a1a] border-[#39ff14]/20 p-4 space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#39ff14]/30 to-[#00d9ff]/30 flex items-center justify-center border-2 border-[#39ff14]/50">
-                  <span className="text-sm font-bold text-white">
-                    {player.name.charAt(0)}
-                  </span>
-                </div>
-                <div>
-                  <h3 className="text-white font-semibold">{player.name}</h3>
-                  <p className="text-xs text-gray-400">{player.skillLevel}</p>
+                <Avatar className="w-12 h-12 border-2 border-[#39ff14]/30">
+                  <AvatarFallback className="bg-[#39ff14]/10 text-[#39ff14] font-semibold">
+                    {player.name.split(" ").map((n) => n[0]).join("")}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-white">{player.name}</p>
+                  {playerRating > 0 && (
+                    <Badge className="mt-1 bg-[#39ff14]/10 text-[#39ff14] border-[#39ff14]/50">
+                      {playerRating} {playerRating === 1 ? "star" : "stars"}
+                    </Badge>
+                  )}
                 </div>
               </div>
-            </div>
 
-            {/* Star Rating */}
-            <div className="mb-3">
-              <p className="text-xs text-gray-400 mb-2">Overall Performance</p>
-              <div className="flex gap-2">
+              {/* Star Rating */}
+              <div className="flex items-center gap-2">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
                     key={star}
-                    onClick={() => handleRating(player.id, star)}
+                    onClick={() => handleRatingChange(player.id, star)}
                     className="transition-transform hover:scale-110"
                   >
                     <Star
                       className={`w-8 h-8 ${
-                        (ratings[player.id] || 0) >= star
-                          ? "text-yellow-400 fill-yellow-400"
+                        star <= playerRating
+                          ? "fill-[#39ff14] text-[#39ff14]"
                           : "text-gray-600"
                       }`}
                     />
                   </button>
                 ))}
               </div>
-            </div>
 
-            {/* Tags */}
-            <div>
-              <p className="text-xs text-gray-400 mb-2">Add Tags (Optional)</p>
-              <div className="flex flex-wrap gap-2">
-                {availableTags.map((tag) => {
-                  const Icon = tag.icon;
-                  const isSelected = (selectedTags[player.id] || []).includes(tag.label);
-                  return (
-                    <button
-                      key={tag.label}
-                      onClick={() => handleTagToggle(player.id, tag.label)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all ${
-                        isSelected
-                          ? "bg-[#39ff14]/20 border-[#39ff14]/50 text-[#39ff14]"
-                          : "bg-[#0f0f0f] border-gray-700 text-gray-400 hover:border-gray-600"
-                      }`}
-                    >
-                      <Icon className={`w-3.5 h-3.5 ${isSelected ? "text-[#39ff14]" : tag.color}`} />
-                      <span className="text-xs font-medium">{tag.label}</span>
-                      {isSelected && <Check className="w-3 h-3" />}
-                    </button>
-                  );
-                })}
+              {/* Sportsmanship Flag */}
+              <div className="flex items-center gap-2 p-2 bg-[#0f0f0f] rounded-lg">
+                <Checkbox
+                  id={`sportsmanship-${player.id}`}
+                  checked={hasSportsmanshipFlag}
+                  onCheckedChange={() => handleSportsmanshipToggle(player.id)}
+                  className="border-red-500/50 data-[state=checked]:bg-red-500"
+                />
+                <label
+                  htmlFor={`sportsmanship-${player.id}`}
+                  className="text-xs text-gray-400 flex items-center gap-2 cursor-pointer"
+                >
+                  <AlertTriangle className="w-3 h-3 text-red-400" />
+                  Flag for poor sportsmanship
+                </label>
               </div>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          );
+        })}
       </div>
 
-      {/* Submit Actions */}
-      <div className="fixed bottom-20 left-0 right-0 p-4 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a] to-transparent">
-        <div className="flex gap-3">
-          <Button
-            onClick={handleSkip}
-            variant="outline"
-            className="flex-1 border-gray-700 text-gray-400 hover:bg-gray-800"
-          >
-            Skip
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            className="flex-1 bg-[#39ff14] text-black hover:bg-[#39ff14]/90 font-semibold"
-          >
-            Submit Feedback
-          </Button>
-        </div>
+      {/* Submit Button */}
+      <div className="p-4">
+        <Button
+          onClick={handleSubmit}
+          disabled={!allRated}
+          className={`w-full py-6 text-lg font-semibold ${
+            allRated
+              ? "bg-gradient-to-r from-[#39ff14] to-[#00d9ff] text-black hover:opacity-90"
+              : "bg-gray-700 text-gray-400 cursor-not-allowed"
+          }`}
+        >
+          {allRated ? "Submit Ratings" : `Rate ${ratings.filter((r) => r.rating === 0).length} more players`}
+        </Button>
       </div>
 
       <Navigation />

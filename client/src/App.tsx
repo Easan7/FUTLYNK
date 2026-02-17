@@ -6,7 +6,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import GameDetails from "./pages/GameDetails";
-import CreateGame from "./pages/CreateGame";
+import CreateGroup from "./pages/CreateGroup";
 import Profile from "./pages/Profile";
 import Matchmaking from "./pages/Matchmaking";
 import Friends from "./pages/Friends";
@@ -18,7 +18,7 @@ function Router() {
     <Switch>
       <Route path={"/"} component={Home} />
       <Route path={"/game/:id"} component={GameDetails} />
-      <Route path={"/create"} component={CreateGame} />
+      <Route path={"/create"} component={CreateGroup} />
       <Route path={"/profile"} component={Profile} />
       <Route path={"/matchmaking"} component={Matchmaking} />
       <Route path={"/friends"} component={Friends} />

@@ -1,244 +1,306 @@
-/*
- * Matchmaking Screen - Cyberpunk Athleticism
- * AI-powered game finder with loading animation and suggested matches
+/**
+ * Matchmaking/Search Page - Cyberpunk Athleticism Design
+ * Search for suitable games based on location, time, and skill bands
+ * Shows match quality indicators (Best Match, Good Match, Less Suitable)
  */
 
 import { useState } from "react";
-import Navigation from "@/components/Navigation";
-import GameCard, { Game } from "@/components/GameCard";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Zap } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Search, MapPin, Calendar, Clock, Users, Star, TrendingUp, CheckCircle2 } from "lucide-react";
+import Navigation from "@/components/Navigation";
+import SkillBadge from "@/components/SkillBadge";
+import { toast } from "sonner";
 
-// Mock suggested games
-const mockSuggestedGames: Game[] = [
-  {
-    id: "1",
-    location: "Downtown Sports Arena",
-    date: "Feb 15, 2026",
-    time: "7:00 PM",
-    skillLevel: "Intermediate",
-    playersJoined: 7,
-    maxPlayers: 10,
-    price: 15,
-  },
-  {
-    id: "2",
-    location: "Westgate Indoor Sports",
-    date: "Feb 18, 2026",
-    time: "7:30 PM",
-    skillLevel: "Intermediate",
-    playersJoined: 5,
-    maxPlayers: 10,
-    price: 15,
-  },
-  {
-    id: "3",
-    location: "Metro Futsal Complex",
-    date: "Feb 17, 2026",
-    time: "8:00 PM",
-    skillLevel: "Advanced",
-    playersJoined: 9,
-    maxPlayers: 10,
-    price: 20,
-  },
-];
+interface MatchResult {
+  id: string;
+  location: string;
+  address: string;
+  date: string;
+  time: string;
+  skillLevel: "Beginner" | "Intermediate" | "Advanced";
+  playersJoined: number;
+  maxPlayers: number;
+  price: number;
+  distance: string;
+  matchQuality: "best" | "good" | "less-suitable";
+}
 
 export default function Matchmaking() {
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [location, setLocation] = useState("");
+  const [preferredTime, setPreferredTime] = useState("evening");
+  const [skillLevel, setSkillLevel] = useState("intermediate");
 
-  const handleFindMatch = () => {
+  const [matchResults] = useState<MatchResult[]>([
+    {
+      id: "1",
+      location: "Downtown Sports Arena",
+      address: "123 Main St",
+      date: "Feb 15, 2026",
+      time: "7:00 PM",
+      skillLevel: "Intermediate",
+      playersJoined: 7,
+      maxPlayers: 10,
+      price: 15,
+      distance: "0.8 km",
+      matchQuality: "best",
+    },
+    {
+      id: "2",
+      location: "Metro Futsal Complex",
+      address: "456 Metro Ave",
+      date: "Feb 15, 2026",
+      time: "7:30 PM",
+      skillLevel: "Intermediate",
+      playersJoined: 6,
+      maxPlayers: 10,
+      price: 15,
+      distance: "1.2 km",
+      matchQuality: "good",
+    },
+    {
+      id: "3",
+      location: "Westgate Indoor Sports",
+      address: "789 West Rd",
+      date: "Feb 16, 2026",
+      time: "6:30 PM",
+      skillLevel: "Advanced",
+      playersJoined: 5,
+      maxPlayers: 10,
+      price: 20,
+      distance: "2.5 km",
+      matchQuality: "less-suitable",
+    },
+  ]);
+
+  const handleSearch = () => {
     setIsSearching(true);
-    setShowResults(false);
-
-    // Simulate AI matching process
+    toast.info("Searching for suitable games...");
     setTimeout(() => {
       setIsSearching(false);
       setShowResults(true);
-    }, 3000);
+      toast.success(`Found ${matchResults.length} suitable games!`);
+    }, 1500);
+  };
+
+  const getMatchQualityConfig = (quality: string) => {
+    switch (quality) {
+      case "best":
+        return {
+          label: "Best Match",
+          icon: Star,
+          bgColor: "bg-[#39ff14]/10",
+          borderColor: "border-[#39ff14]/50",
+          textColor: "text-[#39ff14]",
+        };
+      case "good":
+        return {
+          label: "Good Match",
+          icon: TrendingUp,
+          bgColor: "bg-[#00d9ff]/10",
+          borderColor: "border-[#00d9ff]/50",
+          textColor: "text-[#00d9ff]",
+        };
+      case "less-suitable":
+        return {
+          label: "Less Balanced",
+          icon: CheckCircle2,
+          bgColor: "bg-yellow-500/10",
+          borderColor: "border-yellow-500/50",
+          textColor: "text-yellow-400",
+        };
+      default:
+        return {
+          label: "Match",
+          icon: CheckCircle2,
+          bgColor: "bg-gray-500/10",
+          borderColor: "border-gray-500/50",
+          textColor: "text-gray-400",
+        };
+    }
   };
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-[#0a0a0a] pb-20">
       {/* Header */}
-      <div className="sticky top-0 z-40 bg-card/95 backdrop-blur-lg border-b border-border">
-        <div className="container py-4">
-          <h1 className="text-xl font-display font-bold text-foreground">AI Matchmaking</h1>
-        </div>
+      <div className="bg-gradient-to-b from-[#0f0f0f] to-[#0a0a0a] border-b border-[#39ff14]/20 p-4">
+        <h1 className="text-2xl font-bold text-white mb-2">Find a Game</h1>
+        <p className="text-sm text-gray-400">
+          Search for games based on your preferences
+        </p>
       </div>
 
-      {/* Hero Section */}
-      <div
-        className="relative h-56 bg-cover bg-center"
-        style={{
-          backgroundImage: `url('https://private-us-east-1.manuscdn.com/sessionFile/rMco6RyN77L0Rvf8s3BShq/sandbox/j2B2drvtzojpOCqpr8e6B6-img-2_1770793029000_na1fn_cGxheWVyLWFjdGlvbi1uZW9u.png?x-oss-process=image/resize,w_1920,h_1920/format,webp/quality,q_80&Expires=1798761600&Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly9wcml2YXRlLXVzLWVhc3QtMS5tYW51c2Nkbi5jb20vc2Vzc2lvbkZpbGUvck1jbzZSeU43N0wwUnZmOHMzQlNocS9zYW5kYm94L2oyQjJkcnZ0em9qcE9DcXByOGU2QjYtaW1nLTJfMTc3MDc5MzAyOTAwMF9uYTFmbl9jR3hoZVdWeUxXRmpkR2x2YmkxdVpXOXUucG5nP3gtb3NzLXByb2Nlc3M9aW1hZ2UvcmVzaXplLHdfMTkyMCxoXzE5MjAvZm9ybWF0LHdlYnAvcXVhbGl0eSxxXzgwIiwiQ29uZGl0aW9uIjp7IkRhdGVMZXNzVGhhbiI6eyJBV1M6RXBvY2hUaW1lIjoxNzk4NzYxNjAwfX19XX0_&Key-Pair-Id=K2HSFNDJXOU9YS&Signature=DuEiyNd7EXXXL27n0byVp1zdxZr23ZoRTTL9fm9MRjWmae5LLSwHBNFjTPww0Fz3ep2mKB7rCpwJsjK5BWCQubHstCNYHuE1ZYuMlmFyyuYq4Bk~sCW~-uzqoJIzjA1F2p3lgt4UzHVf9oU7fUF6FsR16DyVJLGQNn90G0q311Js6qyUJlO86VJCzDBXykxOvSD44WiV6K2jjjtbSp5cksVXaPvUm3xVYsxQK1aMbcLwGZ~yrK~153etpYwIG3qVtHM2q66nc6FDNvUYJvcEOrpnj5XlUF1duqdhGREbd56xKr8V21uwR7Lgd4D-hjeGKbHfrYIDakCTfzpydBUWPw__')`,
-        }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/80 to-background" />
-        
-        <div className="relative container h-full flex flex-col justify-end pb-8">
-          <div className="space-y-3">
-            <h2 className="text-4xl md:text-5xl font-display font-bold text-foreground leading-tight">
-              Find Your
-              <br />
-              <span className="text-neon-cyan drop-shadow-[0_0_20px_rgba(0,217,255,0.6)]">
-                Perfect Game
-              </span>
-            </h2>
-            <p className="text-base text-muted-foreground max-w-md">
-              Let AI find the best match based on your skill, location, and schedule
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="container py-6 space-y-6">
-        {!isSearching && !showResults && (
-          <div className="space-y-6">
-            {/* AI Match Button */}
-            <div className="bg-card border-2 border-border rounded-2xl p-8 text-center space-y-6">
-              <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-neon-green to-neon-cyan flex items-center justify-center animate-pulse">
-                <Sparkles className="w-10 h-10 text-background" />
-              </div>
-              
-              <div className="space-y-2">
-                <h3 className="text-2xl font-display font-bold text-foreground">
-                  AI-Powered Matching
-                </h3>
-                <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                  Our smart algorithm analyzes your profile, skill level, and preferences to find the perfect game for you
-                </p>
-              </div>
-
-              <Button
-                onClick={handleFindMatch}
-                className="w-full max-w-sm py-6 bg-gradient-to-r from-neon-green to-neon-cyan hover:opacity-90 text-background font-display font-bold text-lg transition-all duration-300 hover:shadow-lg hover:shadow-neon-green/30"
-              >
-                <Zap className="w-5 h-5 mr-2" />
-                Find Me a Game
-              </Button>
-            </div>
-
-            {/* How it Works */}
-            <div className="bg-card border-2 border-border rounded-2xl p-6 space-y-4">
-              <h3 className="text-lg font-display font-bold text-foreground">How It Works</h3>
-              <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-neon-green/10 flex items-center justify-center flex-shrink-0">
-                    <span className="text-sm font-bold text-neon-green font-accent">1</span>
-                  </div>
-                  <div>
-                    <div className="text-sm font-semibold text-foreground">Analyze Your Profile</div>
-                    <div className="text-xs text-muted-foreground">We check your skill rating, position, and past performance</div>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-neon-cyan/10 flex items-center justify-center flex-shrink-0">
-                    <span className="text-sm font-bold text-neon-cyan font-accent">2</span>
-                  </div>
-                  <div>
-                    <div className="text-sm font-semibold text-foreground">Find Compatible Games</div>
-                    <div className="text-xs text-muted-foreground">Match you with games at your skill level nearby</div>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <span className="text-sm font-bold text-neon-green font-accent">3</span>
-                  </div>
-                  <div>
-                    <div className="text-sm font-semibold text-foreground">Balance Teams</div>
-                    <div className="text-xs text-muted-foreground">Ensure fair, competitive matches for everyone</div>
-                  </div>
-                </div>
-              </div>
+      {/* Search Form */}
+      <div className="p-4 space-y-4">
+        <Card className="bg-[#1a1a1a] border-[#39ff14]/20 p-4 space-y-4">
+          {/* Location Input */}
+          <div>
+            <label className="text-sm text-gray-400 mb-2 block">Location</label>
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <Input
+                type="text"
+                placeholder="Enter your location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                className="pl-10 bg-[#0f0f0f] border-[#39ff14]/30 text-white"
+              />
             </div>
           </div>
-        )}
 
-        {isSearching && (
-          <div className="flex flex-col items-center justify-center py-16 space-y-8">
-            {/* Animated Loading Rings */}
-            <div className="relative w-32 h-32">
-              {/* Outer ring */}
-              <div className="absolute inset-0 rounded-full border-4 border-neon-green/20" />
-              <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-neon-green animate-spin" />
-              
-              {/* Middle ring */}
-              <div className="absolute inset-3 rounded-full border-4 border-neon-cyan/20" />
-              <div className="absolute inset-3 rounded-full border-4 border-transparent border-t-neon-cyan animate-spin animation-delay-150" style={{ animationDuration: '1.5s' }} />
-              
-              {/* Inner icon */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Sparkles className="w-12 h-12 text-neon-green animate-pulse" />
-              </div>
-            </div>
+          {/* Preferred Time */}
+          <div>
+            <label className="text-sm text-gray-400 mb-2 block">Preferred Time</label>
+            <Select value={preferredTime} onValueChange={setPreferredTime}>
+              <SelectTrigger className="bg-[#0f0f0f] border-[#39ff14]/30 text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="morning">Morning (6AM - 12PM)</SelectItem>
+                <SelectItem value="afternoon">Afternoon (12PM - 6PM)</SelectItem>
+                <SelectItem value="evening">Evening (6PM - 10PM)</SelectItem>
+                <SelectItem value="night">Night (10PM - 12AM)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-            <div className="text-center space-y-2">
-              <h3 className="text-2xl font-display font-bold text-foreground">
-                Finding Your Match
-              </h3>
-              <p className="text-sm text-muted-foreground animate-pulse">
-                Analyzing nearby games and skill compatibility...
+          {/* Skill Level */}
+          <div>
+            <label className="text-sm text-gray-400 mb-2 block">Your Skill Level</label>
+            <Select value={skillLevel} onValueChange={setSkillLevel}>
+              <SelectTrigger className="bg-[#0f0f0f] border-[#39ff14]/30 text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="beginner">Beginner</SelectItem>
+                <SelectItem value="intermediate">Intermediate</SelectItem>
+                <SelectItem value="advanced">Advanced</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Search Button */}
+          <Button
+            onClick={handleSearch}
+            disabled={isSearching}
+            className="w-full bg-gradient-to-r from-[#39ff14] to-[#00d9ff] text-black font-semibold hover:opacity-90"
+          >
+            {isSearching ? (
+              <>
+                <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin mr-2" />
+                Searching...
+              </>
+            ) : (
+              <>
+                <Search className="w-4 h-4 mr-2" />
+                Search for Games
+              </>
+            )}
+          </Button>
+        </Card>
+
+        {/* Info Card */}
+        <Card className="bg-gradient-to-r from-[#39ff14]/5 to-[#00d9ff]/5 border-[#39ff14]/30 p-4">
+          <div className="flex items-start gap-3">
+            <TrendingUp className="w-5 h-5 text-[#39ff14] mt-1" />
+            <div>
+              <h3 className="text-white font-semibold mb-1">Smart Matching</h3>
+              <p className="text-sm text-gray-400">
+                We find games based on your location, time preferences, and skill band.
+                Games are tagged by match quality to help you choose.
               </p>
             </div>
-
-            {/* Progress Steps */}
-            <div className="w-full max-w-sm space-y-2">
-              <div className="flex items-center gap-3 text-sm">
-                <div className="w-2 h-2 rounded-full bg-neon-green animate-pulse" />
-                <span className="text-muted-foreground">Checking your profile...</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm animation-delay-300">
-                <div className="w-2 h-2 rounded-full bg-neon-cyan animate-pulse" />
-                <span className="text-muted-foreground">Scanning nearby games...</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm animation-delay-600">
-                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                <span className="text-muted-foreground">Calculating best matches...</span>
-              </div>
-            </div>
           </div>
-        )}
-
-        {showResults && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xl font-display font-bold text-foreground">
-                  Suggested Games
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Based on your profile and preferences
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowResults(false);
-                  setIsSearching(false);
-                }}
-                className="border-neon-green/30 text-neon-green hover:bg-neon-green/10"
-              >
-                Search Again
-              </Button>
-            </div>
-
-            <div className="grid gap-4">
-              {mockSuggestedGames.map((game, index) => (
-                <div
-                  key={game.id}
-                  className="animate-in fade-in slide-in-from-bottom-4"
-                  style={{ animationDelay: `${index * 150}ms`, animationFillMode: 'backwards' }}
-                >
-                  <GameCard game={game} />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        </Card>
       </div>
+
+      {/* Search Results */}
+      {showResults && (
+        <div className="px-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-white">
+              {matchResults.length} Games Found
+            </h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowResults(false)}
+              className="text-gray-400"
+            >
+              Clear
+            </Button>
+          </div>
+
+          {matchResults.map((match) => {
+            const qualityConfig = getMatchQualityConfig(match.matchQuality);
+            const QualityIcon = qualityConfig.icon;
+
+            return (
+              <Link key={match.id} href={`/game/${match.id}`}>
+                <Card className="bg-[#1a1a1a] border-[#39ff14]/20 p-4 hover:border-[#39ff14]/40 transition-all cursor-pointer">
+                  {/* Match Quality Badge */}
+                  <div className="flex items-center justify-between mb-3">
+                    <Badge
+                      className={`${qualityConfig.bgColor} ${qualityConfig.textColor} border ${qualityConfig.borderColor}`}
+                    >
+                      <QualityIcon className="w-3 h-3 mr-1" />
+                      {qualityConfig.label}
+                    </Badge>
+                    <span className="text-xs text-gray-400">{match.distance} away</span>
+                  </div>
+
+                  {/* Location */}
+                  <div className="mb-3">
+                    <h3 className="text-white font-semibold text-lg mb-1">
+                      {match.location}
+                    </h3>
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <MapPin className="w-3 h-3" />
+                      <span>{match.address}</span>
+                    </div>
+                  </div>
+
+                  {/* Details Grid */}
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Calendar className="w-4 h-4 text-[#39ff14]" />
+                      <span className="text-gray-300">{match.date}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Clock className="w-4 h-4 text-[#00d9ff]" />
+                      <span className="text-gray-300">{match.time}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Users className="w-4 h-4 text-[#39ff14]" />
+                      <span className="text-gray-300">
+                        {match.playersJoined}/{match.maxPlayers} players
+                      </span>
+                    </div>
+                    <div className="text-sm">
+                      <span className="text-[#39ff14] font-bold">${match.price}</span>
+                      <span className="text-gray-400"> per player</span>
+                    </div>
+                  </div>
+
+                  {/* Skill Level */}
+                  <div className="flex items-center justify-between">
+                    <SkillBadge level={match.skillLevel} />
+                    <div className="text-xs text-gray-400">
+                      {match.maxPlayers - match.playersJoined} spots left
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+            );
+          })}
+        </div>
+      )}
 
       <Navigation />
     </div>
