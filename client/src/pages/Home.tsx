@@ -4,11 +4,15 @@
  * Shows only user's skill level + hybrid (unrestricted) rooms
  */
 
-import { useState } from "react";
 import Navigation from "@/components/Navigation";
 import CircularProgress from "@/components/CircularProgress";
 import SkillBadge from "@/components/SkillBadge";
-import { MapPin, Clock, DollarSign, Zap } from "lucide-react";
+import gameImage1 from "@/assets/images/game1.jpg";
+import gameImage2 from "@/assets/images/game2.jpg";
+import gameImage3 from "@/assets/images/game3.png";
+import wallpaperImage from "@/assets/images/wallpaper.jpg";
+import backupImage from "@/assets/images/backup.png";
+import { Clock, DollarSign, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "wouter";
 
@@ -27,7 +31,7 @@ const mockGames = [
     playersJoined: 7,
     maxPlayers: 10,
     price: 15,
-    image: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663303543939/gLLDOgmqndStjyEo.jpg",
+    image: gameImage1,
   },
   {
     id: "2",
@@ -39,7 +43,7 @@ const mockGames = [
     playersJoined: 6,
     maxPlayers: 10,
     price: 18,
-    image: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663303543939/uNnFSoijICHNUQNu.jpg",
+    image: gameImage2,
   },
   {
     id: "3",
@@ -51,7 +55,26 @@ const mockGames = [
     playersJoined: 5,
     maxPlayers: 10,
     price: 15,
-    image: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663303543939/BktaWaAqlbOUciNY.jpg",
+    image: gameImage3,
+  },
+];
+
+const mockCompletedGames = [
+  {
+    id: "c1",
+    location: "Downtown Sports Arena",
+    date: "Feb 10, 2026",
+    time: "7:00 PM",
+    result: "5 v 5",
+    feedbackPending: true,
+  },
+  {
+    id: "c2",
+    location: "Eastside Court",
+    date: "Feb 8, 2026",
+    time: "6:30 PM",
+    result: "4 v 4",
+    feedbackPending: false,
   },
 ];
 
@@ -61,15 +84,21 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] pb-20">
-      {/* Hero Section - Full bleed with overlay */}
-      <div className="relative h-64 overflow-hidden">
+    <div className="min-h-screen relative bg-[#0a0a0a] pb-20 overflow-hidden">
+      <div className="absolute inset-0">
+
+        <div className="absolute inset-0 bg-[#040404]/80" />
+      </div>
+
+      <div className="relative z-10">
+        {/* Hero Section - Full bleed with overlay */}
+        <div className="relative h-64 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0a0a0a]" />
-        <img
-          src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663303543939/MhFZtOWemtNHloyp.png"
-          alt="Futsal court"
-          className="w-full h-full object-cover opacity-40"
-        />
+          <img
+            src={wallpaperImage}
+            alt="Futsal court"
+            className="w-full h-full object-cover opacity-40"
+          />
         <div className="absolute inset-0 flex flex-col justify-end p-6">
           <h1 className="text-4xl font-bold text-white mb-2">
             Find Your
@@ -82,114 +111,144 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Quick Match Button */}
-      <div className="p-4">
-        <Link href="/match">
-          <button className="w-full bg-gradient-to-r from-[#39ff14] to-[#00d9ff] text-black font-bold py-4 rounded-lg flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
-            <Zap className="w-5 h-5" />
-            Quick Match
-          </button>
-        </Link>
-      </div>
 
-      {/* Your Skill Level Info */}
-      <div className="px-4 mb-4">
-        <div className="p-3 bg-[#1a1a1a] border-l-2 border-[#39ff14]">
-          <p className="text-[10px] uppercase text-gray-500 tracking-wide mb-1">
-            Your Skill Level
-          </p>
-          <div className="flex items-center gap-2">
-            <SkillBadge level={USER_SKILL_LEVEL as any} />
-            <span className="text-xs text-gray-400">
-              Showing {USER_SKILL_LEVEL} + Hybrid rooms
-            </span>
+        {/* Your Skill Level Info */}
+        <div className="px-4 mb-4">
+          <div className="p-3 bg-[#1a1a1a]/80 border border-[#1f1f1f] border-l-2 border-l-[#39ff14] backdrop-blur-sm">
+            <p className="text-[10px] uppercase text-gray-500 tracking-wide mb-1">
+              Your Skill Level
+            </p>
+            <div className="flex items-center gap-2">
+              <SkillBadge level={USER_SKILL_LEVEL as any} />
+              <span className="text-xs text-gray-400">
+                Showing {USER_SKILL_LEVEL} + Hybrid rooms
+              </span>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Nearby Games */}
-      <div className="px-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white">Nearby Games</h2>
-          <span className="text-sm text-gray-500">{mockGames.length} available</span>
+        {/* Nearby Games */}
+        <div className="px-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-white">Nearby Games</h2>
+            <span className="text-sm text-gray-500">{mockGames.length} available</span>
+          </div>
+
+          {mockGames.map((game) => (
+            <Link key={game.id} href={`/game/${game.id}`} className="block">
+              <div className="group bg-[#101010]/90 hover:bg-[#161616]/90 backdrop-blur-sm transition-colors relative overflow-hidden border border-[#1f1f1f]">
+                {/* Background image with stronger dark overlay */}
+                <div className="absolute inset-0">
+                  <img
+                    src={game.image}
+                    alt=""
+                    className="w-full h-full object-cover opacity-40"
+                  />
+                  <div className="absolute inset-0 bg-black/75" />
+                </div>
+                
+                {/* Diagonal cut */}
+                <div
+                  className="absolute top-0 right-0 w-12 h-12 bg-[#0a0a0a] z-10"
+                  style={{ clipPath: "polygon(100% 0, 100% 100%, 0 0)" }}
+                />
+
+                <div className="relative z-10 p-5 space-y-4">
+                  {/* Header */}
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      {game.isHybrid && (
+                        <span className="text-xs font-bold text-[#00d9ff] mb-1 block">
+                          HYBRID • No Restrictions
+                        </span>
+                      )}
+                      <h3 className="text-white font-bold mb-1">{game.location}</h3>
+                      <div className="flex items-center gap-3 text-sm text-gray-400">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5" />
+                          {game.time}
+                        </span>
+                        <span className="text-gray-600">•</span>
+                        <span>{game.date}</span>
+                      </div>
+                    </div>
+
+                    <CircularProgress
+                      value={game.playersJoined}
+                      max={game.maxPlayers}
+                      size={64}
+                      strokeWidth={5}
+                      color="#39ff14"
+                    />
+                  </div>
+
+                  {/* Footer */}
+                  <div className="flex items-center justify-between pt-3 border-t border-[#2a2a2a]">
+                    <div className="flex items-center gap-3">
+                      {!game.isHybrid && game.skillLevel && (
+                        <SkillBadge level={game.skillLevel} />
+                      )}
+                      <div className="flex items-center gap-1 text-white">
+                        <DollarSign className="w-4 h-4" />
+                        <span className="font-bold">{game.price}</span>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleQuickJoin(game.id, game.location);
+                      }}
+                      className="px-4 py-2 bg-[#39ff14] text-black font-bold text-sm rounded hover:bg-[#2de00f] transition-colors"
+                    >
+                      Join
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          ))}
         </div>
 
-        {mockGames.map((game) => (
-          <Link key={game.id} href={`/game/${game.id}`}>
-            <div className="group bg-[#1a1a1a] hover:bg-[#222222] transition-colors relative overflow-hidden">
-              {/* Background image with dark overlay */}
-              <div className="absolute inset-0 opacity-15">
-                <img
-                  src={game.image}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              
-              {/* Diagonal cut */}
-              <div
-                className="absolute top-0 right-0 w-12 h-12 bg-[#0a0a0a] z-10"
-                style={{ clipPath: "polygon(100% 0, 100% 100%, 0 0)" }}
-              />
+        {/* Completed Games */}
+        <div className="px-4 mt-10 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-white">Completed</h2>
+            <span className="text-sm text-gray-500">{mockCompletedGames.length} sessions</span>
+          </div>
 
-              <div className="relative z-10 p-5 space-y-4">
-                {/* Header */}
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    {game.isHybrid && (
-                      <span className="text-xs font-bold text-[#00d9ff] mb-1 block">
-                        HYBRID • No Restrictions
-                      </span>
-                    )}
-                    <h3 className="text-white font-bold mb-1">{game.location}</h3>
-                    <div className="flex items-center gap-3 text-sm text-gray-400">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5" />
-                        {game.time}
-                      </span>
-                      <span className="text-gray-600">•</span>
-                      <span>{game.date}</span>
-                    </div>
-                  </div>
-
-                  <CircularProgress
-                    value={game.playersJoined}
-                    max={game.maxPlayers}
-                    size={64}
-                    strokeWidth={5}
-                    color="#39ff14"
-                  />
+          {mockCompletedGames.map((game) => (
+            <Link key={game.id} href={`/feedback/${game.id}`} className="block">
+              <div className="bg-[#101010]/90 hover:bg-[#151515]/90 backdrop-blur-sm border border-[#1f1f1f] p-4 flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-white font-semibold text-sm">{game.location}</p>
+                  <p className="text-xs text-gray-500">
+                    {game.date} • {game.time}
+                  </p>
+                  <p className="text-xs text-gray-600 mt-1 flex items-center gap-1">
+                    <Users className="w-3.5 h-3.5" />
+                    {game.result}
+                  </p>
                 </div>
 
-                {/* Footer */}
-                <div className="flex items-center justify-between pt-3 border-t border-[#2a2a2a]">
-                  <div className="flex items-center gap-3">
-                    {!game.isHybrid && game.skillLevel && (
-                      <SkillBadge level={game.skillLevel} />
-                    )}
-                    <div className="flex items-center gap-1 text-white">
-                      <DollarSign className="w-4 h-4" />
-                      <span className="font-bold">{game.price}</span>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleQuickJoin(game.id, game.location);
-                    }}
-                    className="px-4 py-2 bg-[#39ff14] text-black font-bold text-sm rounded hover:bg-[#2de00f] transition-colors"
-                  >
-                    Join
+                <div className="text-right space-y-2">
+                  {game.feedbackPending ? (
+                    <span className="text-[10px] uppercase tracking-wide text-[#ffae00]">Feedback Needed</span>
+                  ) : (
+                    <span className="text-[10px] uppercase tracking-wide text-gray-500">Completed</span>
+                  )}
+                  <button className="px-3 py-1 text-xs font-bold text-black bg-[#39ff14] rounded hover:bg-[#2de00f]">
+                    Rate Game
                   </button>
                 </div>
               </div>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          ))}
+        </div>
+
+        <Navigation />
       </div>
 
-      <Navigation />
     </div>
   );
 }

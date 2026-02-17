@@ -11,6 +11,7 @@ import SkillBadge from "@/components/SkillBadge";
 import { Search, MapPin, Clock, DollarSign, Zap } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import { toast } from "sonner";
+import wallpaperImage from "@/assets/images/wallpaper.jpg";
 
 interface MatchResult {
   id: string;
@@ -107,7 +108,7 @@ export default function Matchmaking() {
       <div className="relative h-64 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0a0a0a]" />
         <img
-          src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663303543939/MhFZtOWemtNHloyp.png"
+          src={wallpaperImage}
           alt="Futsal court"
           className="w-full h-full object-cover opacity-40"
         />

@@ -5,16 +5,15 @@
 
 import { useState } from "react";
 import Navigation from "@/components/Navigation";
-import CircularProgress from "@/components/CircularProgress";
 import SkillBadge from "@/components/SkillBadge";
+import wallpaperImage from "@/assets/images/wallpaper.jpg";
+import backgroundImage from "@/assets/images/background.jpg";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import {
   Trophy,
-  Calendar,
   Award,
   CheckCircle2,
-  MapPin,
   Users,
   Shield,
   Zap,
@@ -70,140 +69,155 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] pb-20">
-      {/* Header */}
-      <div className="bg-[#0a0a0a] border-b border-[#1a1a1a] p-4">
-        <h1 className="text-2xl font-bold text-white">Profile</h1>
+    <div className="relative min-h-screen bg-[#0a0a0a] pb-20 overflow-hidden">
+      <div className="absolute inset-0">
+        <img
+          src={backgroundImage}
+          alt="Futsal abstract"
+          className="w-full h-full object-cover opacity-30"
+        />
+        <div className="absolute inset-0 bg-[#050505]/78" />
       </div>
 
-      <div className="p-4 space-y-6">
-        {/* Profile Header - Centered, minimal */}
-        <div className="flex flex-col items-center py-6 space-y-4">
-          <Avatar className="w-24 h-24 border-2 border-[#2a2a2a]">
-            <AvatarFallback className="bg-[#1a1a1a] text-white text-3xl font-bold">
-              AC
-            </AvatarFallback>
-          </Avatar>
-          
-          <div className="text-center space-y-3">
-            <h2 className="text-2xl font-bold text-white">{mockProfile.name}</h2>
-            <SkillBadge level={mockProfile.skillLevel} />
-            
-            {/* Friends Buttons */}
-            <div className="flex gap-2 justify-center">
-              <button
-                onClick={() => {
-                  setShowFriends(true);
-                  setShowAddFriends(false);
-                }}
-                className="px-4 py-2 bg-[#1a1a1a] border border-[#2a2a2a] text-white rounded-lg hover:bg-[#222222] transition-colors flex items-center gap-2"
-              >
-                <Users className="w-4 h-4" />
-                Friends
-              </button>
-              <button
-                onClick={() => {
-                  setShowAddFriends(true);
-                  setShowFriends(false);
-                }}
-                className="px-4 py-2 bg-[#39ff14] text-black rounded-lg hover:bg-[#2de00f] transition-colors flex items-center gap-2 font-bold"
-              >
-                <UserPlus className="w-4 h-4" />
-                Add Friends
-              </button>
-            </div>
-          </div>
-        </div>
+      <div className="relative z-10 flex min-h-screen flex-col">
+        {/* Header */}
+        <header className="bg-[#0a0a0a]/70 border-b border-[#1a1a1a] p-4 backdrop-blur-sm">
+          <h1 className="text-2xl font-bold text-white">Profile</h1>
+        </header>
 
-        {/* Stats - Large numbers (WHOOP style) */}
-        <div className="grid grid-cols-2 gap-6">
-          <div className="text-center">
-            <p className="text-6xl font-bold text-white mb-1">{mockProfile.matchesPlayed}</p>
-            <p className="text-[10px] uppercase text-gray-500 tracking-wide">Matches Played</p>
-          </div>
-          
-          <div className="text-center">
-            <p className="text-6xl font-bold text-[#39ff14] mb-1">{mockProfile.attendanceRate}%</p>
-            <p className="text-[10px] uppercase text-gray-500 tracking-wide">Attendance</p>
-          </div>
-        </div>
+        <main className="flex-1 p-4 space-y-6">
+          {/* Profile Header - Centered, minimal */}
+          <section className="flex flex-col items-center py-6 space-y-4">
+            <Avatar className="w-24 h-24 border-2 border-[#2a2a2a]">
+              <AvatarFallback className="bg-[#1a1a1a] text-white text-3xl font-bold">
+                AC
+              </AvatarFallback>
+            </Avatar>
 
-        {/* Player Tags - Outlined pills */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-bold text-white uppercase tracking-wide">Player Tags</h3>
-          
-          <div className="flex flex-wrap gap-2">
-            {mockProfile.tags.map((tag) => {
-              const Icon = tag.icon;
-              return (
-                <div
-                  key={tag.id}
-                  className="flex items-center gap-2 px-3 py-2 border border-gray-700 rounded-full hover:border-gray-600 transition-colors"
+            <div className="text-center space-y-3">
+              <h2 className="text-2xl font-bold text-white">{mockProfile.name}</h2>
+              <SkillBadge level={mockProfile.skillLevel} />
+
+              {/* Friends Buttons */}
+              <div className="flex gap-2 justify-center">
+                <button
+                  onClick={() => {
+                    setShowFriends(true);
+                    setShowAddFriends(false);
+                  }}
+                  className="px-4 py-2 bg-[#1a1a1a] border border-[#2a2a2a] text-white rounded-lg hover:bg-[#222222] transition-colors flex items-center gap-2"
                 >
-                  <Icon className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm text-gray-300">{tag.name}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Achievements - Simple grid */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-bold text-white uppercase tracking-wide">Achievements</h3>
-          
-          <div className="grid grid-cols-4 gap-3">
-            {mockProfile.achievements.map((achievement) => {
-              const Icon = achievement.icon;
-              return (
-                <div key={achievement.id} className="flex flex-col items-center gap-2">
-                  <div
-                    className={`w-16 h-16 flex items-center justify-center rounded-lg border-2 transition-all ${
-                      achievement.unlocked
-                        ? "bg-[#1a1a1a] border-[#39ff14]"
-                        : "bg-[#0a0a0a] border-gray-800 opacity-40"
-                    }`}
-                  >
-                    <Icon
-                      className={`w-7 h-7 ${
-                        achievement.unlocked ? "text-[#39ff14]" : "text-gray-700"
-                      }`}
-                    />
-                  </div>
-                  <p className={`text-[10px] text-center ${
-                    achievement.unlocked ? "text-gray-400" : "text-gray-700"
-                  }`}>
-                    {achievement.name}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Match History - Minimal list */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-bold text-white uppercase tracking-wide">Match History</h3>
-          
-          <div className="space-y-2">
-            {mockProfile.matchHistory.map((match) => (
-              <div
-                key={match.id}
-                className="flex items-center justify-between p-4 bg-[#1a1a1a] hover:bg-[#222222] transition-colors border-l-2 border-[#39ff14]"
-              >
-                <div>
-                  <p className="text-white font-medium text-sm">{match.venue}</p>
-                  <p className="text-gray-500 text-xs">{match.date}</p>
-                </div>
-                
-                <div className="flex items-center gap-1 text-gray-400">
                   <Users className="w-4 h-4" />
-                  <span className="text-sm">{match.players}</span>
-                </div>
+                  Friends
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAddFriends(true);
+                    setShowFriends(false);
+                  }}
+                  className="px-4 py-2 bg-[#39ff14] text-black rounded-lg hover:bg-[#2de00f] transition-colors flex items-center gap-2 font-bold"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Add Friends
+                </button>
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
+          </section>
+
+          {/* Stats - Large numbers (WHOOP style) */}
+          <section className="grid grid-cols-2 gap-6">
+            <div className="text-center">
+              <p className="text-6xl font-bold text-white mb-1">{mockProfile.matchesPlayed}</p>
+              <p className="text-[10px] uppercase text-gray-500 tracking-wide">Matches Played</p>
+            </div>
+
+            <div className="text-center">
+              <p className="text-6xl font-bold text-[#39ff14] mb-1">{mockProfile.attendanceRate}%</p>
+              <p className="text-[10px] uppercase text-gray-500 tracking-wide">Attendance</p>
+            </div>
+          </section>
+
+          {/* Player Tags - Outlined pills */}
+          <section className="space-y-3">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wide">Player Tags</h3>
+
+            <div className="flex flex-wrap gap-2">
+              {mockProfile.tags.map((tag) => {
+                const Icon = tag.icon;
+                return (
+                  <div
+                    key={tag.id}
+                    className="flex items-center gap-2 px-3 py-2 border border-gray-700 rounded-full hover:border-gray-600 transition-colors"
+                  >
+                    <Icon className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm text-gray-300">{tag.name}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Achievements - Simple grid */}
+          <section className="space-y-3">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wide">Achievements</h3>
+
+            <div className="grid grid-cols-4 gap-3">
+              {mockProfile.achievements.map((achievement) => {
+                const Icon = achievement.icon;
+                return (
+                  <div key={achievement.id} className="flex flex-col items-center gap-2">
+                    <div
+                      className={`w-16 h-16 flex items-center justify-center rounded-lg border-2 transition-all ${
+                        achievement.unlocked
+                          ? "bg-[#1a1a1a] border-[#39ff14]"
+                          : "bg-[#0a0a0a] border-gray-800 opacity-40"
+                      }`}
+                    >
+                      <Icon
+                        className={`w-7 h-7 ${
+                          achievement.unlocked ? "text-[#39ff14]" : "text-gray-700"
+                        }`}
+                      />
+                    </div>
+                    <p
+                      className={`text-[10px] text-center ${
+                        achievement.unlocked ? "text-gray-400" : "text-gray-700"
+                      }`}
+                    >
+                      {achievement.name}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Match History - Minimal list */}
+          <section className="space-y-3">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wide">Match History</h3>
+
+            <div className="space-y-2">
+              {mockProfile.matchHistory.map((match) => (
+                <div
+                  key={match.id}
+                  className="flex items-center justify-between p-4 bg-[#1a1a1a] hover:bg-[#222222] transition-colors border-l-2 border-[#39ff14]"
+                >
+                  <div>
+                    <p className="text-white font-medium text-sm">{match.venue}</p>
+                    <p className="text-gray-500 text-xs">{match.date}</p>
+                  </div>
+
+                  <div className="flex items-center gap-1 text-gray-400">
+                    <Users className="w-4 h-4" />
+                    <span className="text-sm">{match.players}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </main>
+
+        <Navigation />
       </div>
 
       {/* Friends Modal */}
@@ -227,7 +241,10 @@ export default function Profile() {
                 >
                   <Avatar className="w-10 h-10 border border-[#2a2a2a]">
                     <AvatarFallback className="bg-[#0f0f0f] text-white text-sm">
-                      {friend.name.split(" ").map((n) => n[0]).join("")}
+                      {friend.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
@@ -261,7 +278,7 @@ export default function Profile() {
                 placeholder="Search by name or username..."
                 className="bg-[#1a1a1a] border-[#2a2a2a] text-white"
               />
-              
+
               <div className="space-y-2">
                 {["Jamie Wilson", "Chris Taylor", "Pat Anderson"].map((name) => (
                   <div
@@ -270,7 +287,10 @@ export default function Profile() {
                   >
                     <Avatar className="w-10 h-10 border border-[#2a2a2a]">
                       <AvatarFallback className="bg-[#0f0f0f] text-white text-sm">
-                        {name.split(" ").map((n) => n[0]).join("")}
+                        {name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
@@ -289,8 +309,6 @@ export default function Profile() {
           </div>
         </div>
       )}
-
-      <Navigation />
     </div>
   );
 }

@@ -18,7 +18,7 @@ function Router() {
     <Switch>
       <Route path={"/"} component={Home} />
       <Route path={"/game/:id"} component={GameDetails} />
-      <Route path={"/create"} component={CreateGroup} />
+      <Route path={"/create"} component={Groups} />
       <Route path={"/profile"} component={Profile} />
       <Route path={"/matchmaking"} component={Matchmaking} />
       <Route path={"/friends"} component={Friends} />
