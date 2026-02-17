@@ -1,18 +1,21 @@
 /**
  * Home / Discover Games Page - Unique Design
  * Inspired by WHOOP, Nike Training Club - minimal, clean, distinctive
+ * Shows only user's skill level + hybrid (unrestricted) rooms
  */
 
 import { useState } from "react";
 import Navigation from "@/components/Navigation";
 import CircularProgress from "@/components/CircularProgress";
 import SkillBadge from "@/components/SkillBadge";
-import { Button } from "@/components/ui/button";
-import { MapPin, Clock, DollarSign, Users, Zap } from "lucide-react";
+import { MapPin, Clock, DollarSign, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "wouter";
 
-// Mock data
+// User's current skill level (would come from auth context in real app)
+const USER_SKILL_LEVEL = "Intermediate";
+
+// Mock data - only shows user's skill level + hybrid rooms
 const mockGames = [
   {
     id: "1",
@@ -20,36 +23,29 @@ const mockGames = [
     date: "Feb 15, 2026",
     time: "7:00 PM",
     skillLevel: "Intermediate" as const,
+    isHybrid: false,
     playersJoined: 7,
     maxPlayers: 10,
     price: 15,
   },
   {
     id: "2",
-    location: "Eastside Futsal Court",
-    date: "Feb 16, 2026",
-    time: "6:30 PM",
-    skillLevel: "Beginner" as const,
-    playersJoined: 4,
-    maxPlayers: 8,
-    price: 12,
-  },
-  {
-    id: "3",
     location: "Metro Futsal Complex",
     date: "Feb 17, 2026",
     time: "8:00 PM",
-    skillLevel: "Advanced" as const,
-    playersJoined: 9,
+    skillLevel: null, // Hybrid room
+    isHybrid: true,
+    playersJoined: 6,
     maxPlayers: 10,
-    price: 20,
+    price: 18,
   },
   {
-    id: "4",
+    id: "3",
     location: "Westgate Indoor Sports",
     date: "Feb 18, 2026",
     time: "7:30 PM",
     skillLevel: "Intermediate" as const,
+    isHybrid: false,
     playersJoined: 5,
     maxPlayers: 10,
     price: 15,
@@ -57,8 +53,6 @@ const mockGames = [
 ];
 
 export default function Home() {
-  const [skillFilter, setSkillFilter] = useState<string>("all");
-
   const handleQuickJoin = (gameId: string, location: string) => {
     toast.success(`Joined game at ${location}!`);
   };
@@ -85,54 +79,8 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Filter Bar - Minimal */}
-      <div className="px-4 py-4 border-b border-[#1a1a1a]">
-        <div className="flex gap-2 overflow-x-auto">
-          <button
-            onClick={() => setSkillFilter("all")}
-            className={`px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
-              skillFilter === "all"
-                ? "text-[#39ff14] border-b-2 border-[#39ff14]"
-                : "text-gray-400 border-b-2 border-transparent"
-            }`}
-          >
-            All Levels
-          </button>
-          <button
-            onClick={() => setSkillFilter("beginner")}
-            className={`px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
-              skillFilter === "beginner"
-                ? "text-[#39ff14] border-b-2 border-[#39ff14]"
-                : "text-gray-400 border-b-2 border-transparent"
-            }`}
-          >
-            Beginner
-          </button>
-          <button
-            onClick={() => setSkillFilter("intermediate")}
-            className={`px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
-              skillFilter === "intermediate"
-                ? "text-[#39ff14] border-b-2 border-[#39ff14]"
-                : "text-gray-400 border-b-2 border-transparent"
-            }`}
-          >
-            Intermediate
-          </button>
-          <button
-            onClick={() => setSkillFilter("advanced")}
-            className={`px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
-              skillFilter === "advanced"
-                ? "text-[#39ff14] border-b-2 border-[#39ff14]"
-                : "text-gray-400 border-b-2 border-transparent"
-            }`}
-          >
-            Advanced
-          </button>
-        </div>
-      </div>
-
       {/* Quick Match Button */}
-      <div className="px-4 py-4">
+      <div className="p-4">
         <Link href="/match">
           <button className="w-full bg-gradient-to-r from-[#39ff14] to-[#00d9ff] text-black font-bold py-4 rounded-lg flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
             <Zap className="w-5 h-5" />
@@ -141,41 +89,57 @@ export default function Home() {
         </Link>
       </div>
 
-      {/* Games List - Diagonal cut cards */}
+      {/* Your Skill Level Info */}
+      <div className="px-4 mb-4">
+        <div className="p-3 bg-[#1a1a1a] border-l-2 border-[#39ff14]">
+          <p className="text-[10px] uppercase text-gray-500 tracking-wide mb-1">
+            Your Skill Level
+          </p>
+          <div className="flex items-center gap-2">
+            <SkillBadge level={USER_SKILL_LEVEL as any} />
+            <span className="text-xs text-gray-400">
+              Showing {USER_SKILL_LEVEL} + Hybrid rooms
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Nearby Games */}
       <div className="px-4 space-y-4">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-white">Nearby Games</h2>
-          <span className="text-sm text-gray-500">{mockGames.length} games found</span>
+          <span className="text-sm text-gray-500">{mockGames.length} available</span>
         </div>
 
         {mockGames.map((game) => (
           <Link key={game.id} href={`/game/${game.id}`}>
-            <div className="group relative bg-[#1a1a1a] overflow-hidden hover:bg-[#222222] transition-colors">
-              {/* Diagonal cut top-right corner */}
+            <div className="group bg-[#1a1a1a] hover:bg-[#222222] transition-colors relative overflow-hidden">
+              {/* Diagonal cut */}
               <div
                 className="absolute top-0 right-0 w-12 h-12 bg-[#0a0a0a]"
-                style={{
-                  clipPath: "polygon(100% 0, 100% 100%, 0 0)",
-                }}
+                style={{ clipPath: "polygon(100% 0, 100% 100%, 0 0)" }}
               />
 
               <div className="p-5 space-y-4">
                 {/* Header */}
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <MapPin className="w-4 h-4 text-gray-500" />
-                      <h3 className="text-white font-bold">{game.location}</h3>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-gray-400">
+                    {game.isHybrid && (
+                      <span className="text-xs font-bold text-[#00d9ff] mb-1 block">
+                        HYBRID • No Restrictions
+                      </span>
+                    )}
+                    <h3 className="text-white font-bold mb-1">{game.location}</h3>
+                    <div className="flex items-center gap-3 text-sm text-gray-400">
                       <span className="flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5" />
-                        {game.date} • {game.time}
+                        {game.time}
                       </span>
+                      <span className="text-gray-600">•</span>
+                      <span>{game.date}</span>
                     </div>
                   </div>
 
-                  {/* Circular Progress */}
                   <CircularProgress
                     value={game.playersJoined}
                     max={game.maxPlayers}
@@ -188,7 +152,9 @@ export default function Home() {
                 {/* Footer */}
                 <div className="flex items-center justify-between pt-3 border-t border-[#2a2a2a]">
                   <div className="flex items-center gap-3">
-                    <SkillBadge level={game.skillLevel} />
+                    {!game.isHybrid && game.skillLevel && (
+                      <SkillBadge level={game.skillLevel} />
+                    )}
                     <div className="flex items-center gap-1 text-white">
                       <DollarSign className="w-4 h-4" />
                       <span className="font-bold">{game.price}</span>

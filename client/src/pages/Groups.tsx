@@ -1,252 +1,306 @@
 /**
- * Groups Page - Cyberpunk Athleticism Design
- * Create and manage social groups, find matches for groups
+ * Groups Page - Unique Design
+ * View groups list and click into groups to see availability, game selection, and chat
  */
 
 import { useState } from "react";
 import { Link } from "wouter";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Users, Plus, Search, Calendar, MapPin, TrendingUp } from "lucide-react";
+import { Users, Plus, ArrowLeft, Send, Check } from "lucide-react";
 import Navigation from "@/components/Navigation";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
 interface Group {
   id: number;
   name: string;
-  members: string[];
+  members: Array<{ name: string; availability: string[] }>;
   skillMix: "Same" | "Mixed";
-  gamesPlayed: number;
-  nextGame?: string;
 }
 
+const mockGroups: Group[] = [
+  {
+    id: 1,
+    name: "Weekend Warriors",
+    members: [
+      { name: "You", availability: ["Sat 6PM", "Sun 10AM", "Sun 6PM"] },
+      { name: "Marcus Chen", availability: ["Sat 6PM", "Sun 6PM"] },
+      { name: "Sarah Williams", availability: ["Sat 6PM", "Sun 10AM"] },
+      { name: "Diego Martinez", availability: ["Sun 6PM"] },
+    ],
+    skillMix: "Mixed",
+  },
+  {
+    id: 2,
+    name: "Friday Night Futsal",
+    members: [
+      { name: "You", availability: ["Fri 7PM", "Fri 9PM"] },
+      { name: "Aisha Patel", availability: ["Fri 7PM"] },
+      { name: "Tom Rodriguez", availability: ["Fri 7PM", "Fri 9PM"] },
+    ],
+    skillMix: "Same",
+  },
+];
+
+const mockGames = [
+  {
+    id: "g1",
+    location: "Downtown Sports Arena",
+    date: "Sat, Feb 15",
+    time: "6:00 PM",
+    price: 15,
+    availableMembers: ["You", "Marcus Chen", "Sarah Williams"],
+    selectedBy: ["You", "Marcus Chen"],
+  },
+  {
+    id: "g2",
+    location: "Metro Futsal Complex",
+    date: "Sun, Feb 16",
+    time: "10:00 AM",
+    price: 18,
+    availableMembers: ["You", "Sarah Williams"],
+    selectedBy: [],
+  },
+  {
+    id: "g3",
+    location: "Westgate Indoor Sports",
+    date: "Sun, Feb 16",
+    time: "6:00 PM",
+    price: 15,
+    availableMembers: ["You", "Marcus Chen", "Diego Martinez"],
+    selectedBy: ["You", "Marcus Chen", "Diego Martinez"],
+  },
+];
+
 export default function Groups() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [newGroupName, setNewGroupName] = useState("");
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  
-  const [groups] = useState<Group[]>([
-    {
-      id: 1,
-      name: "Weekend Warriors",
-      members: ["Marcus", "Sarah", "Diego", "You"],
-      skillMix: "Mixed",
-      gamesPlayed: 23,
-      nextGame: "Tomorrow, 6:00 PM",
-    },
-    {
-      id: 2,
-      name: "Friday Night Futsal",
-      members: ["Aisha", "Tom", "Lisa", "You"],
-      skillMix: "Same",
-      gamesPlayed: 15,
-    },
-    {
-      id: 3,
-      name: "Office Squad",
-      members: ["John", "Emma", "Mike", "You", "Alex"],
-      skillMix: "Mixed",
-      gamesPlayed: 8,
-      nextGame: "Friday, 7:30 PM",
-    },
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const [chatMessage, setChatMessage] = useState("");
+  const [chatMessages, setChatMessages] = useState([
+    { user: "Marcus Chen", message: "Who's in for Saturday?", time: "2h ago" },
+    { user: "Sarah Williams", message: "I can make it!", time: "1h ago" },
   ]);
 
-  const filteredGroups = groups.filter((group) =>
-    group.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const handleCreateGroup = () => {
-    if (newGroupName.trim()) {
-      toast.success(`Group "${newGroupName}" created!`);
-      setNewGroupName("");
-      setIsCreateDialogOpen(false);
-    } else {
-      toast.error("Please enter a group name");
-    }
+  const handleSendMessage = () => {
+    if (!chatMessage.trim()) return;
+    setChatMessages([
+      ...chatMessages,
+      { user: "You", message: chatMessage, time: "Just now" },
+    ]);
+    setChatMessage("");
+    toast.success("Message sent!");
   };
 
-  const handleFindMatch = (groupName: string) => {
-    toast.info(`Finding matches for ${groupName}...`);
+  const handleGameSelection = (gameId: string) => {
+    toast.success("Game selection updated!");
   };
 
-  const handleInviteMembers = (groupName: string) => {
-    toast.info(`Opening invite dialog for ${groupName}...`);
-  };
-
-  return (
-    <div className="min-h-screen bg-[#0a0a0a] pb-20">
-      {/* Header */}
-      <div className="bg-gradient-to-b from-[#0f0f0f] to-[#0a0a0a] border-b border-[#39ff14]/20 p-4">
-        <div className="flex items-center justify-between mb-4">
+  if (selectedGroup) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] pb-20">
+        {/* Header */}
+        <div className="sticky top-0 z-10 bg-[#0a0a0a]/95 backdrop-blur-sm border-b border-[#1a1a1a] p-4">
           <div className="flex items-center gap-3">
-            <Users className="w-6 h-6 text-[#39ff14]" />
-            <h1 className="text-2xl font-bold text-white">Groups</h1>
-          </div>
-          
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-[#39ff14]/10 text-[#39ff14] border border-[#39ff14]/50 hover:bg-[#39ff14]/20">
-                <Plus className="w-4 h-4 mr-2" />
-                Create
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-[#1a1a1a] border-[#39ff14]/30 text-white">
-              <DialogHeader>
-                <DialogTitle className="text-white">Create New Group</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 mt-4">
-                <div>
-                  <label className="text-sm text-gray-400 mb-2 block">Group Name</label>
-                  <Input
-                    type="text"
-                    placeholder="e.g., Weekend Warriors"
-                    value={newGroupName}
-                    onChange={(e) => setNewGroupName(e.target.value)}
-                    className="bg-[#0f0f0f] border-[#39ff14]/30 text-white"
-                  />
-                </div>
-                <Button
-                  onClick={handleCreateGroup}
-                  className="w-full bg-[#39ff14] text-black hover:bg-[#39ff14]/90"
-                >
-                  Create Group
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        {/* Search Bar */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-          <Input
-            type="text"
-            placeholder="Search groups..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-[#1a1a1a] border-[#39ff14]/30 text-white placeholder:text-gray-500"
-          />
-        </div>
-      </div>
-
-      {/* Info Card */}
-      <div className="p-4">
-        <Card className="bg-gradient-to-r from-[#39ff14]/5 to-[#00d9ff]/5 border-[#39ff14]/30 p-4">
-          <div className="flex items-start gap-3">
-            <TrendingUp className="w-5 h-5 text-[#39ff14] mt-1" />
-            <div>
-              <h3 className="text-white font-semibold mb-1">Smart Group Matching</h3>
-              <p className="text-sm text-gray-400">
-                We analyze your group's preferences to recommend suitable games or suggest
-                minimal scheduling adjustments.
+            <button
+              onClick={() => setSelectedGroup(null)}
+              className="p-2 hover:bg-[#1a1a1a] rounded-lg transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5 text-white" />
+            </button>
+            <div className="flex-1">
+              <h1 className="text-lg font-bold text-white">{selectedGroup.name}</h1>
+              <p className="text-xs text-gray-500">
+                {selectedGroup.members.length} members • {selectedGroup.skillMix} skill mix
               </p>
             </div>
           </div>
-        </Card>
-      </div>
+        </div>
 
-      {/* Groups List */}
-      <div className="px-4 space-y-3">
-        <h2 className="text-lg font-semibold text-white mb-3">
-          {filteredGroups.length} Groups
-        </h2>
+        <div className="p-4 space-y-6">
+          {/* Weekly Availability */}
+          <div className="space-y-3">
+            <h2 className="text-sm font-bold text-white uppercase tracking-wide">
+              Weekly Availability
+            </h2>
+            <div className="bg-[#1a1a1a] p-4 space-y-3">
+              {selectedGroup.members.map((member) => (
+                <div key={member.name} className="space-y-2">
+                  <p className="text-white text-sm font-medium">{member.name}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {member.availability.map((slot) => (
+                      <span
+                        key={slot}
+                        className="px-2 py-1 bg-[#39ff14]/10 border border-[#39ff14]/30 text-[#39ff14] text-xs rounded"
+                      >
+                        {slot}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
-        {filteredGroups.map((group) => (
-          <Card
-            key={group.id}
-            className="bg-[#1a1a1a] border-[#39ff14]/20 p-4 hover:border-[#39ff14]/40 transition-all"
-          >
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <h3 className="text-white font-semibold text-lg">{group.name}</h3>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge
-                    className={`text-xs ${
-                      group.skillMix === "Same"
-                        ? "bg-blue-500/20 text-blue-400 border-blue-500/50"
-                        : "bg-purple-500/20 text-purple-400 border-purple-500/50"
+          {/* Potential Games */}
+          <div className="space-y-3">
+            <h2 className="text-sm font-bold text-white uppercase tracking-wide">
+              Potential Games
+            </h2>
+            {mockGames.map((game) => {
+              const allSelected = game.availableMembers.every((m) =>
+                game.selectedBy.includes(m)
+              );
+              return (
+                <div key={game.id} className="bg-[#1a1a1a] p-4 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="text-white font-bold">{game.location}</h3>
+                      <p className="text-gray-400 text-sm">
+                        {game.date} • {game.time} • ${game.price}
+                      </p>
+                    </div>
+                    {allSelected && (
+                      <span className="px-2 py-1 bg-[#39ff14]/10 border border-[#39ff14] text-[#39ff14] text-xs rounded font-bold">
+                        AUTO-JOIN
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Who can make it */}
+                  <div>
+                    <p className="text-[10px] uppercase text-gray-500 tracking-wide mb-2">
+                      Available Members ({game.availableMembers.length})
+                    </p>
+                    <div className="space-y-1">
+                      {game.availableMembers.map((member) => (
+                        <div key={member} className="flex items-center gap-2 text-sm">
+                          <div
+                            className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                              game.selectedBy.includes(member)
+                                ? "bg-[#39ff14] border-[#39ff14]"
+                                : "border-gray-600"
+                            }`}
+                          >
+                            {game.selectedBy.includes(member) && (
+                              <Check className="w-3 h-3 text-black" />
+                            )}
+                          </div>
+                          <span
+                            className={
+                              game.selectedBy.includes(member)
+                                ? "text-white"
+                                : "text-gray-500"
+                            }
+                          >
+                            {member}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Select button */}
+                  <button
+                    onClick={() => handleGameSelection(game.id)}
+                    className={`w-full py-2 rounded font-bold text-sm transition-colors ${
+                      game.selectedBy.includes("You")
+                        ? "bg-[#1a1a1a] border border-[#39ff14] text-[#39ff14]"
+                        : "bg-[#39ff14] text-black hover:bg-[#2de00f]"
                     }`}
                   >
-                    {group.skillMix} Skill Level
-                  </Badge>
-                  <span className="text-sm text-gray-400">
-                    {group.members.length} members
-                  </span>
+                    {game.selectedBy.includes("You") ? "Selected" : "Select Game"}
+                  </button>
                 </div>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-gray-400">Games Played</p>
-                <p className="text-lg text-[#39ff14] font-bold">{group.gamesPlayed}</p>
-              </div>
+              );
+            })}
+          </div>
+
+          {/* Group Chat */}
+          <div className="space-y-3">
+            <h2 className="text-sm font-bold text-white uppercase tracking-wide">
+              Group Chat
+            </h2>
+            <div className="bg-[#1a1a1a] p-4 space-y-3 max-h-64 overflow-y-auto">
+              {chatMessages.map((msg, idx) => (
+                <div key={idx} className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-white text-sm font-medium">{msg.user}</p>
+                    <span className="text-gray-600 text-xs">{msg.time}</span>
+                  </div>
+                  <p className="text-gray-300 text-sm">{msg.message}</p>
+                </div>
+              ))}
             </div>
 
-            {/* Members */}
-            <div className="mb-3">
-              <p className="text-xs text-gray-400 mb-2">Members</p>
-              <div className="flex flex-wrap gap-2">
-                {group.members.map((member, index) => (
-                  <Badge
-                    key={index}
-                    variant="outline"
-                    className="bg-[#0f0f0f] text-gray-300 border-gray-700"
-                  >
-                    {member}
-                  </Badge>
+            {/* Message Input */}
+            <div className="flex gap-2">
+              <Input
+                value={chatMessage}
+                onChange={(e) => setChatMessage(e.target.value)}
+                placeholder="Type a message..."
+                className="flex-1 bg-[#1a1a1a] border-[#2a2a2a] text-white"
+                onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+              />
+              <button
+                onClick={handleSendMessage}
+                className="px-4 py-2 bg-[#39ff14] text-black rounded hover:bg-[#2de00f] transition-colors"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <Navigation />
+      </div>
+    );
+  }
+
+  // Groups List View
+  return (
+    <div className="min-h-screen bg-[#0a0a0a] pb-20">
+      {/* Header */}
+      <div className="sticky top-0 z-10 bg-[#0a0a0a]/95 backdrop-blur-sm border-b border-[#1a1a1a] p-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg font-bold text-white">Groups</h1>
+          <Link href="/create">
+            <button className="p-2 bg-[#39ff14] text-black rounded-lg hover:bg-[#2de00f] transition-colors">
+              <Plus className="w-5 h-5" />
+            </button>
+          </Link>
+        </div>
+      </div>
+
+      <div className="p-4 space-y-4">
+        <p className="text-sm text-gray-400">
+          Manage your social groups and find games together
+        </p>
+
+        {mockGroups.map((group) => (
+          <button
+            key={group.id}
+            onClick={() => setSelectedGroup(group)}
+            className="w-full bg-[#1a1a1a] hover:bg-[#222222] transition-colors p-4 text-left"
+          >
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex-1">
+                <h3 className="text-white font-bold mb-1">{group.name}</h3>
+                <p className="text-gray-400 text-sm">
+                  {group.members.length} members • {group.skillMix} skill mix
+                </p>
+              </div>
+              <div className="flex -space-x-2">
+                {group.members.slice(0, 3).map((member, idx) => (
+                  <Avatar key={idx} className="w-8 h-8 border-2 border-[#0a0a0a]">
+                    <AvatarFallback className="bg-[#39ff14]/20 text-[#39ff14] text-xs">
+                      {member.name.split(" ").map((n) => n[0]).join("")}
+                    </AvatarFallback>
+                  </Avatar>
                 ))}
               </div>
             </div>
-
-            {/* Next Game */}
-            {group.nextGame && (
-              <div className="bg-[#39ff14]/10 border border-[#39ff14]/30 rounded-lg p-3 mb-3">
-                <div className="flex items-center gap-2 text-[#39ff14]">
-                  <Calendar className="w-4 h-4" />
-                  <span className="text-sm font-semibold">Next Game: {group.nextGame}</span>
-                </div>
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="flex gap-2">
-              <Button
-                onClick={() => handleFindMatch(group.name)}
-                className="flex-1 bg-[#39ff14]/10 text-[#39ff14] border border-[#39ff14]/50 hover:bg-[#39ff14]/20"
-              >
-                <Search className="w-4 h-4 mr-2" />
-                Find Match
-              </Button>
-              <Button
-                onClick={() => handleInviteMembers(group.name)}
-                className="flex-1 bg-[#00d9ff]/10 text-[#00d9ff] border border-[#00d9ff]/50 hover:bg-[#00d9ff]/20"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Invite
-              </Button>
-            </div>
-          </Card>
+          </button>
         ))}
       </div>
-
-      {/* Empty State */}
-      {filteredGroups.length === 0 && (
-        <div className="px-4 py-12 text-center">
-          <Users className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-          <h3 className="text-white font-semibold mb-2">No groups found</h3>
-          <p className="text-gray-400 text-sm mb-4">
-            Create a group to play with your friends
-          </p>
-          <Button
-            onClick={() => setIsCreateDialogOpen(true)}
-            className="bg-[#39ff14] text-black hover:bg-[#39ff14]/90"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Create Your First Group
-          </Button>
-        </div>
-      )}
 
       <Navigation />
     </div>

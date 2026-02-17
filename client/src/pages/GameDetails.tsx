@@ -32,19 +32,20 @@ const mockGameDetails = {
   date: "Feb 15, 2026",
   time: "7:00 PM",
   duration: "90 min",
-  skillLevel: "Intermediate" as const,
+  skillLevel: null, // Hybrid room
+  isHybrid: true,
   playersJoined: 7,
   maxPlayers: 10,
   price: 15,
   privacy: "Public",
   players: [
-    { id: "1", name: "Alex Chen", tags: ["Reliable", "Forward"] },
-    { id: "2", name: "Jordan Smith", tags: ["Midfielder", "Punctual"] },
-    { id: "3", name: "Sam Rivera", tags: ["Defender"] },
-    { id: "4", name: "Taylor Kim", tags: ["Goalkeeper", "Reliable"] },
-    { id: "5", name: "Morgan Lee", tags: ["Forward"] },
-    { id: "6", name: "Casey Park", tags: ["Midfielder"] },
-    { id: "7", name: "Riley Johnson", tags: ["Defender", "Reliable"] },
+    { id: "1", name: "Alex Chen", skillLevel: "Intermediate" as const, tags: ["Reliable", "Forward"] },
+    { id: "2", name: "Jordan Smith", skillLevel: "Advanced" as const, tags: ["Midfielder", "Punctual"] },
+    { id: "3", name: "Sam Rivera", skillLevel: "Intermediate" as const, tags: ["Defender"] },
+    { id: "4", name: "Taylor Kim", skillLevel: "Beginner" as const, tags: ["Goalkeeper", "Reliable"] },
+    { id: "5", name: "Morgan Lee", skillLevel: "Advanced" as const, tags: ["Forward"] },
+    { id: "6", name: "Casey Park", skillLevel: "Intermediate" as const, tags: ["Midfielder"] },
+    { id: "7", name: "Riley Johnson", skillLevel: "Beginner" as const, tags: ["Defender", "Reliable"] },
   ],
   chat: [
     { id: "1", user: "Alex Chen", message: "Looking forward to this!", time: "2h ago" },
@@ -134,7 +135,11 @@ export default function GameDetails() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-[10px] uppercase text-gray-500 tracking-wide mb-1">Skill Level</p>
-              <SkillBadge level={game.skillLevel} />
+              {game.isHybrid ? (
+                <span className="text-[#00d9ff] font-bold text-sm">HYBRID • No Restrictions</span>
+              ) : (
+                <SkillBadge level={game.skillLevel!} />
+              )}
             </div>
             <div>
               <p className="text-[10px] uppercase text-gray-500 tracking-wide mb-1">Price</p>
@@ -188,7 +193,12 @@ export default function GameDetails() {
                 </Avatar>
                 
                 <div className="flex-1 min-w-0">
-                  <p className="text-white font-medium text-sm">{player.name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-white font-medium text-sm">{player.name}</p>
+                    {game.isHybrid && player.skillLevel && (
+                      <SkillBadge level={player.skillLevel} />
+                    )}
+                  </div>
                   <div className="flex flex-wrap gap-1.5 mt-1">
                     {player.tags.map((tag) => {
                       const Icon = getTagIcon(tag);
