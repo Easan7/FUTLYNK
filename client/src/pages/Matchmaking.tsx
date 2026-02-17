@@ -1,20 +1,15 @@
 /**
- * Matchmaking/Search Page - Cyberpunk Athleticism Design
- * Search for suitable games based on location, time, and skill bands
- * Shows match quality indicators (Best Match, Good Match, Less Suitable)
- * Enhanced with glassmorphism and modern card designs
+ * Matchmaking/Search Page - Unique Design
+ * Clean search interface with minimal match quality indicators
  */
 
 import { useState } from "react";
 import { Link } from "wouter";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, MapPin, Calendar, Clock, Users, Star, TrendingUp, CheckCircle2, Sparkles } from "lucide-react";
-import Navigation from "@/components/Navigation";
+import CircularProgress from "@/components/CircularProgress";
 import SkillBadge from "@/components/SkillBadge";
+import { Search, MapPin, Clock, DollarSign, Zap } from "lucide-react";
+import Navigation from "@/components/Navigation";
 import { toast } from "sonner";
 
 interface MatchResult {
@@ -36,7 +31,6 @@ export default function Matchmaking() {
   const [showResults, setShowResults] = useState(false);
   const [location, setLocation] = useState("");
   const [preferredTime, setPreferredTime] = useState("evening");
-  const [skillLevel, setSkillLevel] = useState("intermediate");
 
   const [matchResults] = useState<MatchResult[]>([
     {
@@ -82,202 +76,180 @@ export default function Matchmaking() {
 
   const handleSearch = () => {
     setIsSearching(true);
-    toast.info("Searching for suitable games...");
     setTimeout(() => {
       setIsSearching(false);
       setShowResults(true);
-      toast.success(`Found ${matchResults.length} suitable games!`);
+      toast.success("Found 3 matches!");
     }, 1500);
   };
 
-  const getMatchQualityConfig = (quality: string) => {
-    switch (quality) {
-      case "best":
-        return {
-          label: "Best Match",
-          icon: Star,
-          gradient: "from-[#39ff14] to-[#00d9ff]",
-          glow: "shadow-[0_0_20px_rgba(57,255,20,0.3)]",
-        };
-      case "good":
-        return {
-          label: "Good Match",
-          icon: TrendingUp,
-          gradient: "from-[#00d9ff] to-[#0099ff]",
-          glow: "shadow-[0_0_15px_rgba(0,217,255,0.2)]",
-        };
-      case "less-suitable":
-        return {
-          label: "Less Balanced",
-          icon: CheckCircle2,
-          gradient: "from-yellow-400 to-orange-400",
-          glow: "shadow-[0_0_10px_rgba(251,191,36,0.2)]",
-        };
-      default:
-        return {
-          label: "Match",
-          icon: CheckCircle2,
-          gradient: "from-gray-400 to-gray-500",
-          glow: "",
-        };
-    }
+  const getMatchQualityLabel = (quality: string) => {
+    const labels = {
+      "best": "Best Match",
+      "good": "Good Match",
+      "less-suitable": "Less Balanced",
+    };
+    return labels[quality as keyof typeof labels];
+  };
+
+  const getMatchQualityColor = (quality: string) => {
+    const colors = {
+      "best": "text-[#39ff14]",
+      "good": "text-[#00d9ff]",
+      "less-suitable": "text-gray-500",
+    };
+    return colors[quality as keyof typeof colors];
   };
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] pb-20">
-      {/* Header */}
-      <div className="bg-gradient-to-b from-[#0f0f0f] to-[#0a0a0a] border-b border-[#39ff14]/20 p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Sparkles className="w-6 h-6 text-[#39ff14]" />
-          <h1 className="text-2xl font-bold text-white">Find a Game</h1>
+      {/* Hero */}
+      <div className="relative h-64 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0a0a0a]" />
+        <img
+          src="https://cdn.manus.space/file/manus-cdn/futlynk/hero-futsal-night.png"
+          alt="Futsal court"
+          className="w-full h-full object-cover opacity-30"
+        />
+        <div className="absolute inset-0 flex flex-col justify-end p-6">
+          <h1 className="text-4xl font-bold text-white mb-2">
+            Find Your
+            <br />
+            <span className="text-[#39ff14]">Perfect Match</span>
+          </h1>
+          <p className="text-gray-400 text-sm">
+            Search for games based on location, time, and skill level
+          </p>
         </div>
-        <p className="text-sm text-gray-400">
-          Search for games based on your preferences
-        </p>
       </div>
 
-      {/* Search Form */}
-      <div className="p-4 space-y-4">
-        {/* Glassmorphism Search Card */}
-        <div className="relative overflow-hidden rounded-2xl border border-[#39ff14]/30 bg-gradient-to-br from-[#1a1a1a]/80 to-[#0f0f0f]/80 backdrop-blur-xl p-6 shadow-[0_8px_32px_rgba(57,255,20,0.1)]">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#39ff14]/5 to-[#00d9ff]/5" />
-          <div className="relative space-y-4">
-            {/* Location Input */}
-            <div>
-              <label className="text-sm font-semibold text-gray-300 mb-2 block">Location</label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#39ff14]" />
-                <Input
-                  type="text"
-                  placeholder="Enter your location"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="pl-11 bg-[#0a0a0a]/50 border-[#39ff14]/30 text-white placeholder:text-gray-500 focus:border-[#39ff14] transition-all"
-                />
-              </div>
-            </div>
-
-            {/* Time & Skill Selects */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm font-semibold text-gray-300 mb-2 block">Time</label>
-                <Select value={preferredTime} onValueChange={setPreferredTime}>
-                  <SelectTrigger className="bg-[#0a0a0a]/50 border-[#39ff14]/30 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="morning">Morning</SelectItem>
-                    <SelectItem value="afternoon">Afternoon</SelectItem>
-                    <SelectItem value="evening">Evening</SelectItem>
-                    <SelectItem value="night">Night</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="text-sm font-semibold text-gray-300 mb-2 block">Skill Level</label>
-                <Select value={skillLevel} onValueChange={setSkillLevel}>
-                  <SelectTrigger className="bg-[#0a0a0a]/50 border-[#39ff14]/30 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="beginner">Beginner</SelectItem>
-                    <SelectItem value="intermediate">Intermediate</SelectItem>
-                    <SelectItem value="advanced">Advanced</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Search Button */}
-            <Button
-              onClick={handleSearch}
-              disabled={isSearching}
-              className="w-full bg-gradient-to-r from-[#39ff14] to-[#00d9ff] text-black font-bold py-6 text-lg hover:opacity-90 transition-all shadow-[0_0_20px_rgba(57,255,20,0.3)] hover:shadow-[0_0_30px_rgba(57,255,20,0.5)]"
-            >
-              {isSearching ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                  Searching...
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Search className="w-5 h-5" />
-                  Search Games
-                </div>
-              )}
-            </Button>
+      <div className="p-4 space-y-6">
+        {/* Search Form - Minimal */}
+        <div className="space-y-3">
+          <div>
+            <label className="text-[10px] uppercase text-gray-500 tracking-wide mb-2 block">
+              Location
+            </label>
+            <Input
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="Enter your location"
+              className="bg-[#1a1a1a] border-[#2a2a2a] text-white"
+            />
           </div>
+
+          <div>
+            <label className="text-[10px] uppercase text-gray-500 tracking-wide mb-2 block">
+              Preferred Time
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {["morning", "afternoon", "evening"].map((time) => (
+                <button
+                  key={time}
+                  onClick={() => setPreferredTime(time)}
+                  className={`py-2 text-sm font-medium capitalize transition-colors ${
+                    preferredTime === time
+                      ? "bg-[#39ff14] text-black"
+                      : "bg-[#1a1a1a] text-gray-400 hover:bg-[#222222]"
+                  }`}
+                >
+                  {time}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button
+            onClick={handleSearch}
+            disabled={isSearching}
+            className="w-full bg-gradient-to-r from-[#39ff14] to-[#00d9ff] text-black font-bold py-4 rounded-lg flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {isSearching ? (
+              <>
+                <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                Searching...
+              </>
+            ) : (
+              <>
+                <Search className="w-5 h-5" />
+                Search Games
+              </>
+            )}
+          </button>
         </div>
 
         {/* Results */}
         {showResults && (
-          <div className="space-y-3">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-[#39ff14]" />
-              {matchResults.length} Games Found
-            </h2>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-white">Match Results</h2>
+              <span className="text-sm text-gray-500">{matchResults.length} found</span>
+            </div>
 
-            {matchResults.map((match) => {
-              const qualityConfig = getMatchQualityConfig(match.matchQuality);
-              const QualityIcon = qualityConfig.icon;
+            {matchResults.map((match) => (
+              <Link key={match.id} href={`/game/${match.id}`}>
+                <div className="group bg-[#1a1a1a] hover:bg-[#222222] transition-colors overflow-hidden">
+                  {/* Diagonal cut */}
+                  <div
+                    className="absolute top-0 right-0 w-12 h-12 bg-[#0a0a0a]"
+                    style={{ clipPath: "polygon(100% 0, 100% 100%, 0 0)" }}
+                  />
 
-              return (
-                <Link key={match.id} href={`/game/${match.id}`}>
-                  <div className="group relative overflow-hidden rounded-2xl border-2 border-transparent bg-gradient-to-br from-[#1a1a1a] to-[#0f0f0f] p-5 transition-all duration-300 hover:scale-[1.02] hover:border-[#39ff14]/50 hover:shadow-[0_8px_32px_rgba(57,255,20,0.2)]">
-                    {/* Gradient Border Effect */}
-                    <div className={`absolute inset-0 bg-gradient-to-r ${qualityConfig.gradient} opacity-0 group-hover:opacity-10 transition-opacity rounded-2xl`} />
-                    
-                    {/* Match Quality Badge */}
-                    <div className="absolute top-4 right-4">
-                      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r ${qualityConfig.gradient} ${qualityConfig.glow}`}>
-                        <QualityIcon className="w-4 h-4 text-black" />
-                        <span className="text-xs font-bold text-black">{qualityConfig.label}</span>
+                  <div className="p-5 space-y-4">
+                    {/* Header */}
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`text-xs font-bold ${getMatchQualityColor(match.matchQuality)}`}>
+                            {getMatchQualityLabel(match.matchQuality)}
+                          </span>
+                        </div>
+                        <h3 className="text-white font-bold mb-1">{match.location}</h3>
+                        <div className="flex items-center gap-3 text-sm text-gray-400">
+                          <span className="flex items-center gap-1">
+                            <MapPin className="w-3.5 h-3.5" />
+                            {match.distance}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5" />
+                            {match.time}
+                          </span>
+                        </div>
                       </div>
+
+                      <CircularProgress
+                        value={match.playersJoined}
+                        max={match.maxPlayers}
+                        size={64}
+                        strokeWidth={5}
+                        color="#39ff14"
+                      />
                     </div>
 
-                    {/* Content */}
-                    <div className="relative space-y-3">
-                      <div>
-                        <h3 className="text-lg font-bold text-white mb-1">{match.location}</h3>
-                        <div className="flex items-center gap-2 text-sm text-gray-400">
-                          <MapPin className="w-4 h-4 text-[#39ff14]" />
-                          <span>{match.address}</span>
-                          <span className="text-[#00d9ff]">• {match.distance}</span>
+                    {/* Footer */}
+                    <div className="flex items-center justify-between pt-3 border-t border-[#2a2a2a]">
+                      <div className="flex items-center gap-3">
+                        <SkillBadge level={match.skillLevel} />
+                        <div className="flex items-center gap-1 text-white">
+                          <DollarSign className="w-4 h-4" />
+                          <span className="font-bold">{match.price}</span>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="w-4 h-4 text-[#39ff14]" />
-                          <span className="text-gray-300">{match.date}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <Clock className="w-4 h-4 text-[#00d9ff]" />
-                          <span className="text-gray-300">{match.time}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-2 border-t border-[#39ff14]/10">
-                        <div className="flex items-center gap-3">
-                          <SkillBadge level={match.skillLevel} />
-                          <div className="flex items-center gap-1.5 text-sm">
-                            <Users className="w-4 h-4 text-[#39ff14]" />
-                            <span className="text-white font-semibold">
-                              {match.playersJoined}/{match.maxPlayers}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-bold text-[#39ff14]">${match.price}</p>
-                          <p className="text-xs text-gray-400">per player</p>
-                        </div>
-                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          toast.success(`Joined ${match.location}!`);
+                        }}
+                        className="px-4 py-2 bg-[#39ff14] text-black font-bold text-sm rounded hover:bg-[#2de00f] transition-colors"
+                      >
+                        Join
+                      </button>
                     </div>
                   </div>
-                </Link>
-              );
-            })}
+                </div>
+              </Link>
+            ))}
           </div>
         )}
       </div>

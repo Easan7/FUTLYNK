@@ -1,6 +1,6 @@
 /*
- * SkillBadge Component - Cyberpunk Athleticism
- * Hexagonal badge design with neon glow for skill ratings
+ * SkillBadge Component - Minimal outlined design
+ * Simple border-only badges with color-coded text
  */
 
 import { cn } from "@/lib/utils";
@@ -14,20 +14,19 @@ interface SkillBadgeProps {
 
 export default function SkillBadge({ level, className }: SkillBadgeProps) {
   const styles = {
-    Beginner: "bg-neon-green/10 text-neon-green border-neon-green/30",
-    Intermediate: "bg-neon-cyan/10 text-neon-cyan border-neon-cyan/30",
-    Advanced: "bg-primary/10 text-primary border-primary/30",
+    Beginner: "border-green-500 text-green-400",
+    Intermediate: "border-cyan-500 text-cyan-400",
+    Advanced: "border-purple-500 text-purple-400",
   };
 
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border-2 font-accent text-xs font-semibold uppercase tracking-wider transition-all duration-300 hover:scale-105",
+        "inline-flex items-center px-2.5 py-1 rounded-full border text-xs font-medium",
         styles[level],
         className
       )}
     >
-      <div className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
       {level}
     </div>
   );
