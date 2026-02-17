@@ -107,9 +107,9 @@ export default function Matchmaking() {
       <div className="relative h-64 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0a0a0a]" />
         <img
-          src="https://cdn.manus.space/file/manus-cdn/futlynk/hero-futsal-night.png"
+          src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663303543939/MhFZtOWemtNHloyp.png"
           alt="Futsal court"
-          className="w-full h-full object-cover opacity-30"
+          className="w-full h-full object-cover opacity-40"
         />
         <div className="absolute inset-0 flex flex-col justify-end p-6">
           <h1 className="text-4xl font-bold text-white mb-2">

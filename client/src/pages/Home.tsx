@@ -27,6 +27,7 @@ const mockGames = [
     playersJoined: 7,
     maxPlayers: 10,
     price: 15,
+    image: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663303543939/gLLDOgmqndStjyEo.jpg",
   },
   {
     id: "2",
@@ -38,6 +39,7 @@ const mockGames = [
     playersJoined: 6,
     maxPlayers: 10,
     price: 18,
+    image: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663303543939/uNnFSoijICHNUQNu.jpg",
   },
   {
     id: "3",
@@ -49,6 +51,7 @@ const mockGames = [
     playersJoined: 5,
     maxPlayers: 10,
     price: 15,
+    image: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663303543939/BktaWaAqlbOUciNY.jpg",
   },
 ];
 
@@ -105,7 +108,7 @@ export default function Home() {
       </div>
 
       {/* Nearby Games */}
-      <div className="px-4 space-y-3">
+      <div className="px-4 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-white">Nearby Games</h2>
           <span className="text-sm text-gray-500">{mockGames.length} available</span>
@@ -115,9 +118,9 @@ export default function Home() {
           <Link key={game.id} href={`/game/${game.id}`}>
             <div className="group bg-[#1a1a1a] hover:bg-[#222222] transition-colors relative overflow-hidden">
               {/* Background image with dark overlay */}
-              <div className="absolute inset-0 opacity-10">
+              <div className="absolute inset-0 opacity-15">
                 <img
-                  src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663303543939/MhFZtOWemtNHloyp.png"
+                  src={game.image}
                   alt=""
                   className="w-full h-full object-cover"
                 />
