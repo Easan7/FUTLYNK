@@ -55,10 +55,26 @@ const mockGameDetails = {
 
 export default function GameDetails() {
   const [, params] = useRoute("/game/:id");
+  const game = mockGameDetails;
+  
   const [message, setMessage] = useState("");
   const [isJoined, setIsJoined] = useState(false);
+  const [chatMessages, setChatMessages] = useState(game.chat);
 
-  const game = mockGameDetails;
+  const thresholdPercentage = (game.playersJoined / game.maxPlayers) * 100;
+  const isThresholdMet = thresholdPercentage >= 80;
+
+  const handleSendMessage = () => {
+    if (message.trim()) {
+      setChatMessages([...chatMessages, {
+        id: String(chatMessages.length + 1),
+        user: "You",
+        message: message,
+        time: "Just now"
+      }]);
+      setMessage("");
+    }
+  };
   const teamA = game.players.filter((p) => p.team === "A");
   const teamB = game.players.filter((p) => p.team === "B");
 
@@ -161,6 +177,29 @@ export default function GameDetails() {
             </div>
           </div>
 
+          {/* Threshold Progress */}
+          <div className="bg-gradient-to-r from-neon-green/10 to-neon-cyan/10 border border-neon-green/20 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-semibold text-foreground">Confirmation Threshold</span>
+              <span className="text-sm font-bold text-neon-green">{Math.round(thresholdPercentage)}%</span>
+            </div>
+            <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
+              <div
+                className={`h-full transition-all duration-500 ${
+                  isThresholdMet
+                    ? "bg-gradient-to-r from-neon-green to-neon-cyan"
+                    : "bg-gradient-to-r from-yellow-500 to-orange-500"
+                }`}
+                style={{ width: `${thresholdPercentage}%` }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              {isThresholdMet
+                ? "✓ Game confirmed! Payment will be collected."
+                : `Need ${Math.ceil(game.maxPlayers * 0.8) - game.playersJoined} more players to confirm`}
+            </p>
+          </div>
+
           {/* Countdown Timer */}
           <div className="bg-gradient-to-r from-neon-green/10 to-neon-cyan/10 border border-neon-green/20 rounded-xl p-4 text-center">
             <div className="text-sm text-muted-foreground mb-1">Game starts in</div>
@@ -242,7 +281,7 @@ export default function GameDetails() {
 
           <TabsContent value="chat" className="space-y-4 mt-4">
             <div className="bg-card border-2 border-border rounded-xl p-4 space-y-4 h-[300px] overflow-y-auto">
-              {game.chat.map((msg) => (
+              {chatMessages.map((msg) => (
                 <div key={msg.id} className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-neon-green">{msg.user}</span>
@@ -259,9 +298,14 @@ export default function GameDetails() {
                 placeholder="Type a message..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                 className="flex-1 bg-muted border-border"
               />
-              <Button size="icon" className="bg-primary hover:bg-primary/90">
+              <Button
+                size="icon"
+                className="bg-primary hover:bg-primary/90"
+                onClick={handleSendMessage}
+              >
                 <Send className="w-4 h-4" />
               </Button>
             </div>

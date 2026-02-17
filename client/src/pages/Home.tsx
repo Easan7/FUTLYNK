@@ -7,7 +7,9 @@ import { useState } from "react";
 import Navigation from "@/components/Navigation";
 import GameCard, { Game } from "@/components/GameCard";
 import { Button } from "@/components/ui/button";
-import { Filter, MapIcon, Grid3x3 } from "lucide-react";
+import { Filter, MapIcon, Grid3x3, Zap } from "lucide-react";
+import { toast } from "sonner";
+import { Link } from "wouter";
 import {
   Select,
   SelectContent,
@@ -74,6 +76,21 @@ export default function Home() {
   const [viewMode, setViewMode] = useState<"grid" | "map">("grid");
   const [skillFilter, setSkillFilter] = useState<string>("all");
   const [distanceFilter, setDistanceFilter] = useState<string>("all");
+
+  const handleQuickJoin = (gameId: string, location: string) => {
+    toast.success(`Joined game at ${location}!`, {
+      description: "You'll receive a confirmation email shortly."
+    });
+  };
+
+  const handleViewMap = () => {
+    if (viewMode === "grid") {
+      setViewMode("map");
+      toast.info("Map view coming soon!");
+    } else {
+      setViewMode("grid");
+    }
+  };
 
   const filteredGames = mockGames.filter((game) => {
     if (skillFilter !== "all" && game.skillLevel !== skillFilter) return false;
@@ -156,11 +173,22 @@ export default function Home() {
                 size="sm"
                 variant={viewMode === "map" ? "default" : "ghost"}
                 className={`h-8 px-3 ${viewMode === "map" ? "bg-primary text-primary-foreground" : ""}`}
-                onClick={() => setViewMode("map")}
+                onClick={handleViewMap}
               >
                 <MapIcon className="w-4 h-4" />
               </Button>
             </div>
+
+            {/* Quick Match Button */}
+            <Link href="/matchmaking">
+              <Button
+                size="sm"
+                className="h-8 bg-gradient-to-r from-neon-green to-neon-cyan text-black font-semibold hover:opacity-90 whitespace-nowrap"
+              >
+                <Zap className="w-4 h-4 mr-1" />
+                Quick Match
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
