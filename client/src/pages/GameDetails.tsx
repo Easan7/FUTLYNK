@@ -1,6 +1,7 @@
 /**
  * Game Details Page - Unique Design
  * Minimal player list with outlined tags, circular progress, clean layout
+ * Shows chat for joined games, hides skill badges in non-hybrid rooms
  */
 
 import { useState } from "react";
@@ -24,34 +25,87 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-// Mock data
-const mockGameDetails = {
-  id: "1",
-  location: "Downtown Sports Arena",
-  address: "123 Main Street, Downtown",
-  date: "Feb 15, 2026",
-  time: "7:00 PM",
-  duration: "90 min",
-  skillLevel: null, // Hybrid room
-  isHybrid: true,
-  playersJoined: 7,
-  maxPlayers: 10,
-  price: 15,
-  privacy: "Public",
-  players: [
-    { id: "1", name: "Alex Chen", skillLevel: "Intermediate" as const, tags: ["Reliable", "Forward"] },
-    { id: "2", name: "Jordan Smith", skillLevel: "Advanced" as const, tags: ["Midfielder", "Punctual"] },
-    { id: "3", name: "Sam Rivera", skillLevel: "Intermediate" as const, tags: ["Defender"] },
-    { id: "4", name: "Taylor Kim", skillLevel: "Beginner" as const, tags: ["Goalkeeper", "Reliable"] },
-    { id: "5", name: "Morgan Lee", skillLevel: "Advanced" as const, tags: ["Forward"] },
-    { id: "6", name: "Casey Park", skillLevel: "Intermediate" as const, tags: ["Midfielder"] },
-    { id: "7", name: "Riley Johnson", skillLevel: "Beginner" as const, tags: ["Defender", "Reliable"] },
-  ],
-  chat: [
-    { id: "1", user: "Alex Chen", message: "Looking forward to this!", time: "2h ago" },
-    { id: "2", user: "Jordan Smith", message: "Anyone bringing extra water?", time: "1h ago" },
-    { id: "3", user: "Sam Rivera", message: "I got you covered!", time: "45m ago" },
-  ],
+// Mock data - Game 1 is Intermediate only (user joined), Game 2 is Hybrid (user joined)
+const mockGames: Record<string, any> = {
+  "1": {
+    id: "1",
+    location: "Downtown Sports Arena",
+    address: "123 Main Street, Downtown",
+    date: "Feb 15, 2026",
+    time: "7:00 PM",
+    duration: "90 min",
+    skillLevel: "Intermediate",
+    isHybrid: false,
+    playersJoined: 7,
+    maxPlayers: 10,
+    price: 15,
+    privacy: "Public",
+    userJoined: true, // User has joined this game
+    players: [
+      { id: "1", name: "Alex Chen", skillLevel: "Intermediate" as const, tags: ["Reliable", "Forward"] },
+      { id: "2", name: "Jordan Smith", skillLevel: "Intermediate" as const, tags: ["Midfielder", "Punctual"] },
+      { id: "3", name: "Sam Rivera", skillLevel: "Intermediate" as const, tags: ["Defender"] },
+      { id: "4", name: "Taylor Kim", skillLevel: "Intermediate" as const, tags: ["Goalkeeper", "Reliable"] },
+      { id: "5", name: "Morgan Lee", skillLevel: "Intermediate" as const, tags: ["Forward"] },
+      { id: "6", name: "Casey Park", skillLevel: "Intermediate" as const, tags: ["Midfielder"] },
+      { id: "7", name: "Riley Johnson", skillLevel: "Intermediate" as const, tags: ["Defender", "Reliable"] },
+    ],
+    chat: [
+      { id: "1", user: "Alex Chen", message: "Looking forward to this!", time: "2h ago" },
+      { id: "2", user: "Jordan Smith", message: "Anyone bringing extra water?", time: "1h ago" },
+      { id: "3", user: "Sam Rivera", message: "I got you covered!", time: "45m ago" },
+    ],
+  },
+  "2": {
+    id: "2",
+    location: "Metro Futsal Complex",
+    address: "456 Metro Avenue",
+    date: "Feb 17, 2026",
+    time: "8:00 PM",
+    duration: "90 min",
+    skillLevel: null,
+    isHybrid: true,
+    playersJoined: 6,
+    maxPlayers: 10,
+    price: 18,
+    privacy: "Public",
+    userJoined: true, // User has joined this game
+    players: [
+      { id: "1", name: "Alex Chen", skillLevel: "Intermediate" as const, tags: ["Reliable", "Forward"] },
+      { id: "2", name: "Jordan Smith", skillLevel: "Advanced" as const, tags: ["Midfielder", "Punctual"] },
+      { id: "3", name: "Sam Rivera", skillLevel: "Intermediate" as const, tags: ["Defender"] },
+      { id: "4", name: "Taylor Kim", skillLevel: "Beginner" as const, tags: ["Goalkeeper", "Reliable"] },
+      { id: "5", name: "Morgan Lee", skillLevel: "Advanced" as const, tags: ["Forward"] },
+      { id: "6", name: "Casey Park", skillLevel: "Intermediate" as const, tags: ["Midfielder"] },
+    ],
+    chat: [
+      { id: "1", user: "Alex Chen", message: "See you there!", time: "3h ago" },
+      { id: "2", user: "Jordan Smith", message: "Can't wait!", time: "2h ago" },
+    ],
+  },
+  "3": {
+    id: "3",
+    location: "Westgate Indoor Sports",
+    address: "789 West Road",
+    date: "Feb 18, 2026",
+    time: "7:30 PM",
+    duration: "90 min",
+    skillLevel: "Intermediate",
+    isHybrid: false,
+    playersJoined: 5,
+    maxPlayers: 10,
+    price: 15,
+    privacy: "Public",
+    userJoined: false, // User has NOT joined
+    players: [
+      { id: "1", name: "Chris Wong", skillLevel: "Intermediate" as const, tags: ["Forward"] },
+      { id: "2", name: "Pat Lee", skillLevel: "Intermediate" as const, tags: ["Midfielder"] },
+      { id: "3", name: "Jamie Tan", skillLevel: "Intermediate" as const, tags: ["Defender", "Reliable"] },
+      { id: "4", name: "Drew Kim", skillLevel: "Intermediate" as const, tags: ["Goalkeeper"] },
+      { id: "5", name: "Avery Chen", skillLevel: "Intermediate" as const, tags: ["Forward", "Punctual"] },
+    ],
+    chat: [],
+  },
 };
 
 const getTagIcon = (tag: string) => {
@@ -68,10 +122,11 @@ const getTagIcon = (tag: string) => {
 
 export default function GameDetails() {
   const [, params] = useRoute("/game/:id");
-  const game = mockGameDetails;
+  const gameId = params?.id || "1";
+  const game = mockGames[gameId] || mockGames["1"];
   
   const [message, setMessage] = useState("");
-  const [isJoined, setIsJoined] = useState(false);
+  const [isJoined, setIsJoined] = useState(game.userJoined || false);
   const [chatMessages, setChatMessages] = useState(game.chat);
 
   const thresholdPercentage = (game.playersJoined / game.maxPlayers) * 100;
@@ -101,106 +156,122 @@ export default function GameDetails() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] pb-24">
+    <div className="min-h-screen bg-[#0a0a0a] pb-20">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-[#0a0a0a]/95 backdrop-blur-sm border-b border-[#1a1a1a] p-4">
-        <div className="flex items-center gap-3">
-          <Link href="/">
-            <button className="p-2 hover:bg-[#1a1a1a] rounded-lg transition-colors">
-              <ArrowLeft className="w-5 h-5 text-white" />
-            </button>
-          </Link>
-          <div className="flex-1">
-            <h1 className="text-lg font-bold text-white">{game.location}</h1>
-            <p className="text-xs text-gray-500">{game.address}</p>
-          </div>
-        </div>
+        <Link href="/">
+          <button className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
+            <ArrowLeft className="w-5 h-5" />
+            <span className="text-sm font-medium">Back</span>
+          </button>
+        </Link>
       </div>
 
       <div className="p-4 space-y-6">
-        {/* Game Info - Large numbers style */}
+        {/* Game Info - Minimal */}
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-[10px] uppercase text-gray-500 tracking-wide mb-1">Date & Time</p>
-              <p className="text-white font-bold">{game.date}</p>
-              <p className="text-gray-400 text-sm">{game.time}</p>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <h1 className="text-2xl font-bold text-white mb-2">{game.location}</h1>
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 text-gray-400 text-sm">
+                  <MapPin className="w-4 h-4" />
+                  <span>{game.address}</span>
+                </div>
+                <div className="flex items-center gap-2 text-gray-400 text-sm">
+                  <Calendar className="w-4 h-4" />
+                  <span>{game.date}</span>
+                </div>
+                <div className="flex items-center gap-2 text-gray-400 text-sm">
+                  <Clock className="w-4 h-4" />
+                  <span>{game.time} • {game.duration}</span>
+                </div>
+                <div className="flex items-center gap-2 text-gray-400 text-sm">
+                  <DollarSign className="w-4 h-4" />
+                  <span className="font-bold">${game.price} per player</span>
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="text-[10px] uppercase text-gray-500 tracking-wide mb-1">Duration</p>
-              <p className="text-white font-bold text-2xl">{game.duration}</p>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-[10px] uppercase text-gray-500 tracking-wide mb-1">Skill Level</p>
-              {game.isHybrid ? (
-                <span className="text-[#00d9ff] font-bold text-sm">HYBRID • No Restrictions</span>
-              ) : (
-                <SkillBadge level={game.skillLevel!} />
-              )}
-            </div>
-            <div>
-              <p className="text-[10px] uppercase text-gray-500 tracking-wide mb-1">Price</p>
-              <p className="text-[#39ff14] font-bold text-2xl">${game.price}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Threshold Progress - Minimal */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] uppercase text-gray-500 tracking-wide">Confirmation Status</p>
-            <p className="text-sm font-bold text-white">{Math.round(thresholdPercentage)}%</p>
-          </div>
-          <div className="h-1 bg-[#1a1a1a] rounded-full overflow-hidden">
-            <div
-              className={`h-full transition-all duration-500 ${
-                isThresholdMet ? "bg-[#39ff14]" : "bg-gray-600"
-              }`}
-              style={{ width: `${thresholdPercentage}%` }}
-            />
-          </div>
-          {isThresholdMet && (
-            <p className="text-xs text-[#39ff14]">✓ Game confirmed</p>
-          )}
-        </div>
-
-        {/* Players - Clean list with outlined tags */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-white">Players</h2>
+            {/* Circular Progress */}
             <CircularProgress
               value={game.playersJoined}
               max={game.maxPlayers}
-              size={48}
-              strokeWidth={4}
-              color="#39ff14"
+              size={80}
+              strokeWidth={6}
             />
           </div>
 
+          {/* Skill Level Badge */}
+          <div className="flex items-center gap-3">
+            {game.isHybrid ? (
+              <div className="px-4 py-2 bg-cyan-500/20 border border-cyan-500/50 rounded-lg text-sm text-cyan-400 font-bold uppercase">
+                HYBRID • No Restrictions
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 uppercase tracking-wide">Skill Level</span>
+                <SkillBadge level={game.skillLevel} />
+              </div>
+            )}
+          </div>
+
+          {/* Threshold Confirmation Progress */}
           <div className="space-y-2">
-            {game.players.map((player) => (
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-500 uppercase tracking-wide">Game Confirmation</span>
+              <span className={`font-bold ${isThresholdMet ? "text-[#39ff14]" : "text-gray-500"}`}>
+                {Math.round(thresholdPercentage)}% confirmed
+              </span>
+            </div>
+            <div className="h-2 bg-[#1a1a1a] rounded-full overflow-hidden">
+              <div
+                className={`h-full transition-all duration-500 ${
+                  isThresholdMet ? "bg-[#39ff14]" : "bg-gray-700"
+                }`}
+                style={{ width: `${thresholdPercentage}%` }}
+              />
+            </div>
+            <p className="text-[10px] text-gray-600">
+              {isThresholdMet
+                ? "✓ Game confirmed! Minimum players reached."
+                : `Need ${Math.ceil(game.maxPlayers * 0.8) - game.playersJoined} more ${
+                    Math.ceil(game.maxPlayers * 0.8) - game.playersJoined === 1 ? "player" : "players"
+                  } to confirm.`}
+            </p>
+          </div>
+        </div>
+
+        {/* Player List */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-white uppercase tracking-wide">
+              Players ({game.playersJoined}/{game.maxPlayers})
+            </h2>
+          </div>
+
+          <div className="space-y-2">
+            {game.players.map((player: any) => (
               <div
                 key={player.id}
                 className="flex items-center gap-3 p-3 bg-[#1a1a1a] hover:bg-[#222222] transition-colors"
               >
                 <Avatar className="w-10 h-10 border border-[#2a2a2a]">
                   <AvatarFallback className="bg-[#0f0f0f] text-white text-sm font-bold">
-                    {player.name.split(" ").map((n) => n[0]).join("")}
+                    {player.name.split(" ").map((n: string) => n[0]).join("")}
                   </AvatarFallback>
                 </Avatar>
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-white font-medium text-sm">{player.name}</p>
+                    {/* Only show skill badge in hybrid rooms */}
                     {game.isHybrid && player.skillLevel && (
                       <SkillBadge level={player.skillLevel} />
                     )}
                   </div>
                   <div className="flex flex-wrap gap-1.5 mt-1">
-                    {player.tags.map((tag) => {
+                    {player.tags.map((tag: string) => {
                       const Icon = getTagIcon(tag);
                       return (
                         <div
@@ -219,14 +290,14 @@ export default function GameDetails() {
           </div>
         </div>
 
-        {/* Chat - Only if joined */}
+        {/* Chat - Show for joined games */}
         {isJoined && (
           <div className="space-y-3">
-            <h2 className="text-lg font-bold text-white">Chat</h2>
+            <h2 className="text-sm font-bold text-white uppercase tracking-wide">Chat</h2>
             
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {chatMessages.map((msg) => (
-                <div key={msg.id} className="p-3 bg-[#1a1a1a]">
+              {chatMessages.map((msg: any) => (
+                <div key={msg.id} className="p-3 bg-[#1a1a1a] rounded-lg">
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-white font-medium text-sm">{msg.user}</p>
                     <p className="text-[10px] text-gray-500">{msg.time}</p>
@@ -254,17 +325,24 @@ export default function GameDetails() {
           </div>
         )}
 
-        {/* Join Button */}
-        <button
-          onClick={handleJoinGame}
-          className={`w-full py-4 font-bold rounded-lg transition-colors ${
-            isJoined
-              ? "bg-[#1a1a1a] text-white border border-[#2a2a2a]"
-              : "bg-[#39ff14] text-black hover:bg-[#2de00f]"
-          }`}
-        >
-          {isJoined ? "Leave Game" : "Join Game"}
-        </button>
+        {/* Join/Leave Button */}
+        {!isJoined && (
+          <button
+            onClick={handleJoinGame}
+            className="w-full py-4 font-bold rounded-lg transition-colors bg-[#39ff14] text-black hover:bg-[#2de00f]"
+          >
+            Join Game
+          </button>
+        )}
+        
+        {isJoined && (
+          <button
+            onClick={handleJoinGame}
+            className="w-full py-4 font-bold rounded-lg transition-colors bg-[#1a1a1a] text-white border border-[#2a2a2a] hover:bg-[#222222]"
+          >
+            Leave Game
+          </button>
+        )}
       </div>
 
       <Navigation />

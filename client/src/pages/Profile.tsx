@@ -75,7 +75,10 @@ export default function Profile() {
     Sat: Array(24).fill(false),
     Sun: Array(24).fill(false),
   });
-  const [specificDates, setSpecificDates] = useState<string[]>([]);
+  const [specificDates, setSpecificDates] = useState<Array<{date: string, time: string}>>([]);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedTime, setSelectedTime] = useState("19:00");
 
   const handleAddFriend = (name: string) => {
     toast.success(`Friend request sent to ${name}!`);
@@ -238,14 +241,14 @@ export default function Profile() {
             {/* Recurring Availability Grid */}
             {availabilityMode === "recurring" && (
               <div className="space-y-2">
-                <p className="text-xs text-gray-500">Select your typical weekly availability (18:00-23:00)</p>
+                <p className="text-xs text-gray-500">Select your typical weekly availability (7:00-23:00)</p>
                 <div className="overflow-x-auto">
-                  <div className="min-w-[600px] space-y-1">
+                  <div className="space-y-1">
                     {/* Time header */}
                     <div className="flex gap-1 pl-12">
-                      {[18, 19, 20, 21, 22, 23].map((hour) => (
-                        <div key={hour} className="w-12 text-center text-[10px] text-gray-500">
-                          {hour}:00
+                      {[7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23].map((hour) => (
+                        <div key={hour} className="w-8 text-center text-[9px] text-gray-500">
+                          {hour}
                         </div>
                       ))}
                     </div>
@@ -253,16 +256,16 @@ export default function Profile() {
                     {Object.entries(recurringSlots).map(([day, slots]) => (
                       <div key={day} className="flex gap-1 items-center">
                         <div className="w-10 text-xs text-gray-400 font-medium">{day}</div>
-                        {slots.slice(18, 24).map((isSelected, idx) => (
+                        {slots.slice(7, 24).map((isSelected, idx) => (
                           <button
                             key={idx}
                             onClick={() => {
                               const newSlots = { ...recurringSlots };
-                              newSlots[day][18 + idx] = !isSelected;
+                              newSlots[day][7 + idx] = !isSelected;
                               setRecurringSlots(newSlots);
-                              toast.success(`${day} ${18 + idx}:00 ${isSelected ? 'removed' : 'added'}`);
+                              toast.success(`${day} ${7 + idx}:00 ${isSelected ? 'removed' : 'added'}`);
                             }}
-                            className={`w-12 h-8 rounded border transition-all ${
+                            className={`w-8 h-8 rounded border transition-all ${
                               isSelected
                                 ? "bg-[#39ff14] border-[#39ff14]"
                                 : "bg-[#1a1a1a] border-[#2a2a2a] hover:border-gray-600"
@@ -279,26 +282,81 @@ export default function Profile() {
             {/* Specific Dates Picker */}
             {availabilityMode === "specific" && (
               <div className="space-y-3">
-                <p className="text-xs text-gray-500">Add specific dates when you're available</p>
-                <button
-                  onClick={() => {
-                    const date = new Date().toISOString().split('T')[0];
-                    setSpecificDates([...specificDates, date]);
-                    toast.success(`Date ${date} added`);
-                  }}
-                  className="w-full py-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white hover:bg-[#222222] transition-colors flex items-center justify-center gap-2"
-                >
-                  <Calendar className="w-4 h-4" />
-                  Add Date
-                </button>
+                <p className="text-xs text-gray-500">Add specific dates and times when you're available</p>
+                
+                {!showDatePicker && (
+                  <button
+                    onClick={() => setShowDatePicker(true)}
+                    className="w-full py-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white hover:bg-[#222222] transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Calendar className="w-4 h-4" />
+                    Add Date
+                  </button>
+                )}
+
+                {/* Date/Time Picker */}
+                {showDatePicker && (
+                  <div className="p-4 bg-[#1a1a1a] rounded-lg space-y-3 border border-[#2a2a2a]">
+                    <div className="space-y-2">
+                      <label className="text-xs text-gray-400 uppercase tracking-wide">Date</label>
+                      <Input
+                        type="date"
+                        value={selectedDate}
+                        onChange={(e) => setSelectedDate(e.target.value)}
+                        className="bg-[#0f0f0f] border-[#2a2a2a] text-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs text-gray-400 uppercase tracking-wide">Time</label>
+                      <Input
+                        type="time"
+                        value={selectedTime}
+                        onChange={(e) => setSelectedTime(e.target.value)}
+                        className="bg-[#0f0f0f] border-[#2a2a2a] text-white"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          if (selectedDate) {
+                            setSpecificDates([...specificDates, { date: selectedDate, time: selectedTime }]);
+                            toast.success(`Added ${selectedDate} at ${selectedTime}`);
+                            setSelectedDate("");
+                            setSelectedTime("19:00");
+                            setShowDatePicker(false);
+                          } else {
+                            toast.error("Please select a date");
+                          }
+                        }}
+                        className="flex-1 py-2 bg-[#39ff14] text-black rounded-lg hover:bg-[#2de00f] transition-colors font-bold"
+                      >
+                        Add
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowDatePicker(false);
+                          setSelectedDate("");
+                          setSelectedTime("19:00");
+                        }}
+                        className="flex-1 py-2 bg-[#0f0f0f] border border-[#2a2a2a] text-white rounded-lg hover:bg-[#1a1a1a] transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {specificDates.length > 0 && (
                   <div className="space-y-2">
-                    {specificDates.map((date, idx) => (
+                    {specificDates.map((item, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center justify-between p-3 bg-[#1a1a1a] rounded-lg"
+                        className="flex items-center justify-between p-3 bg-[#1a1a1a] rounded-lg border-l-2 border-[#39ff14]"
                       >
-                        <span className="text-white text-sm">{date}</span>
+                        <div>
+                          <p className="text-white text-sm font-medium">{item.date}</p>
+                          <p className="text-gray-400 text-xs">{item.time}</p>
+                        </div>
                         <button
                           onClick={() => {
                             setSpecificDates(specificDates.filter((_, i) => i !== idx));
