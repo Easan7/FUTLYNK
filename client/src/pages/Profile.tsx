@@ -21,6 +21,8 @@ import {
   Clock,
   UserPlus,
   X,
+  Calendar,
+  CalendarDays,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -63,6 +65,17 @@ export default function Profile() {
   const [showFriends, setShowFriends] = useState(false);
   const [showAddFriends, setShowAddFriends] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [availabilityMode, setAvailabilityMode] = useState<"recurring" | "specific">("recurring");
+  const [recurringSlots, setRecurringSlots] = useState<Record<string, boolean[]>>({
+    Mon: Array(24).fill(false),
+    Tue: Array(24).fill(false),
+    Wed: Array(24).fill(false),
+    Thu: Array(24).fill(false),
+    Fri: Array(24).fill(false),
+    Sat: Array(24).fill(false),
+    Sun: Array(24).fill(false),
+  });
+  const [specificDates, setSpecificDates] = useState<string[]>([]);
 
   const handleAddFriend = (name: string) => {
     toast.success(`Friend request sent to ${name}!`);
@@ -190,6 +203,117 @@ export default function Profile() {
                 );
               })}
             </div>
+          </section>
+
+          {/* Availability Settings */}
+          <section className="space-y-3">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wide">Availability</h3>
+
+            {/* Toggle between Recurring and Specific */}
+            <div className="flex gap-2 p-1 bg-[#1a1a1a] rounded-lg">
+              <button
+                onClick={() => setAvailabilityMode("recurring")}
+                className={`flex-1 py-2 rounded-md text-sm font-bold transition-all ${
+                  availabilityMode === "recurring"
+                    ? "bg-[#39ff14] text-black"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                <CalendarDays className="w-4 h-4 inline mr-2" />
+                Recurring
+              </button>
+              <button
+                onClick={() => setAvailabilityMode("specific")}
+                className={`flex-1 py-2 rounded-md text-sm font-bold transition-all ${
+                  availabilityMode === "specific"
+                    ? "bg-[#39ff14] text-black"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                <Calendar className="w-4 h-4 inline mr-2" />
+                Specific Dates
+              </button>
+            </div>
+
+            {/* Recurring Availability Grid */}
+            {availabilityMode === "recurring" && (
+              <div className="space-y-2">
+                <p className="text-xs text-gray-500">Select your typical weekly availability (18:00-23:00)</p>
+                <div className="overflow-x-auto">
+                  <div className="min-w-[600px] space-y-1">
+                    {/* Time header */}
+                    <div className="flex gap-1 pl-12">
+                      {[18, 19, 20, 21, 22, 23].map((hour) => (
+                        <div key={hour} className="w-12 text-center text-[10px] text-gray-500">
+                          {hour}:00
+                        </div>
+                      ))}
+                    </div>
+                    {/* Day rows */}
+                    {Object.entries(recurringSlots).map(([day, slots]) => (
+                      <div key={day} className="flex gap-1 items-center">
+                        <div className="w-10 text-xs text-gray-400 font-medium">{day}</div>
+                        {slots.slice(18, 24).map((isSelected, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => {
+                              const newSlots = { ...recurringSlots };
+                              newSlots[day][18 + idx] = !isSelected;
+                              setRecurringSlots(newSlots);
+                              toast.success(`${day} ${18 + idx}:00 ${isSelected ? 'removed' : 'added'}`);
+                            }}
+                            className={`w-12 h-8 rounded border transition-all ${
+                              isSelected
+                                ? "bg-[#39ff14] border-[#39ff14]"
+                                : "bg-[#1a1a1a] border-[#2a2a2a] hover:border-gray-600"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Specific Dates Picker */}
+            {availabilityMode === "specific" && (
+              <div className="space-y-3">
+                <p className="text-xs text-gray-500">Add specific dates when you're available</p>
+                <button
+                  onClick={() => {
+                    const date = new Date().toISOString().split('T')[0];
+                    setSpecificDates([...specificDates, date]);
+                    toast.success(`Date ${date} added`);
+                  }}
+                  className="w-full py-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-white hover:bg-[#222222] transition-colors flex items-center justify-center gap-2"
+                >
+                  <Calendar className="w-4 h-4" />
+                  Add Date
+                </button>
+                {specificDates.length > 0 && (
+                  <div className="space-y-2">
+                    {specificDates.map((date, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between p-3 bg-[#1a1a1a] rounded-lg"
+                      >
+                        <span className="text-white text-sm">{date}</span>
+                        <button
+                          onClick={() => {
+                            setSpecificDates(specificDates.filter((_, i) => i !== idx));
+                            toast.success(`Date removed`);
+                          }}
+                          className="p-1 hover:bg-[#222222] rounded transition-colors"
+                        >
+                          <X className="w-4 h-4 text-gray-400" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </section>
 
           {/* Match History - Minimal list */}
