@@ -12,6 +12,7 @@ import Matchmaking from "./pages/Matchmaking";
 import Friends from "./pages/Friends";
 import Groups from "./pages/Groups";
 import PostGameFeedback from "./pages/PostGameFeedback";
+import Notifications from "./pages/Notifications";
 
 function Router() {
   return (
@@ -24,6 +25,7 @@ function Router() {
       <Route path={"/friends"} component={Friends} />
       <Route path={"/groups"} component={Groups} />
       <Route path={"/feedback/:gameId"} component={PostGameFeedback} />
+      <Route path={"/notifications"} component={Notifications} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

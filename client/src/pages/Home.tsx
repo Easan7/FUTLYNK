@@ -178,7 +178,7 @@ export default function Home() {
 
               <div className="space-y-3">
                 {unratedGames.map((game) => (
-                  <Link key={game.id} href="/feedback">
+                  <Link key={game.id} href={`/feedback/${game.id}`}>
                     <div className="p-4 bg-[#1a1a1a] border-l-4 border-[#39ff14] rounded-lg hover:bg-[#222222] transition-colors cursor-pointer group">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">

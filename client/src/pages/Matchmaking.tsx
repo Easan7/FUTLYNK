@@ -66,6 +66,7 @@ export default function Matchmaking() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredRooms, setFilteredRooms] = useState(availableRooms);
   const [activeFilter, setActiveFilter] = useState<"all" | "hybrid" | "skill">("all");
+  const [useMyAvailability, setUseMyAvailability] = useState(false);
 
   const handleSearch = () => {
     if (!searchQuery.trim()) {
@@ -182,6 +183,24 @@ export default function Matchmaking() {
           >
             Hybrid
           </button>
+        </div>
+
+        {/* Use My Availability Filter */}
+        <div className="flex items-center gap-2 p-3 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a]">
+          <input
+            type="checkbox"
+            id="useAvailability"
+            checked={useMyAvailability}
+            onChange={(e) => setUseMyAvailability(e.target.checked)}
+            className="w-4 h-4 rounded border-[#39ff14] text-[#39ff14] focus:ring-[#39ff14] focus:ring-offset-0 bg-[#0a0a0a] cursor-pointer"
+          />
+          <label htmlFor="useAvailability" className="text-sm text-gray-400 cursor-pointer flex items-center gap-2">
+            <Clock className="w-4 h-4 text-[#39ff14]" />
+            Use My Availability
+          </label>
+          {useMyAvailability && (
+            <span className="ml-auto text-xs text-[#39ff14]">Filtering by your schedule</span>
+          )}
         </div>
 
         {/* Available Rooms */}

@@ -4,6 +4,7 @@
  */
 
 import { useState } from "react";
+import { Link } from "wouter";
 import Navigation from "@/components/Navigation";
 import SkillBadge from "@/components/SkillBadge";
 import wallpaperImage from "@/assets/images/wallpaper.jpg";
@@ -23,6 +24,7 @@ import {
   X,
   Calendar,
   CalendarDays,
+  Bell,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -98,7 +100,16 @@ export default function Profile() {
       <div className="relative z-10 flex min-h-screen flex-col">
         {/* Header */}
         <header className="bg-[#0a0a0a]/70 border-b border-[#1a1a1a] p-4 backdrop-blur-sm">
-          <h1 className="text-2xl font-bold text-white">Profile</h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-white">Profile</h1>
+            <Link href="/notifications">
+              <button className="relative p-2 hover:bg-white/10 rounded-lg transition-colors">
+                <Bell className="w-6 h-6 text-white" />
+                {/* Notification badge */}
+                <span className="absolute top-1 right-1 w-2 h-2 bg-[#39ff14] rounded-full" />
+              </button>
+            </Link>
+          </div>
         </header>
 
         <main className="flex-1 p-4 space-y-6">
