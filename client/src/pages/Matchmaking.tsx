@@ -224,7 +224,7 @@ export default function Matchmaking() {
 
           <div className="space-y-4">
             {(searchQuery.trim() ? tempFilteredRooms : filteredRooms).map((game) => (
-              <Link key={game.id} href={`/game/${game.id}`}>
+              <Link key={game.id} href={`/game/${game.id}?source=matchmaking`}>
                 <div className="relative overflow-hidden rounded-lg border border-[#1a1a1a] hover:border-[#2a2a2a] transition-all group cursor-pointer">
                   {/* Background Image */}
                   <div className="absolute inset-0">

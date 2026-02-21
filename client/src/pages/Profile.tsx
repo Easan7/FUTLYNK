@@ -141,12 +141,11 @@ export default function Profile() {
             <div className="text-center space-y-3">
               <div className="flex items-center gap-2 justify-center">
                 <h2 className="text-2xl font-bold text-white">{editName}</h2>
-                <button
-                  onClick={() => setShowEditProfile(true)}
-                  className="p-1 hover:bg-white/10 rounded transition-colors"
-                >
-                  <Edit3 className="w-4 h-4 text-gray-400" />
-                </button>
+                <Link href="/profile/edit">
+                  <button className="p-1 hover:bg-white/10 rounded transition-colors">
+                    <Edit3 className="w-4 h-4 text-gray-400" />
+                  </button>
+                </Link>
               </div>
               <SkillBadge level={mockProfile.skillLevel} />
 
@@ -478,29 +477,36 @@ export default function Profile() {
 
       {/* Wallet Modal */}
       {showWallet && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-end">
-          <div className="w-full bg-[#0a0a0a] rounded-t-2xl max-h-[80vh] overflow-y-auto">
-            <div className="sticky top-0 bg-[#0a0a0a] border-b border-[#1a1a1a] p-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">Wallet</h2>
+        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-gradient-to-br from-[#1a1a1a] to-[#0f0f0f] rounded-2xl border border-[#2a2a2a] shadow-2xl">
+            <div className="relative p-6 border-b border-[#2a2a2a]">
               <button
                 onClick={() => setShowWallet(false)}
-                className="p-2 hover:bg-[#1a1a1a] rounded-lg transition-colors"
+                className="absolute top-4 right-4 p-2 hover:bg-[#2a2a2a] rounded-full transition-colors"
               >
-                <X className="w-5 h-5 text-white" />
+                <X className="w-5 h-5 text-gray-400" />
               </button>
+              <h2 className="text-2xl font-bold text-white">Wallet</h2>
+              <p className="text-sm text-gray-400 mt-1">Manage your game balance</p>
             </div>
-            <div className="p-4 space-y-6">
+            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
               {/* Balance Display */}
-              <div className="bg-gradient-to-br from-[#39ff14]/20 to-cyan-500/20 border border-[#39ff14]/50 p-6 rounded-lg text-center space-y-2">
-                <p className="text-gray-400 text-sm uppercase tracking-wide">Current Balance</p>
-                <p className="text-5xl font-bold text-white">${walletBalance.toFixed(2)}</p>
-                <p className="text-xs text-gray-500">Available for game payments</p>
+              <div className="relative overflow-hidden bg-gradient-to-br from-[#39ff14]/10 to-cyan-500/10 border-2 border-[#39ff14]/30 p-8 rounded-2xl text-center space-y-3">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[#39ff14]/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-cyan-500/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+                <div className="relative">
+                  <p className="text-gray-400 text-xs uppercase tracking-wider mb-2">Available Balance</p>
+                  <p className="text-6xl font-bold bg-gradient-to-r from-[#39ff14] to-cyan-400 bg-clip-text text-transparent">
+                    ${walletBalance.toFixed(2)}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-2">Ready for game payments</p>
+                </div>
               </div>
 
               {/* Top Up Section */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-bold text-white uppercase tracking-wide">Top Up Balance</h3>
-                <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-4">
+                <h3 className="text-base font-bold text-white">Quick Top-Up</h3>
+                <div className="grid grid-cols-3 gap-3">
                   {[10, 25, 50, 100, 200, 500].map((amount) => (
                     <button
                       key={amount}
@@ -508,36 +514,42 @@ export default function Profile() {
                         setWalletBalance(prev => prev + amount);
                         toast.success(`Added $${amount} to wallet!`);
                       }}
-                      className="py-3 bg-[#1a1a1a] border border-[#2a2a2a] text-white rounded-lg hover:bg-[#222222] hover:border-[#39ff14] transition-all font-bold"
+                      className="relative group py-4 bg-[#1a1a1a] border-2 border-[#2a2a2a] text-white rounded-xl hover:border-[#39ff14] hover:bg-[#1a1a1a] transition-all font-bold overflow-hidden"
                     >
-                      ${amount}
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#39ff14]/0 to-[#39ff14]/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <span className="relative">${amount}</span>
                     </button>
                   ))}
                 </div>
 
                 {/* Custom Amount */}
-                <div className="space-y-2">
-                  <label className="text-xs text-gray-500 uppercase tracking-wide">Custom Amount</label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="number"
-                      value={topUpAmount}
-                      onChange={(e) => setTopUpAmount(e.target.value)}
-                      placeholder="Enter amount..."
-                      className="flex-1 bg-[#1a1a1a] border-[#2a2a2a] text-white"
-                    />
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-gray-400">Custom Amount (min $10)</label>
+                  <div className="flex gap-3">
+                    <div className="relative flex-1">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg">$</span>
+                      <Input
+                        type="number"
+                        min="10"
+                        value={topUpAmount}
+                        onChange={(e) => setTopUpAmount(e.target.value)}
+                        placeholder="10.00"
+                        className="pl-8 bg-[#1a1a1a] border-2 border-[#2a2a2a] text-white text-lg py-6 focus:border-[#39ff14] transition-all"
+                      />
+                    </div>
                     <button
                       onClick={() => {
                         const amount = parseFloat(topUpAmount);
-                        if (amount > 0) {
+                        if (amount >= 10) {
                           setWalletBalance(prev => prev + amount);
                           toast.success(`Added $${amount.toFixed(2)} to wallet!`);
                           setTopUpAmount("");
+                        } else {
+                          toast.error("Minimum top-up is $10");
                         }
                       }}
-                      className="px-6 py-2 bg-[#39ff14] text-black rounded-lg font-bold hover:bg-[#2de00f] transition-colors flex items-center gap-2"
+                      className="px-8 py-3 bg-gradient-to-r from-[#39ff14] to-[#2de00f] text-black rounded-xl font-bold hover:shadow-lg hover:shadow-[#39ff14]/20 transition-all"
                     >
-                      <Plus className="w-4 h-4" />
                       Add
                     </button>
                   </div>
@@ -545,63 +557,33 @@ export default function Profile() {
               </div>
 
               {/* Transaction History */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-bold text-white uppercase tracking-wide">Recent Transactions</h3>
+              <div className="space-y-4">
+                <h3 className="text-base font-bold text-white">Recent Activity</h3>
                 <div className="space-y-2">
                   {[
                     { id: 1, type: "payment", amount: -15, desc: "Downtown Sports Arena", date: "Feb 15" },
                     { id: 2, type: "topup", amount: 50, desc: "Wallet Top-up", date: "Feb 12" },
                     { id: 3, type: "payment", amount: -18, desc: "Metro Futsal Complex", date: "Feb 10" },
                   ].map((txn) => (
-                    <div key={txn.id} className="flex items-center justify-between p-3 bg-[#1a1a1a] rounded-lg">
-                      <div>
-                        <p className="text-white text-sm font-medium">{txn.desc}</p>
-                        <p className="text-gray-500 text-xs">{txn.date}</p>
+                    <div key={txn.id} className="flex items-center justify-between p-4 bg-[#0f0f0f] border border-[#1a1a1a] rounded-xl hover:border-[#2a2a2a] transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          txn.amount > 0 ? 'bg-[#39ff14]/10' : 'bg-red-500/10'
+                        }`}>
+                          <span className="text-lg">{txn.amount > 0 ? '💰' : '⚽'}</span>
+                        </div>
+                        <div>
+                          <p className="text-white text-sm font-medium">{txn.desc}</p>
+                          <p className="text-gray-500 text-xs">{txn.date}</p>
+                        </div>
                       </div>
-                      <p className={`font-bold ${txn.amount > 0 ? 'text-[#39ff14]' : 'text-white'}`}>
+                      <p className={`font-bold text-lg ${txn.amount > 0 ? 'text-[#39ff14]' : 'text-white'}`}>
                         {txn.amount > 0 ? '+' : ''}${Math.abs(txn.amount)}
                       </p>
                     </div>
                   ))}
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Profile Modal */}
-      {showEditProfile && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-end">
-          <div className="w-full bg-[#0a0a0a] rounded-t-2xl">
-            <div className="sticky top-0 bg-[#0a0a0a] border-b border-[#1a1a1a] p-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">Edit Profile</h2>
-              <button
-                onClick={() => setShowEditProfile(false)}
-                className="p-2 hover:bg-[#1a1a1a] rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5 text-white" />
-              </button>
-            </div>
-            <div className="p-4 space-y-4">
-              <div className="space-y-2">
-                <label className="text-xs text-gray-500 uppercase tracking-wide">Display Name</label>
-                <Input
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="bg-[#1a1a1a] border-[#2a2a2a] text-white"
-                />
-              </div>
-
-              <button
-                onClick={() => {
-                  toast.success("Profile updated!");
-                  setShowEditProfile(false);
-                }}
-                className="w-full py-3 bg-[#39ff14] text-black rounded-lg font-bold hover:bg-[#2de00f] transition-colors"
-              >
-                Save Changes
-              </button>
             </div>
           </div>
         </div>

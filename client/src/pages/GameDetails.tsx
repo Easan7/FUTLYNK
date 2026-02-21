@@ -125,8 +125,13 @@ export default function GameDetails() {
   const gameId = params?.id || "1";
   const game = mockGames[gameId] || mockGames["1"];
   
+  // Check if coming from matchmaking (not joined yet)
+  const urlParams = new URLSearchParams(window.location.search);
+  const source = urlParams.get("source");
+  const isFromMatchmaking = source === "matchmaking";
+  
   const [message, setMessage] = useState("");
-  const [isJoined, setIsJoined] = useState(game.userJoined || false);
+  const [isJoined, setIsJoined] = useState(isFromMatchmaking ? false : (game.userJoined || false));
   const [chatMessages, setChatMessages] = useState(game.chat);
 
   const thresholdPercentage = (game.playersJoined / game.maxPlayers) * 100;

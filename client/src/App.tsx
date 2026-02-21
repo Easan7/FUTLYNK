@@ -15,6 +15,7 @@ import Groups from "./pages/Groups";
 import PostGameFeedback from "./pages/PostGameFeedback";
 import Notifications from "./pages/Notifications";
 import Login from "./pages/Login";
+import ProfileEditor from "./pages/ProfileEditor";
 
 function Router() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -36,13 +37,14 @@ function Router() {
     <Switch>
       <Route path={"/"} component={Home} />
       <Route path={"/game/:id"} component={GameDetails} />
-      <Route path={"/create"} component={Groups} />
+      <Route path={"/create"} component={CreateGroup} />
       <Route path={"/profile"} component={Profile} />
       <Route path={"/matchmaking"} component={Matchmaking} />
       <Route path={"/friends"} component={Friends} />
       <Route path={"/groups"} component={Groups} />
       <Route path={"/feedback/:gameId"} component={PostGameFeedback} />
       <Route path={"/notifications"} component={Notifications} />
+      <Route path={"/profile/edit"} component={ProfileEditor} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>
