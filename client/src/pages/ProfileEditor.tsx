@@ -153,28 +153,17 @@ export default function ProfileEditor() {
             {availableTags.map((tag) => {
               const isSelected = selectedTags.includes(tag);
               return (
-                <motion.button
+                <button
                   key={tag}
                   onClick={() => toggleTag(tag)}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className={`relative px-4 py-2 rounded-full font-medium text-sm transition-all ${
+                  className={`px-4 py-2 rounded-full font-medium text-sm transition-colors ${
                     isSelected
-                      ? "bg-[#39ff14] text-black shadow-lg shadow-[#39ff14]/20"
-                      : "bg-[#1a1a1a] border border-[#2a2a2a] text-gray-300 hover:border-[#39ff14]/50 hover:text-white"
+                      ? "bg-[#39ff14] text-black"
+                      : "bg-[#2a2a2a] text-gray-300 hover:bg-[#333333]"
                   }`}
                 >
                   {tag}
-                  {isSelected && (
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-black/20"
-                    >
-                      <Check className="w-3 h-3" />
-                    </motion.span>
-                  )}
-                </motion.button>
+                </button>
               );
             })}
           </div>
@@ -211,9 +200,17 @@ export default function ProfileEditor() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          isUnlocked ? "bg-gradient-to-br from-[#39ff14]/20 to-cyan-500/20" : "bg-[#1a1a1a]"
+                          isUnlocked ? "bg-[#39ff14]/10 border-2 border-[#39ff14]/30" : "bg-[#1a1a1a] border-2 border-[#2a2a2a]"
                         }`}>
-                          <span className="text-2xl">{isUnlocked ? "🏆" : "🔒"}</span>
+                          {isUnlocked ? (
+                            <svg className="w-5 h-5 text-[#39ff14]" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                          ) : (
+                            <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                            </svg>
+                          )}
                         </div>
                         <div>
                           <p className={`font-bold ${isUnlocked ? "text-white" : "text-gray-600"}`}>

@@ -12,7 +12,7 @@ export default function Navigation() {
   const navItems = [
     { path: "/", icon: Home, label: "Home" },
     { path: "/matchmaking", icon: Search, label: "Quick find" },
-    { path: "/create", icon: PlusCircle, label: "Groups" },
+    { path: "/groups", icon: PlusCircle, label: "Groups" },
     { path: "/profile", icon: User, label: "Profile" },
   ];
 

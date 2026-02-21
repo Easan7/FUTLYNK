@@ -585,7 +585,15 @@ export default function Profile() {
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                           txn.amount > 0 ? 'bg-[#39ff14]/10' : 'bg-red-500/10'
                         }`}>
-                          <span className="text-lg">{txn.amount > 0 ? '💰' : '⚽'}</span>
+                          {txn.amount > 0 ? (
+                            <svg className="w-5 h-5 text-[#39ff14]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                          ) : (
+                            <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                            </svg>
+                          )}
                         </div>
                         <div>
                           <p className="text-white text-sm font-medium">{txn.desc}</p>
