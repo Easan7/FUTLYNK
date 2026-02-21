@@ -35,6 +35,7 @@ import { toast } from "sonner";
 // Mock data
 const mockProfile = {
   name: "Alex Chen",
+  username: "@alexchen",
   skillLevel: "Intermediate" as const,
   matchesPlayed: 47,
   attendanceRate: 95,
@@ -148,6 +149,7 @@ export default function Profile() {
                   </button>
                 </Link>
               </div>
+              <p className="text-sm text-gray-500 tracking-wide">{mockProfile.username}</p>
               <SkillBadge level={mockProfile.skillLevel} />
 
               {/* Friends Buttons */}
@@ -191,7 +193,10 @@ export default function Profile() {
 
           {/* Player Tags - Outlined pills */}
           <section className="space-y-3">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wide">Player Tags</h3>
+            <h3 className="flex items-center gap-2 text-sm font-bold text-white uppercase tracking-wide">
+              <span className="w-[3px] h-4 bg-[#39ff14] rounded-full" />
+              Player Tags
+            </h3>
 
             <div className="flex flex-wrap gap-2">
               {mockProfile.tags.map((tag) => {
@@ -199,10 +204,10 @@ export default function Profile() {
                 return (
                   <div
                     key={tag.id}
-                    className="flex items-center gap-2 px-3 py-2 border border-gray-700 rounded-full hover:border-gray-600 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1a1a1a] border border-[#2a2a2a] rounded-sm hover:border-gray-600 transition-colors"
                   >
-                    <Icon className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm text-gray-300">{tag.name}</span>
+                    <Icon className="w-3.5 h-3.5 text-gray-400" />
+                    <span className="text-xs font-medium text-gray-300">{tag.name}</span>
                   </div>
                 );
               })}
@@ -211,7 +216,10 @@ export default function Profile() {
 
           {/* Achievements - Simple grid */}
           <section className="space-y-3">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wide">Achievements</h3>
+            <h3 className="flex items-center gap-2 text-sm font-bold text-white uppercase tracking-wide">
+              <span className="w-[3px] h-4 bg-[#39ff14] rounded-full" />
+              Achievements
+            </h3>
 
             <div className="grid grid-cols-4 gap-3">
               {mockProfile.achievements.map((achievement) => {
@@ -246,7 +254,10 @@ export default function Profile() {
 
           {/* Availability Settings */}
           <section className="space-y-3">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wide">Availability</h3>
+            <h3 className="flex items-center gap-2 text-sm font-bold text-white uppercase tracking-wide">
+              <span className="w-[3px] h-4 bg-[#39ff14] rounded-full" />
+              Availability
+            </h3>
 
             {/* Toggle between Recurring and Specific */}
             <div className="flex gap-2 p-1 bg-[#1a1a1a] rounded-lg">
@@ -412,7 +423,10 @@ export default function Profile() {
 
           {/* Match History - Minimal list */}
           <section className="space-y-3">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wide">Match History</h3>
+            <h3 className="flex items-center gap-2 text-sm font-bold text-white uppercase tracking-wide">
+              <span className="w-[3px] h-4 bg-[#39ff14] rounded-full" />
+              Match History
+            </h3>
 
             <div className="space-y-2">
               {mockProfile.matchHistory.map((match) => (

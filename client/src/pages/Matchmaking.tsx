@@ -162,10 +162,10 @@ export default function Matchmaking() {
         </div>
 
         {/* Filters */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => handleFilter("all")}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+            className={`px-4 py-2 rounded-sm text-sm font-bold transition-all ${
               activeFilter === "all"
                 ? "bg-[#39ff14] text-black"
                 : "bg-[#1a1a1a] text-gray-400 hover:text-white"
@@ -175,7 +175,7 @@ export default function Matchmaking() {
           </button>
           <button
             onClick={() => handleFilter("skill")}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+            className={`px-4 py-2 rounded-sm text-sm font-bold transition-all ${
               activeFilter === "skill"
                 ? "bg-[#39ff14] text-black"
                 : "bg-[#1a1a1a] text-gray-400 hover:text-white"
@@ -185,7 +185,7 @@ export default function Matchmaking() {
           </button>
           <button
             onClick={() => handleFilter("hybrid")}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+            className={`px-4 py-2 rounded-sm text-sm font-bold transition-all ${
               activeFilter === "hybrid"
                 ? "bg-[#39ff14] text-black"
                 : "bg-[#1a1a1a] text-gray-400 hover:text-white"
@@ -193,30 +193,24 @@ export default function Matchmaking() {
           >
             Hybrid
           </button>
-        </div>
-
-        {/* Use My Availability Filter */}
-        <div className="flex items-center gap-2 p-3 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a]">
-          <input
-            type="checkbox"
-            id="useAvailability"
-            checked={useMyAvailability}
-            onChange={(e) => setUseMyAvailability(e.target.checked)}
-            className="w-4 h-4 rounded border-[#39ff14] text-[#39ff14] focus:ring-[#39ff14] focus:ring-offset-0 bg-[#0a0a0a] cursor-pointer"
-          />
-          <label htmlFor="useAvailability" className="text-sm text-gray-400 cursor-pointer flex items-center gap-2">
-            <Clock className="w-4 h-4 text-[#39ff14]" />
-            Use My Availability
-          </label>
-          {useMyAvailability && (
-            <span className="ml-auto text-xs text-[#39ff14]">Filtering by your schedule</span>
-          )}
+          <button
+            onClick={() => setUseMyAvailability((v) => !v)}
+            className={`px-4 py-2 rounded-sm text-sm font-bold transition-all flex items-center gap-1.5 ${
+              useMyAvailability
+                ? "bg-[#39ff14] text-black"
+                : "bg-[#1a1a1a] text-gray-400 hover:text-white"
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5" />
+            My Availability
+          </button>
         </div>
 
         {/* Available Rooms */}
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-white uppercase tracking-wide">
+            <h2 className="flex items-center gap-2 text-sm font-bold text-white uppercase tracking-wide">
+              <span className="w-[3px] h-4 bg-[#39ff14] rounded-full" />
               Nearby Games
             </h2>
             <span className="text-xs text-gray-500">{filteredRooms.length} available</span>
@@ -268,9 +262,7 @@ export default function Matchmaking() {
                     {/* Details */}
                     <div className="flex items-center gap-4">
                       {game.isHybrid ? (
-                        <div className="px-3 py-1 bg-cyan-500/20 border border-cyan-500/50 rounded text-xs text-cyan-400 font-bold uppercase">
-                          HYBRID • No Restrictions
-                        </div>
+                        <SkillBadge level="Hybrid" />
                       ) : (
                         <SkillBadge level={game.skillLevel!} />
                       )}

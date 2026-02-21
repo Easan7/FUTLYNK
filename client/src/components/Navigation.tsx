@@ -3,15 +3,15 @@
  * Mobile-first bottom nav with neon accents and smooth transitions
  */
 
-import { Home, Search, PlusCircle, User } from "lucide-react";
+import { House, MagnifyingGlass, PlusCircle, User } from "@phosphor-icons/react";
 import { Link, useLocation } from "wouter";
 
 export default function Navigation() {
   const [location] = useLocation();
 
   const navItems = [
-    { path: "/", icon: Home, label: "Home" },
-    { path: "/matchmaking", icon: Search, label: "Quick find" },
+    { path: "/", icon: House, label: "Home" },
+    { path: "/matchmaking", icon: MagnifyingGlass, label: "Quick find" },
     { path: "/groups", icon: PlusCircle, label: "Groups" },
     { path: "/profile", icon: User, label: "Profile" },
   ];
@@ -35,9 +35,8 @@ export default function Navigation() {
                 }`}
               >
                 <Icon
-                  className={`w-6 h-6 transition-all duration-300 ${
-                    isActive ? "drop-shadow-[0_0_8px_rgba(57,255,20,0.6)]" : ""
-                  }`}
+                  size={24}
+                  weight={isActive ? "fill" : "regular"}
                 />
                 <span className="text-xs font-medium font-display">{item.label}</span>
               </Link>

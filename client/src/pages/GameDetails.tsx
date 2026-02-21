@@ -7,22 +7,10 @@
 import { useState } from "react";
 import { useRoute, Link } from "wouter";
 import Navigation from "@/components/Navigation";
-import CircularProgress from "@/components/CircularProgress";
 import SkillBadge from "@/components/SkillBadge";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  ArrowLeft,
-  MapPin,
-  Calendar,
-  Clock,
-  DollarSign,
-  Send,
-  Shield,
-  Users,
-  Target,
-  Zap,
-} from "lucide-react";
+import { ArrowLeft, PaperPlaneTilt } from "@phosphor-icons/react";
 import { toast } from "sonner";
 
 // Mock data - Game 1 is Intermediate only (user joined), Game 2 is Hybrid (user joined)
@@ -108,18 +96,6 @@ const mockGames: Record<string, any> = {
   },
 };
 
-const getTagIcon = (tag: string) => {
-  const icons: Record<string, any> = {
-    "Reliable": Shield,
-    "Forward": Zap,
-    "Midfielder": Users,
-    "Defender": Shield,
-    "Goalkeeper": Target,
-    "Punctual": Clock,
-  };
-  return icons[tag] || Users;
-};
-
 export default function GameDetails() {
   const [, params] = useRoute("/game/:id");
   const gameId = params?.id || "1";
@@ -162,188 +138,201 @@ export default function GameDetails() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] pb-20">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-[#0a0a0a]/95 backdrop-blur-sm border-b border-[#1a1a1a] p-4">
-        <Link href="/">
-          <button className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-            <span className="text-sm font-medium">Back</span>
-          </button>
-        </Link>
+      {/* Hero Panel */}
+      <div className="relative bg-[#0d0d0d] border-b border-[#1a1a1a] overflow-hidden">
+        <div
+          className="absolute inset-0 opacity-[0.04]"
+          style={{
+            backgroundImage: `repeating-linear-gradient(0deg, #fff 0, #fff 1px, transparent 1px, transparent 36px), repeating-linear-gradient(90deg, #fff 0, #fff 1px, transparent 1px, transparent 36px)`,
+          }}
+        />
+        <div className="relative p-4 pt-5 pb-7">
+          <div className="flex items-start justify-between mb-8">
+            <Link href="/">
+              <button className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors">
+                <ArrowLeft size={16} />
+                <span className="text-sm">Back</span>
+              </button>
+            </Link>
+            <div
+              className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-sm ${
+                isThresholdMet
+                  ? "bg-[#39ff14] text-black"
+                  : "bg-[#1a1a1a] border border-[#2a2a2a] text-gray-400"
+              }`}
+            >
+              {isThresholdMet ? "Confirmed" : "Open"}
+            </div>
+          </div>
+          <h1 className="text-3xl font-bold text-white leading-tight mb-1">{game.location}</h1>
+          <p className="text-sm text-gray-500">{game.date}&nbsp;·&nbsp;{game.time}</p>
+        </div>
       </div>
 
-      <div className="p-4 space-y-6">
-        {/* Game Info - Minimal */}
-        <div className="space-y-4">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-white mb-2">{game.location}</h1>
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2 text-gray-400 text-sm">
-                  <MapPin className="w-4 h-4" />
-                  <span>{game.address}</span>
-                </div>
-                <div className="flex items-center gap-2 text-gray-400 text-sm">
-                  <Calendar className="w-4 h-4" />
-                  <span>{game.date}</span>
-                </div>
-                <div className="flex items-center gap-2 text-gray-400 text-sm">
-                  <Clock className="w-4 h-4" />
-                  <span>{game.time} • {game.duration}</span>
-                </div>
-                <div className="flex items-center gap-2 text-gray-400 text-sm">
-                  <DollarSign className="w-4 h-4" />
-                  <span className="font-bold">${game.price} per player</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Circular Progress */}
-            <CircularProgress
-              value={game.playersJoined}
-              max={game.maxPlayers}
-              size={80}
-              strokeWidth={6}
-            />
+      <div className="p-4 space-y-7">
+        {/* Info grid */}
+        <div className="grid grid-cols-2 border border-[#1a1a1a] divide-x divide-y divide-[#1a1a1a]">
+          <div className="p-3 space-y-0.5">
+            <p className="text-[9px] uppercase tracking-widest text-gray-600">Address</p>
+            <p className="text-sm text-white font-medium">{game.address}</p>
           </div>
-
-          {/* Skill Level Badge */}
-          <div className="flex items-center gap-3">
+          <div className="p-3 space-y-0.5">
+            <p className="text-[9px] uppercase tracking-widest text-gray-600">Duration</p>
+            <p className="text-sm text-white font-medium">{game.duration}</p>
+          </div>
+          <div className="p-3 space-y-0.5">
+            <p className="text-[9px] uppercase tracking-widest text-gray-600">Price</p>
+            <p className="text-sm text-white font-medium">${game.price} / player</p>
+          </div>
+          <div className="p-3">
+            <p className="text-[9px] uppercase tracking-widest text-gray-600 mb-1">Format</p>
             {game.isHybrid ? (
-              <div className="px-4 py-2 bg-cyan-500/20 border border-cyan-500/50 rounded-lg text-sm text-cyan-400 font-bold uppercase">
-                HYBRID • No Restrictions
-              </div>
+              <SkillBadge level="Hybrid" colored />
             ) : (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500 uppercase tracking-wide">Skill Level</span>
-                <SkillBadge level={game.skillLevel} />
-              </div>
+              <SkillBadge level={game.skillLevel} colored />
             )}
           </div>
+        </div>
 
-          {/* Threshold Confirmation Progress */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-500 uppercase tracking-wide">Game Confirmation</span>
-              <span className={`font-bold ${isThresholdMet ? "text-[#39ff14]" : "text-gray-500"}`}>
-                {Math.round(thresholdPercentage)}% confirmed
+        {/* Squad */}
+        <div className="space-y-3">
+          <h2 className="flex items-center gap-2 text-sm font-bold text-white uppercase tracking-wide">
+            <span className="w-[3px] h-4 bg-[#39ff14] rounded-full" />
+            Squad
+          </h2>
+          <div className="flex items-end gap-5">
+            <div>
+              <span className="text-5xl font-bold text-white tabular-nums">
+                {String(game.playersJoined).padStart(2, "0")}
               </span>
+              <span className="text-xl font-bold text-gray-600"> / {game.maxPlayers}</span>
             </div>
-            <div className="h-2 bg-[#1a1a1a] rounded-full overflow-hidden">
-              <div
-                className={`h-full transition-all duration-500 ${
-                  isThresholdMet ? "bg-[#39ff14]" : "bg-gray-700"
-                }`}
-                style={{ width: `${thresholdPercentage}%` }}
-              />
+            <div className="pb-1.5 flex-1 space-y-1.5">
+              <div className="flex gap-1">
+                {Array.from({ length: game.maxPlayers }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`h-2 flex-1 rounded-sm ${
+                      i < game.playersJoined ? "bg-[#39ff14]" : "bg-[#1a1a1a]"
+                    }`}
+                  />
+                ))}
+              </div>
+              <p className="text-[10px] text-gray-600">
+                {isThresholdMet
+                  ? "✓ Minimum reached — game is on"
+                  : `${Math.ceil(game.maxPlayers * 0.8) - game.playersJoined} more to confirm`}
+              </p>
             </div>
-            <p className="text-[10px] text-gray-600">
-              {isThresholdMet
-                ? "✓ Game confirmed! Minimum players reached."
-                : `Need ${Math.ceil(game.maxPlayers * 0.8) - game.playersJoined} more ${
-                    Math.ceil(game.maxPlayers * 0.8) - game.playersJoined === 1 ? "player" : "players"
-                  } to confirm.`}
-            </p>
           </div>
         </div>
 
-        {/* Player List */}
+        {/* Player roster */}
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-white uppercase tracking-wide">
-              Players ({game.playersJoined}/{game.maxPlayers})
-            </h2>
-          </div>
-
-          <div className="space-y-2">
-            {game.players.map((player: any) => (
-              <div
-                key={player.id}
-                className="flex items-center gap-3 p-3 bg-[#1a1a1a] hover:bg-[#222222] transition-colors"
-              >
-                <Avatar className="w-10 h-10 border border-[#2a2a2a]">
-                  <AvatarFallback className="bg-[#0f0f0f] text-white text-sm font-bold">
-                    {player.name.split(" ").map((n: string) => n[0]).join("")}
-                  </AvatarFallback>
-                </Avatar>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-white font-medium text-sm">{player.name}</p>
-                    {/* Only show skill badge in hybrid rooms */}
-                    {game.isHybrid && player.skillLevel && (
-                      <SkillBadge level={player.skillLevel} />
+          <h2 className="flex items-center gap-2 text-sm font-bold text-white uppercase tracking-wide">
+            <span className="w-[3px] h-4 bg-[#39ff14] rounded-full" />
+            Players ({game.playersJoined}/{game.maxPlayers})
+          </h2>
+          <div className="border border-[#1a1a1a] divide-y divide-[#1a1a1a]">
+            {game.players.map((player: any, idx: number) => {
+              const skillColors: Record<string, string> = {
+                Beginner: "bg-emerald-600",
+                Intermediate: "bg-amber-500",
+                Advanced: "bg-rose-600",
+              };
+              const dotColor = skillColors[player.skillLevel] || "bg-gray-600";
+              return (
+                <div key={player.id} className="flex items-center gap-3 px-3 py-2.5 hover:bg-[#111] transition-colors">
+                  <span className="text-[10px] text-gray-700 w-5 text-right tabular-nums">{idx + 1}</span>
+                  <div className={`w-1 h-6 rounded-sm flex-shrink-0 ${dotColor}`} />
+                  <Avatar className="w-8 h-8 border border-[#2a2a2a]">
+                    <AvatarFallback className="bg-[#0f0f0f] text-white text-[10px] font-bold">
+                      {player.name.split(" ").map((n: string) => n[0]).join("")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-white text-sm font-medium">{player.name}</p>
+                      {game.isHybrid && player.skillLevel && (
+                        <SkillBadge level={player.skillLevel} colored />
+                      )}
+                    </div>
+                    {player.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-0.5">
+                        {player.tags.map((tag: string) => (
+                          <span
+                            key={tag}
+                            className="px-1.5 py-0.5 text-[9px] uppercase tracking-wide font-bold bg-[#1a1a1a] text-gray-500 rounded-sm"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-1.5 mt-1">
-                    {player.tags.map((tag: string) => {
-                      const Icon = getTagIcon(tag);
-                      return (
-                        <div
-                          key={tag}
-                          className="flex items-center gap-1 px-2 py-0.5 border border-gray-700 rounded-full"
-                        >
-                          <Icon className="w-3 h-3 text-gray-400" />
-                          <span className="text-[10px] text-gray-400">{tag}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
-        {/* Chat - Show for joined games */}
+        {/* Chat */}
         {isJoined && (
           <div className="space-y-3">
-            <h2 className="text-sm font-bold text-white uppercase tracking-wide">Chat</h2>
-            
+            <h2 className="flex items-center gap-2 text-sm font-bold text-white uppercase tracking-wide">
+              <span className="w-[3px] h-4 bg-[#39ff14] rounded-full" />
+              Chat
+            </h2>
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {chatMessages.map((msg: any) => (
-                <div key={msg.id} className="p-3 bg-[#1a1a1a] rounded-lg">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-white font-medium text-sm">{msg.user}</p>
-                    <p className="text-[10px] text-gray-500">{msg.time}</p>
+              {chatMessages.map((msg: any) => {
+                const isMe = msg.user === "You";
+                return (
+                  <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                    <div
+                      className={`max-w-[75%] px-3 py-2 rounded-sm text-sm ${
+                        isMe ? "bg-[#39ff14] text-black" : "bg-[#1a1a1a] text-gray-300"
+                      }`}
+                    >
+                      {!isMe && (
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-gray-500 mb-0.5">{msg.user}</p>
+                      )}
+                      <p>{msg.message}</p>
+                      <p className={`text-[9px] mt-0.5 ${isMe ? "text-black/50" : "text-gray-600"}`}>{msg.time}</p>
+                    </div>
                   </div>
-                  <p className="text-gray-400 text-sm">{msg.message}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
-
             <div className="flex gap-2">
               <Input
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                placeholder="Type a message..."
-                className="flex-1 bg-[#1a1a1a] border-[#2a2a2a] text-white"
+                placeholder="Message..."
+                className="flex-1 bg-[#1a1a1a] border-[#2a2a2a] text-white rounded-sm"
               />
               <button
                 onClick={handleSendMessage}
-                className="p-3 bg-[#39ff14] text-black rounded-lg hover:bg-[#2de00f] transition-colors"
+                className="px-4 bg-[#39ff14] text-black rounded-sm hover:bg-[#2de00f] transition-colors"
               >
-                <Send className="w-5 h-5" />
+                <PaperPlaneTilt size={16} weight="fill" />
               </button>
             </div>
           </div>
         )}
 
-        {/* Join/Leave Button */}
-        {!isJoined && (
+        {/* Action */}
+        {!isJoined ? (
           <button
             onClick={handleJoinGame}
-            className="w-full py-4 font-bold rounded-lg transition-colors bg-[#39ff14] text-black hover:bg-[#2de00f]"
+            className="w-full py-4 font-bold text-sm uppercase tracking-widest rounded-sm transition-colors bg-[#39ff14] text-black hover:bg-[#2de00f]"
           >
             Join Game
           </button>
-        )}
-        
-        {isJoined && (
+        ) : (
           <button
             onClick={handleJoinGame}
-            className="w-full py-4 font-bold rounded-lg transition-colors bg-[#1a1a1a] text-white border border-[#2a2a2a] hover:bg-[#222222]"
+            className="w-full py-4 font-bold text-sm uppercase tracking-widest rounded-sm transition-colors bg-[#1a1a1a] text-gray-400 border border-[#2a2a2a] hover:bg-[#222222]"
           >
             Leave Game
           </button>

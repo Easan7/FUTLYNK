@@ -88,7 +88,8 @@ export default function Home() {
           {/* Upcoming Games */}
           <section className="space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-bold text-white uppercase tracking-wide">
+              <h2 className="flex items-center gap-2 text-sm font-bold text-white uppercase tracking-wide">
+                <span className="w-[3px] h-4 bg-[#39ff14] rounded-full" />
                 Upcoming Games
               </h2>
               <span className="text-xs text-gray-500">{myUpcomingGames.length} joined</span>
@@ -136,9 +137,7 @@ export default function Home() {
                       {/* Details */}
                       <div className="flex items-center gap-4">
                         {game.isHybrid ? (
-                          <div className="px-3 py-1 bg-cyan-500/20 border border-cyan-500/50 rounded text-xs text-cyan-400 font-bold uppercase">
-                            HYBRID • No Restrictions
-                          </div>
+                          <SkillBadge level="Hybrid" />
                         ) : (
                           <SkillBadge level={game.skillLevel!} />
                         )}
@@ -170,7 +169,8 @@ export default function Home() {
           {unratedGames.length > 0 && (
             <section className="space-y-3">
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-bold text-white uppercase tracking-wide">
+                <h2 className="flex items-center gap-2 text-sm font-bold text-white uppercase tracking-wide">
+                  <span className="w-[3px] h-4 bg-[#39ff14] rounded-full" />
                   Rate Players
                 </h2>
                 <span className="text-xs text-[#39ff14]">{unratedGames.length} pending</span>
