@@ -79,6 +79,11 @@ export default function Groups() {
     { user: "Marcus Chen", message: "Who's in for Saturday?", time: "2h ago" },
     { user: "Sarah Williams", message: "I can make it!", time: "1h ago" },
   ]);
+  const [gameSelections, setGameSelections] = useState<Record<string, string[]>>({
+    "g1": ["You", "Marcus Chen"],
+    "g2": [],
+    "g3": ["You", "Marcus Chen", "Diego Martinez"],
+  });
 
   const handleSendMessage = () => {
     if (!chatMessage.trim()) return;
@@ -91,6 +96,24 @@ export default function Groups() {
   };
 
   const handleGameSelection = (gameId: string) => {
+    setGameSelections(prev => {
+      const currentSelections = prev[gameId] || [];
+      const isSelected = currentSelections.includes("You");
+      
+      if (isSelected) {
+        // Remove "You" from selections
+        return {
+          ...prev,
+          [gameId]: currentSelections.filter(name => name !== "You")
+        };
+      } else {
+        // Add "You" to selections
+        return {
+          ...prev,
+          [gameId]: [...currentSelections, "You"]
+        };
+      }
+    });
     toast.success("Game selection updated!");
   };
 
@@ -146,8 +169,9 @@ export default function Groups() {
               Potential Games
             </h2>
             {mockGames.map((game) => {
+              const selectedBy = gameSelections[game.id] || [];
               const allSelected = game.availableMembers.every((m) =>
-                game.selectedBy.includes(m)
+                selectedBy.includes(m)
               );
               return (
                 <div key={game.id} className="bg-[#1a1a1a] p-4 space-y-3">
@@ -171,30 +195,33 @@ export default function Groups() {
                       Available Members ({game.availableMembers.length})
                     </p>
                     <div className="space-y-1">
-                      {game.availableMembers.map((member) => (
-                        <div key={member} className="flex items-center gap-2 text-sm">
-                          <div
-                            className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                              game.selectedBy.includes(member)
-                                ? "bg-[#39ff14] border-[#39ff14]"
-                                : "border-gray-600"
-                            }`}
-                          >
-                            {game.selectedBy.includes(member) && (
-                              <Check className="w-3 h-3 text-black" />
-                            )}
+                      {game.availableMembers.map((member) => {
+                        const isSelected = selectedBy.includes(member);
+                        return (
+                          <div key={member} className="flex items-center gap-2 text-sm">
+                            <div
+                              className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                                isSelected
+                                  ? "bg-[#39ff14] border-[#39ff14]"
+                                  : "border-gray-600"
+                              }`}
+                            >
+                              {isSelected && (
+                                <Check className="w-3 h-3 text-black" />
+                              )}
+                            </div>
+                            <span
+                              className={
+                                isSelected
+                                  ? "text-white"
+                                  : "text-gray-500"
+                              }
+                            >
+                              {member}
+                            </span>
                           </div>
-                          <span
-                            className={
-                              game.selectedBy.includes(member)
-                                ? "text-white"
-                                : "text-gray-500"
-                            }
-                          >
-                            {member}
-                          </span>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -202,12 +229,12 @@ export default function Groups() {
                   <button
                     onClick={() => handleGameSelection(game.id)}
                     className={`w-full py-2 rounded font-bold text-sm transition-colors ${
-                      game.selectedBy.includes("You")
+                      selectedBy.includes("You")
                         ? "bg-[#1a1a1a] border border-[#39ff14] text-[#39ff14]"
                         : "bg-[#39ff14] text-black hover:bg-[#2de00f]"
                     }`}
                   >
-                    {game.selectedBy.includes("You") ? "Selected" : "Select Game"}
+                    {selectedBy.includes("You") ? "Selected" : "Select Game"}
                   </button>
                 </div>
               );

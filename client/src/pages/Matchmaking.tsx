@@ -65,21 +65,31 @@ const availableRooms = [
 export default function Matchmaking() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredRooms, setFilteredRooms] = useState(availableRooms);
+  const [tempFilteredRooms, setTempFilteredRooms] = useState(availableRooms);
   const [activeFilter, setActiveFilter] = useState<"all" | "hybrid" | "skill">("all");
   const [useMyAvailability, setUseMyAvailability] = useState(false);
 
-  const handleSearch = () => {
-    if (!searchQuery.trim()) {
-      toast.error("Please enter a location or venue name");
+  // Real-time search as user types
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    
+    if (!value.trim()) {
+      setTempFilteredRooms(filteredRooms);
       return;
     }
 
-    const filtered = availableRooms.filter((room) =>
-      room.location.toLowerCase().includes(searchQuery.toLowerCase())
+    const filtered = filteredRooms.filter((room) =>
+      room.location.toLowerCase().includes(value.toLowerCase())
     );
+    setTempFilteredRooms(filtered);
+  };
 
-    setFilteredRooms(filtered);
-    toast.success(`Found ${filtered.length} ${filtered.length === 1 ? "room" : "rooms"}`);
+  const handleSearch = () => {
+    if (!searchQuery.trim()) {
+      setTempFilteredRooms(filteredRooms);
+      return;
+    }
+    toast.success(`Found ${tempFilteredRooms.length} ${tempFilteredRooms.length === 1 ? "room" : "rooms"}`);
   };
 
   const handleFilter = (filter: "all" | "hybrid" | "skill") => {
@@ -129,7 +139,7 @@ export default function Matchmaking() {
           <div className="flex gap-2">
             <Input
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Search by location or venue..."
               className="flex-1 bg-[#1a1a1a] border-[#2a2a2a] text-white placeholder:text-gray-600"
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -213,7 +223,7 @@ export default function Matchmaking() {
           </div>
 
           <div className="space-y-4">
-            {filteredRooms.map((game) => (
+            {(searchQuery.trim() ? tempFilteredRooms : filteredRooms).map((game) => (
               <Link key={game.id} href={`/game/${game.id}`}>
                 <div className="relative overflow-hidden rounded-lg border border-[#1a1a1a] hover:border-[#2a2a2a] transition-all group cursor-pointer">
                   {/* Background Image */}
@@ -285,7 +295,7 @@ export default function Matchmaking() {
           </div>
 
           {/* Empty State */}
-          {filteredRooms.length === 0 && (
+          {(searchQuery.trim() ? tempFilteredRooms : filteredRooms).length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="w-20 h-20 rounded-full bg-[#1a1a1a] flex items-center justify-center mb-4">
                 <Search className="w-10 h-10 text-gray-600" />

@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
@@ -13,8 +14,24 @@ import Friends from "./pages/Friends";
 import Groups from "./pages/Groups";
 import PostGameFeedback from "./pages/PostGameFeedback";
 import Notifications from "./pages/Notifications";
+import Login from "./pages/Login";
 
 function Router() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Check if user is authenticated
+  useEffect(() => {
+    const auth = localStorage.getItem("futlynk_authenticated");
+    if (auth === "true") {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  // If not authenticated, show login page
+  if (!isAuthenticated) {
+    return <Login />;
+  }
+
   return (
     <Switch>
       <Route path={"/"} component={Home} />

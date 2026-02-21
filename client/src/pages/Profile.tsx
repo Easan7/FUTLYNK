@@ -25,6 +25,9 @@ import {
   Calendar,
   CalendarDays,
   Bell,
+  Wallet,
+  Edit3,
+  Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -67,6 +70,11 @@ export default function Profile() {
   const [showFriends, setShowFriends] = useState(false);
   const [showAddFriends, setShowAddFriends] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [walletBalance, setWalletBalance] = useState(125.50);
+  const [showWallet, setShowWallet] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [editName, setEditName] = useState(mockProfile.name);
+  const [topUpAmount, setTopUpAmount] = useState("");
   const [availabilityMode, setAvailabilityMode] = useState<"recurring" | "specific">("recurring");
   const [recurringSlots, setRecurringSlots] = useState<Record<string, boolean[]>>({
     Mon: Array(24).fill(false),
@@ -102,13 +110,22 @@ export default function Profile() {
         <header className="bg-[#0a0a0a]/70 border-b border-[#1a1a1a] p-4 backdrop-blur-sm">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-white">Profile</h1>
-            <Link href="/notifications">
-              <button className="relative p-2 hover:bg-white/10 rounded-lg transition-colors">
-                <Bell className="w-6 h-6 text-white" />
-                {/* Notification badge */}
-                <span className="absolute top-1 right-1 w-2 h-2 bg-[#39ff14] rounded-full" />
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowWallet(true)}
+                className="flex items-center gap-2 px-3 py-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg hover:bg-[#222222] transition-colors"
+              >
+                <Wallet className="w-4 h-4 text-[#39ff14]" />
+                <span className="text-white font-bold text-sm">${walletBalance.toFixed(2)}</span>
               </button>
-            </Link>
+              <Link href="/notifications">
+                <button className="relative p-2 hover:bg-white/10 rounded-lg transition-colors">
+                  <Bell className="w-6 h-6 text-white" />
+                  {/* Notification badge */}
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-[#39ff14] rounded-full" />
+                </button>
+              </Link>
+            </div>
           </div>
         </header>
 
@@ -122,7 +139,15 @@ export default function Profile() {
             </Avatar>
 
             <div className="text-center space-y-3">
-              <h2 className="text-2xl font-bold text-white">{mockProfile.name}</h2>
+              <div className="flex items-center gap-2 justify-center">
+                <h2 className="text-2xl font-bold text-white">{editName}</h2>
+                <button
+                  onClick={() => setShowEditProfile(true)}
+                  className="p-1 hover:bg-white/10 rounded transition-colors"
+                >
+                  <Edit3 className="w-4 h-4 text-gray-400" />
+                </button>
+              </div>
               <SkillBadge level={mockProfile.skillLevel} />
 
               {/* Friends Buttons */}
@@ -446,6 +471,137 @@ export default function Profile() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Wallet Modal */}
+      {showWallet && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-end">
+          <div className="w-full bg-[#0a0a0a] rounded-t-2xl max-h-[80vh] overflow-y-auto">
+            <div className="sticky top-0 bg-[#0a0a0a] border-b border-[#1a1a1a] p-4 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-white">Wallet</h2>
+              <button
+                onClick={() => setShowWallet(false)}
+                className="p-2 hover:bg-[#1a1a1a] rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
+            </div>
+            <div className="p-4 space-y-6">
+              {/* Balance Display */}
+              <div className="bg-gradient-to-br from-[#39ff14]/20 to-cyan-500/20 border border-[#39ff14]/50 p-6 rounded-lg text-center space-y-2">
+                <p className="text-gray-400 text-sm uppercase tracking-wide">Current Balance</p>
+                <p className="text-5xl font-bold text-white">${walletBalance.toFixed(2)}</p>
+                <p className="text-xs text-gray-500">Available for game payments</p>
+              </div>
+
+              {/* Top Up Section */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-bold text-white uppercase tracking-wide">Top Up Balance</h3>
+                <div className="grid grid-cols-3 gap-2">
+                  {[10, 25, 50, 100, 200, 500].map((amount) => (
+                    <button
+                      key={amount}
+                      onClick={() => {
+                        setWalletBalance(prev => prev + amount);
+                        toast.success(`Added $${amount} to wallet!`);
+                      }}
+                      className="py-3 bg-[#1a1a1a] border border-[#2a2a2a] text-white rounded-lg hover:bg-[#222222] hover:border-[#39ff14] transition-all font-bold"
+                    >
+                      ${amount}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Custom Amount */}
+                <div className="space-y-2">
+                  <label className="text-xs text-gray-500 uppercase tracking-wide">Custom Amount</label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      value={topUpAmount}
+                      onChange={(e) => setTopUpAmount(e.target.value)}
+                      placeholder="Enter amount..."
+                      className="flex-1 bg-[#1a1a1a] border-[#2a2a2a] text-white"
+                    />
+                    <button
+                      onClick={() => {
+                        const amount = parseFloat(topUpAmount);
+                        if (amount > 0) {
+                          setWalletBalance(prev => prev + amount);
+                          toast.success(`Added $${amount.toFixed(2)} to wallet!`);
+                          setTopUpAmount("");
+                        }
+                      }}
+                      className="px-6 py-2 bg-[#39ff14] text-black rounded-lg font-bold hover:bg-[#2de00f] transition-colors flex items-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Transaction History */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-bold text-white uppercase tracking-wide">Recent Transactions</h3>
+                <div className="space-y-2">
+                  {[
+                    { id: 1, type: "payment", amount: -15, desc: "Downtown Sports Arena", date: "Feb 15" },
+                    { id: 2, type: "topup", amount: 50, desc: "Wallet Top-up", date: "Feb 12" },
+                    { id: 3, type: "payment", amount: -18, desc: "Metro Futsal Complex", date: "Feb 10" },
+                  ].map((txn) => (
+                    <div key={txn.id} className="flex items-center justify-between p-3 bg-[#1a1a1a] rounded-lg">
+                      <div>
+                        <p className="text-white text-sm font-medium">{txn.desc}</p>
+                        <p className="text-gray-500 text-xs">{txn.date}</p>
+                      </div>
+                      <p className={`font-bold ${txn.amount > 0 ? 'text-[#39ff14]' : 'text-white'}`}>
+                        {txn.amount > 0 ? '+' : ''}${Math.abs(txn.amount)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Profile Modal */}
+      {showEditProfile && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-end">
+          <div className="w-full bg-[#0a0a0a] rounded-t-2xl">
+            <div className="sticky top-0 bg-[#0a0a0a] border-b border-[#1a1a1a] p-4 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-white">Edit Profile</h2>
+              <button
+                onClick={() => setShowEditProfile(false)}
+                className="p-2 hover:bg-[#1a1a1a] rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs text-gray-500 uppercase tracking-wide">Display Name</label>
+                <Input
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="bg-[#1a1a1a] border-[#2a2a2a] text-white"
+                />
+              </div>
+
+              <button
+                onClick={() => {
+                  toast.success("Profile updated!");
+                  setShowEditProfile(false);
+                }}
+                className="w-full py-3 bg-[#39ff14] text-black rounded-lg font-bold hover:bg-[#2de00f] transition-colors"
+              >
+                Save Changes
+              </button>
             </div>
           </div>
         </div>
