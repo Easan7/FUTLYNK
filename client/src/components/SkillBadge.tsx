@@ -1,9 +1,10 @@
 /*
- * SkillBadge Component - Unique hexagonal design with gradients
- * Modern, non-generic styling with custom shapes
+ * SkillBadge Component - Modern, clean design with subtle animations
+ * Inspired by modern web apps, no emojis
  */
 
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 type SkillLevel = "Beginner" | "Intermediate" | "Advanced";
 
@@ -15,43 +16,42 @@ interface SkillBadgeProps {
 export default function SkillBadge({ level, className }: SkillBadgeProps) {
   const styles = {
     Beginner: {
-      gradient: "from-green-500/20 to-green-600/20",
-      border: "border-green-500/40",
-      text: "text-green-400",
-      glow: "shadow-green-500/20",
-      icon: "🌱"
+      bg: "bg-emerald-500/10",
+      border: "border-emerald-500/30",
+      text: "text-emerald-400",
+      dot: "bg-emerald-500"
     },
     Intermediate: {
-      gradient: "from-cyan-500/20 to-blue-500/20",
-      border: "border-cyan-500/40",
-      text: "text-cyan-400",
-      glow: "shadow-cyan-500/20",
-      icon: "⚡"
+      bg: "bg-amber-500/10",
+      border: "border-amber-500/30",
+      text: "text-amber-400",
+      dot: "bg-amber-500"
     },
     Advanced: {
-      gradient: "from-purple-500/20 to-pink-500/20",
-      border: "border-purple-500/40",
-      text: "text-purple-400",
-      glow: "shadow-purple-500/20",
-      icon: "🔥"
+      bg: "bg-rose-500/10",
+      border: "border-rose-500/30",
+      text: "text-rose-400",
+      dot: "bg-rose-500"
     },
   };
 
   const style = styles[level];
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.2 }}
       className={cn(
-        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 bg-gradient-to-r backdrop-blur-sm text-xs font-bold uppercase tracking-wide shadow-lg transition-all hover:scale-105",
-        style.gradient,
+        "inline-flex items-center gap-2 px-3 py-1.5 rounded-full border backdrop-blur-sm text-xs font-semibold uppercase tracking-wider",
+        style.bg,
         style.border,
         style.text,
-        style.glow,
         className
       )}
     >
-      <span className="text-sm">{style.icon}</span>
-      <span>{level}</span>
-    </div>
+      <span className={cn("w-1.5 h-1.5 rounded-full", style.dot)} />
+      {level}
+    </motion.div>
   );
 }

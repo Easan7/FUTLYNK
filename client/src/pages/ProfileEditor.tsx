@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { ArrowLeft, Check, X, Plus } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
@@ -148,22 +149,32 @@ export default function ProfileEditor() {
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2">
             {availableTags.map((tag) => {
               const isSelected = selectedTags.includes(tag);
               return (
-                <button
+                <motion.button
                   key={tag}
                   onClick={() => toggleTag(tag)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className={`relative px-4 py-2 rounded-full font-medium text-sm transition-all ${
                     isSelected
-                      ? "bg-gradient-to-r from-[#39ff14] to-[#2de00f] text-black"
-                      : "bg-[#1a1a1a] border-2 border-[#2a2a2a] text-gray-400 hover:border-[#39ff14] hover:text-white"
+                      ? "bg-[#39ff14] text-black shadow-lg shadow-[#39ff14]/20"
+                      : "bg-[#1a1a1a] border border-[#2a2a2a] text-gray-300 hover:border-[#39ff14]/50 hover:text-white"
                   }`}
                 >
-                  {isSelected && <Check className="w-4 h-4 inline mr-1" />}
                   {tag}
-                </button>
+                  {isSelected && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-black/20"
+                    >
+                      <Check className="w-3 h-3" />
+                    </motion.span>
+                  )}
+                </motion.button>
               );
             })}
           </div>

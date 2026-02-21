@@ -5,6 +5,7 @@
 
 import { useState } from "react";
 import { Link } from "wouter";
+import { motion, AnimatePresence } from "framer-motion";
 import Navigation from "@/components/Navigation";
 import SkillBadge from "@/components/SkillBadge";
 import wallpaperImage from "@/assets/images/wallpaper.jpg";
@@ -476,9 +477,23 @@ export default function Profile() {
       )}
 
       {/* Wallet Modal */}
-      {showWallet && (
-        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-gradient-to-br from-[#1a1a1a] to-[#0f0f0f] rounded-2xl border border-[#2a2a2a] shadow-2xl">
+      <AnimatePresence>
+        {showWallet && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowWallet(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", damping: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-lg bg-gradient-to-br from-[#1a1a1a] to-[#0f0f0f] rounded-2xl border border-[#2a2a2a] shadow-2xl"
+            >
             <div className="relative p-6 border-b border-[#2a2a2a]">
               <button
                 onClick={() => setShowWallet(false)}
@@ -585,9 +600,10 @@ export default function Profile() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Add Friends Modal */}
       {showAddFriends && (

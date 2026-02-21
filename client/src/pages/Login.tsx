@@ -25,7 +25,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex flex-col lg:flex-row">
       {/* Left Side - Visual */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-[#0a0a0a] via-[#1a1a1a] to-[#0a0a0a]">
         <div className="absolute inset-0">
@@ -69,20 +69,23 @@ export default function Login() {
       </div>
 
       {/* Right Side - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-[#0a0a0a]">
-        <div className="w-full max-w-md space-y-8">
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-8 bg-[#0a0a0a]">
+        <div className="w-full max-w-md space-y-6 sm:space-y-8">
           {/* Mobile Logo */}
-          <div className="lg:hidden text-center mb-8">
-            <h1 className="text-4xl font-bold text-white mb-2">
+          <div className="lg:hidden text-center mb-6">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#39ff14]/10 border-2 border-[#39ff14] mb-3">
+              <span className="text-2xl">⚽</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
               Fut<span className="text-[#39ff14]">Lynk</span>
             </h1>
-            <p className="text-gray-400">Welcome back</p>
+            <p className="text-sm text-gray-400">Welcome back</p>
           </div>
 
           {/* Form Header */}
           <div className="space-y-2">
-            <h2 className="text-3xl font-bold text-white">Sign in</h2>
-            <p className="text-gray-400">Enter any credentials to continue</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white">Sign in</h2>
+            <p className="text-sm sm:text-base text-gray-400">Enter any credentials to continue</p>
           </div>
 
           {/* Login Form */}
@@ -131,7 +134,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-4 bg-gradient-to-r from-[#39ff14] to-[#2de00f] text-black rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-[#39ff14]/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 group"
+              className="w-full py-3 sm:py-4 bg-gradient-to-r from-[#39ff14] to-[#2de00f] text-black rounded-xl font-bold text-base sm:text-lg hover:shadow-lg hover:shadow-[#39ff14]/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 group"
             >
               {isLoading ? (
                 <div className="w-6 h-6 border-3 border-black border-t-transparent rounded-full animate-spin" />
