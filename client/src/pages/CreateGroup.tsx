@@ -197,7 +197,7 @@ export default function CreateGroup() {
         <button
           onClick={handleCreateGroup}
           disabled={!groupName.trim() || selectedFriends.length === 0}
-          className="w-full bg-gradient-to-r from-[#39ff14] to-[#00d9ff] text-black font-bold py-4 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
+          className="w-full bg-[#39ff14] text-black font-bold py-4 rounded-lg hover:bg-[#2de00f] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
         >
           Create Group
         </button>

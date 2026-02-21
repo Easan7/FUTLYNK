@@ -196,7 +196,7 @@ export default function PostGameFeedback() {
             {/* Submit Button */}
             <button
               onClick={handleSubmit}
-              className="w-full bg-gradient-to-r from-[#39ff14] to-[#00d9ff] text-black font-bold py-4 rounded-lg hover:opacity-90 transition-opacity"
+              className="w-full bg-[#39ff14] text-black font-bold py-4 rounded-lg hover:bg-[#2de00f] transition-colors"
             >
               Submit Feedback
             </button>

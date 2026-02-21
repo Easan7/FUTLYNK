@@ -152,13 +152,6 @@ export default function Matchmaking() {
               Search
             </button>
           </div>
-
-          {/* Skill Level Indicator */}
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-500 uppercase text-xs tracking-wide">Your Skill Level</span>
-            <SkillBadge level={USER_SKILL_LEVEL as any} />
-            <span className="text-gray-600 text-xs">Showing {USER_SKILL_LEVEL} + Hybrid rooms</span>
-          </div>
         </div>
 
         {/* Filters */}
@@ -205,6 +198,11 @@ export default function Matchmaking() {
             My Availability
           </button>
         </div>
+        
+          {/* Skill Level Indicator */}
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-gray-600 text-s">Showing {USER_SKILL_LEVEL} + Hybrid rooms</span>
+          </div>
 
         {/* Available Rooms */}
         <section className="space-y-3">

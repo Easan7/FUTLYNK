@@ -11,7 +11,7 @@ export default function Navigation() {
 
   const navItems = [
     { path: "/", icon: House, label: "Home" },
-    { path: "/matchmaking", icon: MagnifyingGlass, label: "Quick find" },
+    { path: "/matchmaking", icon: MagnifyingGlass, label: "Search" },
     { path: "/groups", icon: PlusCircle, label: "Groups" },
     { path: "/profile", icon: User, label: "Profile" },
   ];
