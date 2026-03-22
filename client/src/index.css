@@ -107,9 +107,8 @@
   * {
     @apply border-border outline-ring/50;
   }
-    body {
+  body {
     @apply bg-background text-foreground;
-    background-image: url('https://files.manuscdn.com/user_upload_by_module/session_file/310519663303543939/XycUtQVpxksrpCMO.png');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
