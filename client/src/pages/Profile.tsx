@@ -289,17 +289,6 @@ export default function Profile() {
 
         <section className="surface-card p-4">
           <h3 className="flex items-center gap-2 text-sm font-semibold text-white">
-            <Flame className="h-4 w-4 text-[#a8ff3f]" /> Recent activity
-          </h3>
-          <div className="mt-3 space-y-2">
-            {recentActivity.map((item) => (
-              <p key={item} className="rounded-2xl bg-[#101624] p-2.5 text-xs text-[#d0dced]">{item}</p>
-            ))}
-          </div>
-        </section>
-
-        <section className="surface-card p-4">
-          <h3 className="flex items-center gap-2 text-sm font-semibold text-white">
             <ShieldCheck className="h-4 w-4 text-[#a8ff3f]" /> Integrity and reliability
           </h3>
           <p className="mt-2 text-xs text-[#9cb0cb]">

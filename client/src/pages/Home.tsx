@@ -1,25 +1,24 @@
+import { useState } from "react";
 import { Link } from "wouter";
-import { AlertCircle, ArrowUpRight, CalendarClock, CheckCircle2, Users } from "lucide-react";
+import { AlertCircle, ArrowUpRight, CheckCircle2 } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import SkillBadge from "@/components/SkillBadge";
-import { currentUser, getAllowedRoomsForUser, getFitLabel, getGroupRecommendedRooms, getRoomFitScore, groups, rooms } from "@/data/mockData";
+import { currentUser, getAllowedRoomsForUser, getFitLabel, getRoomFitScore, rooms } from "@/data/mockData";
 import AppHero from "@/components/AppHero";
+import GameCard, { type Game } from "@/components/GameCard";
+import { toast } from "sonner";
 
 const myUpcoming = [rooms[0], rooms[1]];
 const pendingRatings = [{ id: "c1", location: "Downtown Sports Arena", date: "Mar 20" }];
 
 export default function Home() {
+  const [upcomingGames, setUpcomingGames] = useState(myUpcoming);
   const recommended = getAllowedRoomsForUser(currentUser.publicSkillBand)
     .map((room) => {
       const fitScore = getRoomFitScore(currentUser.hiddenSkillRating, room);
       return { room, fitScore, fitLabel: getFitLabel(fitScore) };
     })
     .sort((a, b) => b.fitScore - a.fitScore)[0];
-
-  const thisWeekGroups = groups.slice(0, 2).map((group) => ({
-    group,
-    rec: getGroupRecommendedRooms(group)[0],
-  }));
 
   return (
     <div className="min-h-screen bg-[#0b0f18] pb-24">
@@ -35,7 +34,7 @@ export default function Home() {
         <div className="grid grid-cols-3 gap-2">
           <div className="rounded-2xl bg-[#0f1622] p-3">
             <p className="text-[11px] text-[#8ea2bf]">Upcoming</p>
-            <p className="mt-1 text-lg font-semibold text-white">{myUpcoming.length}</p>
+            <p className="mt-1 text-lg font-semibold text-white">{upcomingGames.length}</p>
           </div>
           <div className="rounded-2xl bg-[#0f1622] p-3">
             <p className="text-[11px] text-[#8ea2bf]">Reliability</p>
@@ -84,18 +83,40 @@ export default function Home() {
 
         <section className="surface-card p-4">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-white">Upcoming games</h2>
-            <CalendarClock className="h-4 w-4 text-[#91a3c0]" />
+            <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-[#cfd8e7]">Upcoming Games</h2>
+            <p className="text-xs text-[#8d9db6]">{upcomingGames.length} joined</p>
           </div>
-          <div className="space-y-2">
-            {myUpcoming.map((game) => (
-              <Link key={game.id} href={`/game/${game.id}`}>
-                <article className="rounded-2xl bg-[#101624] p-3">
-                  <p className="text-sm font-medium text-white">{game.title}</p>
-                  <p className="mt-1 text-xs text-[#98abc7]">{game.location} · {game.date} · {game.time}</p>
-                </article>
-              </Link>
-            ))}
+          <div className="space-y-3">
+            {upcomingGames.map((room) => {
+              const game: Game = {
+                id: room.id,
+                location: room.location,
+                date: room.date,
+                time: room.time,
+                playersJoined: room.playersJoined,
+                maxPlayers: room.maxPlayers,
+                price: room.price,
+                skillLevel: room.allowedBand ?? "Hybrid",
+              };
+
+              return (
+                <GameCard
+                  key={room.id}
+                  game={game}
+                  href={`/game/${room.id}`}
+                  actionLabel="Leave Game"
+                  onAction={() => {
+                    setUpcomingGames((prev) => prev.filter((g) => g.id !== room.id));
+                    toast.success("You left this game");
+                  }}
+                />
+              );
+            })}
+            {upcomingGames.length === 0 && (
+              <p className="rounded-2xl border border-[#273247] bg-[#121824] p-3 text-sm text-[#9aa8bf]">
+                No upcoming joined games.
+              </p>
+            )}
           </div>
         </section>
 
