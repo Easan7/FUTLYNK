@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
@@ -18,21 +18,6 @@ import Login from "./pages/Login";
 import ProfileEditor from "./pages/ProfileEditor";
 
 function Router() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  // Check if user is authenticated
-  useEffect(() => {
-    const auth = localStorage.getItem("futlynk_authenticated");
-    if (auth === "true") {
-      setIsAuthenticated(true);
-    }
-  }, []);
-
-  // If not authenticated, show login page
-  if (!isAuthenticated) {
-    return <Login />;
-  }
-
   return (
     <Switch>
       <Route path={"/"} component={Home} />
@@ -52,12 +37,14 @@ function Router() {
 }
 
 function App() {
+  const [hasEntered, setHasEntered] = useState(false);
+
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
           <Toaster />
-          <Router />
+          {hasEntered ? <Router /> : <Login onEnter={() => setHasEntered(true)} />}
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

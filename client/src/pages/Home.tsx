@@ -1,233 +1,116 @@
-/**
- * Home Page - My Games
- * Shows only joined upcoming games + unrated completed games
- */
-
-import Navigation from "@/components/Navigation";
-import CircularProgress from "@/components/CircularProgress";
-import SkillBadge from "@/components/SkillBadge";
-import gameImage1 from "@/assets/images/game1.jpg";
-import gameImage2 from "@/assets/images/game2.jpg";
-import wallpaperImage from "@/assets/images/wallpaper.jpg";
-import { Clock, DollarSign, Users, Star } from "lucide-react";
-import { toast } from "sonner";
 import { Link } from "wouter";
+import { AlertCircle, ArrowUpRight, CalendarClock, CheckCircle2, Users } from "lucide-react";
+import Navigation from "@/components/Navigation";
+import SkillBadge from "@/components/SkillBadge";
+import { currentUser, getAllowedRoomsForUser, getFitLabel, getGroupRecommendedRooms, getRoomFitScore, groups, rooms } from "@/data/mockData";
+import AppHero from "@/components/AppHero";
 
-// Mock data - User's joined games
-const myUpcomingGames = [
-  {
-    id: "1",
-    location: "Downtown Sports Arena",
-    date: "Feb 15, 2026",
-    time: "7:00 PM",
-    skillLevel: "Intermediate" as const,
-    isHybrid: false,
-    playersJoined: 7,
-    maxPlayers: 10,
-    price: 15,
-    image: gameImage1,
-    userJoined: true,
-  },
-  {
-    id: "2",
-    location: "Metro Futsal Complex",
-    date: "Feb 17, 2026",
-    time: "8:00 PM",
-    skillLevel: null, // Hybrid room
-    isHybrid: true,
-    playersJoined: 6,
-    maxPlayers: 10,
-    price: 18,
-    image: gameImage2,
-    userJoined: true,
-  },
-];
-
-const unratedGames = [
-  {
-    id: "c1",
-    location: "Downtown Sports Arena",
-    date: "Feb 10, 2026",
-    time: "7:00 PM",
-    playersCount: 10,
-    needsRating: true,
-  },
-];
+const myUpcoming = [rooms[0], rooms[1]];
+const pendingRatings = [{ id: "c1", location: "Downtown Sports Arena", date: "Mar 20" }];
 
 export default function Home() {
-  const handleLeaveGame = (gameId: string, location: string) => {
-    toast.success(`Left game at ${location}`);
-  };
+  const recommended = getAllowedRoomsForUser(currentUser.publicSkillBand)
+    .map((room) => {
+      const fitScore = getRoomFitScore(currentUser.hiddenSkillRating, room);
+      return { room, fitScore, fitLabel: getFitLabel(fitScore) };
+    })
+    .sort((a, b) => b.fitScore - a.fitScore)[0];
+
+  const thisWeekGroups = groups.slice(0, 2).map((group) => ({
+    group,
+    rec: getGroupRecommendedRooms(group)[0],
+  }));
 
   return (
-    <div className="min-h-screen relative bg-[#0a0a0a] pb-20 overflow-hidden">
-      <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-[#040404]/80" />
-      </div>
+    <div className="min-h-screen bg-[#0b0f18] pb-24">
+      <header className="border-b border-white/10 px-4 pb-5 pt-6">
+        <AppHero
+          className="mb-4 h-[184px]"
+          kicker="FutLynk command board"
+          title={`Welcome back, ${currentUser.name.split(" ")[0]}`}
+          subtitle="Your tactical view for fit-rated rooms, squad coordination, and next best match."
+          badge="Live fit engine"
+        />
 
-      <div className="relative z-10">
-        {/* Hero Section */}
-        <div className="relative h-64 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0a0a0a]" />
-          <img
-            src={wallpaperImage}
-            alt="Futsal court"
-            className="w-full h-full object-cover opacity-40"
-          />
-          <div className="absolute inset-0 flex flex-col justify-end p-6">
-            <h1 className="text-4xl font-bold text-white mb-2">
-              My <span className="text-[#39ff14]">Games</span>
-            </h1>
-            <p className="text-gray-400 text-sm">
-              Your upcoming matches and games to rate
-            </p>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="rounded-2xl bg-[#0f1622] p-3">
+            <p className="text-[11px] text-[#8ea2bf]">Upcoming</p>
+            <p className="mt-1 text-lg font-semibold text-white">{myUpcoming.length}</p>
+          </div>
+          <div className="rounded-2xl bg-[#0f1622] p-3">
+            <p className="text-[11px] text-[#8ea2bf]">Reliability</p>
+            <p className="mt-1 text-lg font-semibold text-[#a8ff3f]">{currentUser.reliabilityScore}%</p>
+          </div>
+          <div className="rounded-2xl bg-[#0f1622] p-3">
+            <p className="text-[11px] text-[#8ea2bf]">Streak</p>
+            <p className="mt-1 text-lg font-semibold text-white">{currentUser.streakWeeks}w</p>
           </div>
         </div>
+      </header>
 
-        <main className="p-4 space-y-6">
-          {/* Upcoming Games */}
-          <section className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="flex items-center gap-2 text-sm font-bold text-white uppercase tracking-wide">
-                <span className="w-[3px] h-4 bg-[#39ff14] rounded-full" />
-                Upcoming Games
-              </h2>
-              <span className="text-xs text-gray-500">{myUpcomingGames.length} joined</span>
+      <main className="space-y-4 p-4">
+        {pendingRatings.length > 0 && (
+          <section className="surface-card p-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm font-semibold text-white">Action needed</p>
+                <p className="mt-1 text-xs text-[#9db0cb]">Submit post-game ratings to keep matching fair.</p>
+              </div>
+              <AlertCircle className="h-4 w-4 text-[#ffd577]" />
             </div>
-
-            <div className="space-y-4">
-              {myUpcomingGames.map((game) => (
-                <Link key={game.id} href={`/game/${game.id}`}>
-                  <div className="relative overflow-hidden rounded-lg border border-[#1a1a1a] hover:border-[#2a2a2a] transition-all group cursor-pointer">
-                    {/* Background Image */}
-                    <div className="absolute inset-0">
-                      <img
-                        src={game.image}
-                        alt={game.location}
-                        className="w-full h-full object-cover opacity-20 group-hover:opacity-30 transition-opacity"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/80 to-transparent" />
-                    </div>
-
-                    {/* Content */}
-                    <div className="relative p-4 space-y-3">
-                      {/* Header */}
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="text-white font-bold text-lg mb-1">{game.location}</h3>
-                          <div className="flex items-center gap-3 text-sm text-gray-400">
-                            <span className="flex items-center gap-1">
-                              <Clock className="w-4 h-4" />
-                              {game.time}
-                            </span>
-                            <span>•</span>
-                            <span>{game.date}</span>
-                          </div>
-                        </div>
-
-                        {/* Circular Progress */}
-                        <CircularProgress
-                          value={game.playersJoined}
-                          max={game.maxPlayers}
-                          size={60}
-                          strokeWidth={4}
-                        />
-                      </div>
-
-                      {/* Details */}
-                      <div className="flex items-center gap-4">
-                        {game.isHybrid ? (
-                          <SkillBadge level="Hybrid" />
-                        ) : (
-                          <SkillBadge level={game.skillLevel!} />
-                        )}
-
-                        <div className="flex items-center gap-1 text-gray-400">
-                          <DollarSign className="w-4 h-4" />
-                          <span className="text-sm font-bold">{game.price}</span>
-                        </div>
-                      </div>
-
-                      {/* Action Button */}
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleLeaveGame(game.id, game.location);
-                        }}
-                        className="w-full py-2 bg-[#1a1a1a] border border-[#2a2a2a] text-white rounded-lg hover:bg-[#222222] transition-colors text-sm font-bold"
-                      >
-                        Leave Game
-                      </button>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+            <Link href="/feedback/c1">
+              <button className="mt-3 rounded-xl bg-[#a8ff3f] px-3 py-2 text-xs font-semibold text-[#11190f]">
+                Rate now
+              </button>
+            </Link>
           </section>
+        )}
 
-          {/* Games Needing Rating */}
-          {unratedGames.length > 0 && (
-            <section className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h2 className="flex items-center gap-2 text-sm font-bold text-white uppercase tracking-wide">
-                  <span className="w-[3px] h-4 bg-[#39ff14] rounded-full" />
-                  Rate Players
-                </h2>
-                <span className="text-xs text-[#39ff14]">{unratedGames.length} pending</span>
-              </div>
-
-              <div className="space-y-3">
-                {unratedGames.map((game) => (
-                  <Link key={game.id} href={`/feedback/${game.id}`}>
-                    <div className="p-4 bg-[#1a1a1a] border-l-4 border-[#39ff14] rounded-lg hover:bg-[#222222] transition-colors cursor-pointer group">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <h3 className="text-white font-bold text-sm mb-1">{game.location}</h3>
-                          <div className="flex items-center gap-2 text-xs text-gray-400">
-                            <span>{game.date}</span>
-                            <span>•</span>
-                            <span className="flex items-center gap-1">
-                              <Users className="w-3 h-3" />
-                              {game.playersCount}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 text-[#39ff14]">
-                          <Star className="w-5 h-5" />
-                          <span className="text-sm font-bold group-hover:translate-x-1 transition-transform">
-                            Rate →
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Empty State */}
-          {myUpcomingGames.length === 0 && unratedGames.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="w-20 h-20 rounded-full bg-[#1a1a1a] flex items-center justify-center mb-4">
-                <Users className="w-10 h-10 text-gray-600" />
-              </div>
-              <h3 className="text-white font-bold text-lg mb-2">No Games Yet</h3>
-              <p className="text-gray-500 text-sm mb-6">
-                Find and join games from the Quick Find tab
-              </p>
-              <Link href="/match">
-                <button className="px-6 py-3 bg-[#39ff14] text-black rounded-lg font-bold hover:bg-[#2de00f] transition-colors">
-                  Find Games
+        {recommended && (
+          <section className="surface-card p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#a8ff3f]">Recommended next game</p>
+            <h2 className="mt-1 text-base font-semibold text-white">{recommended.room.title}</h2>
+            <p className="mt-1 text-xs text-[#9db0cc]">{recommended.fitLabel} · {recommended.room.location} · {recommended.room.date}</p>
+            <div className="mt-3 flex items-center justify-between">
+              {recommended.room.allowedBand === null ? <SkillBadge level="Hybrid" colored /> : <SkillBadge level={recommended.room.allowedBand} colored />}
+              <Link href={`/game/${recommended.room.id}?source=matchmaking`}>
+                <button className="rounded-xl bg-[#1b2638] px-3 py-1.5 text-xs font-semibold text-[#d8e3f2]">
+                  View room <ArrowUpRight className="ml-1 inline h-3.5 w-3.5" />
                 </button>
               </Link>
             </div>
-          )}
-        </main>
+          </section>
+        )}
 
-        <Navigation />
-      </div>
+        <section className="surface-card p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-white">Upcoming games</h2>
+            <CalendarClock className="h-4 w-4 text-[#91a3c0]" />
+          </div>
+          <div className="space-y-2">
+            {myUpcoming.map((game) => (
+              <Link key={game.id} href={`/game/${game.id}`}>
+                <article className="rounded-2xl bg-[#101624] p-3">
+                  <p className="text-sm font-medium text-white">{game.title}</p>
+                  <p className="mt-1 text-xs text-[#98abc7]">{game.location} · {game.date} · {game.time}</p>
+                </article>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        <section className="surface-card p-4">
+          <div className="flex items-center gap-2 text-sm font-semibold text-white">
+            <CheckCircle2 className="h-4 w-4 text-[#a8ff3f]" /> Play again with recent squad
+          </div>
+          <p className="mt-1 text-xs text-[#97a9c5]">Invite your most-played teammates to the next best-fit released room.</p>
+          <Link href="/groups">
+            <button className="mt-3 rounded-xl bg-[#1b2638] px-3 py-2 text-xs font-semibold text-[#d8e2f2]">Open group recommendations</button>
+          </Link>
+        </section>
+      </main>
+
+      <Navigation />
     </div>
   );
 }

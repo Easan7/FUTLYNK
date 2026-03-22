@@ -1,313 +1,150 @@
-/**
- * Matchmaking/Search Page - Available Rooms
- * Shows all available rooms with filters and search
- */
-
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "wouter";
-import { Input } from "@/components/ui/input";
-import CircularProgress from "@/components/CircularProgress";
-import SkillBadge from "@/components/SkillBadge";
-import { Search, MapPin, Clock, DollarSign, Filter } from "lucide-react";
+import { Clock3, Filter, MapPin, Users } from "lucide-react";
 import Navigation from "@/components/Navigation";
-import { toast } from "sonner";
-import wallpaperImage from "@/assets/images/wallpaper.jpg";
-import gameImage1 from "@/assets/images/game1.jpg";
-import gameImage2 from "@/assets/images/game2.jpg";
-import gameImage3 from "@/assets/images/game3.png";
+import SkillBadge from "@/components/SkillBadge";
+import { currentUser, getAllowedRoomsForUser, getFitLabel, getFitReason, getRoomFitScore } from "@/data/mockData";
+import AppHero from "@/components/AppHero";
 
-// User's current skill level
-const USER_SKILL_LEVEL = "Intermediate";
-
-// Available rooms - user's skill level + hybrid
-const availableRooms = [
-  {
-    id: "1",
-    location: "Downtown Sports Arena",
-    date: "Feb 15, 2026",
-    time: "7:00 PM",
-    skillLevel: "Intermediate" as const,
-    isHybrid: false,
-    playersJoined: 7,
-    maxPlayers: 10,
-    price: 15,
-    distance: "0.8 km",
-    image: gameImage1,
-  },
-  {
-    id: "2",
-    location: "Metro Futsal Complex",
-    date: "Feb 17, 2026",
-    time: "8:00 PM",
-    skillLevel: null, // Hybrid room
-    isHybrid: true,
-    playersJoined: 6,
-    maxPlayers: 10,
-    price: 18,
-    distance: "1.2 km",
-    image: gameImage2,
-  },
-  {
-    id: "3",
-    location: "Westgate Indoor Sports",
-    date: "Feb 18, 2026",
-    time: "7:30 PM",
-    skillLevel: "Intermediate" as const,
-    isHybrid: false,
-    playersJoined: 5,
-    maxPlayers: 10,
-    price: 15,
-    distance: "2.1 km",
-    image: gameImage3,
-  },
-];
+type FilterKey = "all" | "best" | "my-level" | "open";
 
 export default function Matchmaking() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filteredRooms, setFilteredRooms] = useState(availableRooms);
-  const [tempFilteredRooms, setTempFilteredRooms] = useState(availableRooms);
-  const [activeFilter, setActiveFilter] = useState<"all" | "hybrid" | "skill">("all");
-  const [useMyAvailability, setUseMyAvailability] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
 
-  // Real-time search as user types
-  const handleSearchChange = (value: string) => {
-    setSearchQuery(value);
-    
-    if (!value.trim()) {
-      setTempFilteredRooms(filteredRooms);
-      return;
-    }
+  const evaluatedRooms = useMemo(() => {
+    return getAllowedRoomsForUser(currentUser.publicSkillBand)
+      .map((room) => {
+        const fitScore = getRoomFitScore(currentUser.hiddenSkillRating, room);
+        return {
+          ...room,
+          fitScore,
+          fitLabel: getFitLabel(fitScore),
+          reason: getFitReason(room, fitScore),
+        };
+      })
+      .sort((a, b) => b.fitScore - a.fitScore);
+  }, []);
 
-    const filtered = filteredRooms.filter((room) =>
-      room.location.toLowerCase().includes(value.toLowerCase())
-    );
-    setTempFilteredRooms(filtered);
-  };
+  const visibleRooms = useMemo(() => {
+    if (activeFilter === "best") return evaluatedRooms.filter((r) => r.fitScore >= 80);
+    if (activeFilter === "my-level") return evaluatedRooms.filter((r) => r.allowedBand === currentUser.publicSkillBand);
+    if (activeFilter === "open") return evaluatedRooms.filter((r) => r.allowedBand === null);
+    return evaluatedRooms;
+  }, [activeFilter, evaluatedRooms]);
 
-  const handleSearch = () => {
-    if (!searchQuery.trim()) {
-      setTempFilteredRooms(filteredRooms);
-      return;
-    }
-    toast.success(`Found ${tempFilteredRooms.length} ${tempFilteredRooms.length === 1 ? "room" : "rooms"}`);
-  };
-
-  const handleFilter = (filter: "all" | "hybrid" | "skill") => {
-    setActiveFilter(filter);
-    
-    let filtered = availableRooms;
-    if (filter === "hybrid") {
-      filtered = availableRooms.filter((room) => room.isHybrid);
-    } else if (filter === "skill") {
-      filtered = availableRooms.filter((room) => !room.isHybrid);
-    }
-
-    setFilteredRooms(filtered);
-    toast.success(`Showing ${filtered.length} ${filtered.length === 1 ? "room" : "rooms"}`);
-  };
-
-  const handleQuickJoin = (e: React.MouseEvent, gameId: string, location: string) => {
-    e.preventDefault();
-    toast.success(`Joined game at ${location}!`);
-  };
+  const summary = useMemo(() => {
+    const best = evaluatedRooms[0];
+    const weekCount = evaluatedRooms.filter((r) => r.weekTag === "This week").length;
+    const matchingAvailability = evaluatedRooms.filter((r) => r.matchingAvailability).length;
+    return { best, weekCount, matchingAvailability };
+  }, [evaluatedRooms]);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] pb-20">
-      {/* Hero */}
-      <div className="relative h-64 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0a0a0a]" />
-        <img
-          src={wallpaperImage}
-          alt="Futsal court"
-          className="w-full h-full object-cover opacity-40"
+    <div className="min-h-screen bg-[#0a0d14] pb-24">
+      <header className="sticky top-0 z-20 border-b border-white/10 bg-[#0a0d14]/95 px-4 pb-5 pt-5 backdrop-blur-sm">
+        <AppHero
+          className="mb-4 h-[170px] sm:h-[184px]"
+          title="Match Recommendations"
+          subtitle="Rooms are recommended based on your skill fit, availability, and game balance."
+          badge="Tactical room map"
         />
-        <div className="absolute inset-0 flex flex-col justify-end p-6">
-          <h1 className="text-4xl font-bold text-white mb-2">
-            Find Your
-            <br />
-            <span className="text-[#39ff14]">Perfect Match</span>
-          </h1>
-          <p className="text-gray-400 text-sm">
-            Join skill-balanced futsal games near you. Play with the right team, every time.
-          </p>
-        </div>
-      </div>
 
-      <div className="p-4 space-y-6">
-        {/* Search Bar */}
-        <div className="space-y-3">
-          <div className="flex gap-2">
-            <Input
-              value={searchQuery}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              placeholder="Search by location or venue..."
-              className="flex-1 bg-[#1a1a1a] border-[#2a2a2a] text-white placeholder:text-gray-600"
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            />
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          <div className="rounded-2xl border border-[#22314a] bg-[#0f1622] p-3">
+            <p className="text-[11px] text-[#8ea0bd]">Best fit near you</p>
+            <p className="mt-1 text-sm font-semibold text-white">{summary.best?.location ?? "-"}</p>
+          </div>
+          <div className="rounded-2xl border border-[#22314a] bg-[#0f1622] p-3">
+            <p className="text-[11px] text-[#8ea0bd]">Available this week</p>
+            <p className="mt-1 text-lg font-semibold text-white">{summary.weekCount}</p>
+          </div>
+          <div className="rounded-2xl border border-[#22314a] bg-[#0f1622] p-3">
+            <p className="text-[11px] text-[#8ea0bd]">Matching your availability</p>
+            <p className="mt-1 text-lg font-semibold text-[#a8ff3f]">{summary.matchingAvailability}</p>
+          </div>
+        </div>
+      </header>
+
+      <main className="space-y-4 p-4">
+        <section className="flex items-center gap-2 overflow-x-auto pb-1">
+          {[
+            ["all", "All"],
+            ["best", "Best Fit"],
+            ["my-level", "My Level"],
+            ["open", "Open / Mixed"],
+          ].map(([key, label]) => (
             <button
-              onClick={handleSearch}
-              className="px-6 py-2 bg-[#39ff14] text-black rounded-lg font-bold hover:bg-[#2de00f] transition-colors flex items-center gap-2"
+              key={key}
+              onClick={() => setActiveFilter(key as FilterKey)}
+              className={`neo-chip whitespace-nowrap transition-all ${
+                activeFilter === key
+                  ? "neo-chip-active"
+                  : ""
+              }`}
             >
-              <Search className="w-4 h-4" />
-              Search
+              {label}
             </button>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="flex gap-2 flex-wrap">
-          <button
-            onClick={() => handleFilter("all")}
-            className={`px-4 py-2 rounded-sm text-sm font-bold transition-all ${
-              activeFilter === "all"
-                ? "bg-[#39ff14] text-black"
-                : "bg-[#1a1a1a] text-gray-400 hover:text-white"
-            }`}
-          >
-            All Rooms
-          </button>
-          <button
-            onClick={() => handleFilter("skill")}
-            className={`px-4 py-2 rounded-sm text-sm font-bold transition-all ${
-              activeFilter === "skill"
-                ? "bg-[#39ff14] text-black"
-                : "bg-[#1a1a1a] text-gray-400 hover:text-white"
-            }`}
-          >
-            {USER_SKILL_LEVEL} Only
-          </button>
-          <button
-            onClick={() => handleFilter("hybrid")}
-            className={`px-4 py-2 rounded-sm text-sm font-bold transition-all ${
-              activeFilter === "hybrid"
-                ? "bg-[#39ff14] text-black"
-                : "bg-[#1a1a1a] text-gray-400 hover:text-white"
-            }`}
-          >
-            Hybrid
-          </button>
-          <button
-            onClick={() => setUseMyAvailability((v) => !v)}
-            className={`px-4 py-2 rounded-sm text-sm font-bold transition-all flex items-center gap-1.5 ${
-              useMyAvailability
-                ? "bg-[#39ff14] text-black"
-                : "bg-[#1a1a1a] text-gray-400 hover:text-white"
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5" />
-            My Availability
-          </button>
-        </div>
-        
-          {/* Skill Level Indicator */}
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-600 text-s">Showing {USER_SKILL_LEVEL} + Hybrid rooms</span>
-          </div>
-
-        {/* Available Rooms */}
-        <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-sm font-bold text-white uppercase tracking-wide">
-              <span className="w-[3px] h-4 bg-[#39ff14] rounded-full" />
-              Nearby Games
-            </h2>
-            <span className="text-xs text-gray-500">{filteredRooms.length} available</span>
-          </div>
-
-          <div className="space-y-4">
-            {(searchQuery.trim() ? tempFilteredRooms : filteredRooms).map((game) => (
-              <Link key={game.id} href={`/game/${game.id}?source=matchmaking`}>
-                <div className="relative overflow-hidden rounded-lg border border-[#1a1a1a] hover:border-[#2a2a2a] transition-all group cursor-pointer">
-                  {/* Background Image */}
-                  <div className="absolute inset-0">
-                    <img
-                      src={game.image}
-                      alt={game.location}
-                      className="w-full h-full object-cover opacity-20 group-hover:opacity-30 transition-opacity"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/80 to-transparent" />
-                  </div>
-
-                  {/* Content */}
-                  <div className="relative p-4 space-y-3">
-                    {/* Header */}
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="text-white font-bold text-lg mb-1">{game.location}</h3>
-                        <div className="flex items-center gap-3 text-sm text-gray-400">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            {game.time}
-                          </span>
-                          <span>•</span>
-                          <span>{game.date}</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
-                          <MapPin className="w-3 h-3" />
-                          {game.distance} away
-                        </div>
-                      </div>
-
-                      {/* Circular Progress */}
-                      <CircularProgress
-                        value={game.playersJoined}
-                        max={game.maxPlayers}
-                        size={60}
-                        strokeWidth={4}
-                      />
-                    </div>
-
-                    {/* Details */}
-                    <div className="flex items-center gap-4">
-                      {game.isHybrid ? (
-                        <SkillBadge level="Hybrid" />
-                      ) : (
-                        <SkillBadge level={game.skillLevel!} />
-                      )}
-
-                      <div className="flex items-center gap-1 text-gray-400">
-                        <DollarSign className="w-4 h-4" />
-                        <span className="text-sm font-bold">{game.price}</span>
-                      </div>
-                    </div>
-
-                    {/* Action Button */}
-                    <button
-                      onClick={(e) => handleQuickJoin(e, game.id, game.location)}
-                      className="w-full py-2 bg-[#39ff14] text-black rounded-lg hover:bg-[#2de00f] transition-colors text-sm font-bold"
-                    >
-                      Join Game
-                    </button>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-
-          {/* Empty State */}
-          {(searchQuery.trim() ? tempFilteredRooms : filteredRooms).length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="w-20 h-20 rounded-full bg-[#1a1a1a] flex items-center justify-center mb-4">
-                <Search className="w-10 h-10 text-gray-600" />
-              </div>
-              <h3 className="text-white font-bold text-lg mb-2">No Games Found</h3>
-              <p className="text-gray-500 text-sm mb-6">
-                Try adjusting your search or filters
-              </p>
-              <button
-                onClick={() => {
-                  setSearchQuery("");
-                  setFilteredRooms(availableRooms);
-                  setActiveFilter("all");
-                }}
-                className="px-6 py-3 bg-[#1a1a1a] border border-[#2a2a2a] text-white rounded-lg font-bold hover:bg-[#222222] transition-colors"
-              >
-                Reset Filters
-              </button>
-            </div>
-          )}
+          ))}
+          <span className="ml-auto flex items-center gap-1 text-xs text-[#7f91ad]">
+            <Filter className="h-3.5 w-3.5" />
+            {visibleRooms.length} rooms
+          </span>
         </section>
-      </div>
+
+        <section className="space-y-3">
+          {visibleRooms.map((room) => {
+            const fillPct = Math.round((room.playersJoined / room.maxPlayers) * 100);
+
+            return (
+              <Link key={room.id} href={`/game/${room.id}?source=matchmaking`}>
+                <article className="surface-card p-4 transition-all hover:border-[#3a4b68]">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-[#a8ff3f]">{room.fitLabel}</p>
+                      <h3 className="mt-1 text-base font-semibold text-white">{room.title}</h3>
+                      <p className="mt-1 text-xs text-[#8fa0bc]">{room.reason}</p>
+                    </div>
+                    {room.allowedBand === null ? (
+                      <SkillBadge level="Hybrid" colored />
+                    ) : (
+                      <SkillBadge level={room.allowedBand} colored />
+                    )}
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[#a7b7d0]">
+                    <span className="flex items-center gap-1">
+                      <MapPin className="h-3.5 w-3.5" />
+                      {room.location} · {room.distanceKm.toFixed(1)} km
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock3 className="h-3.5 w-3.5" />
+                      {room.date} · {room.time}
+                    </span>
+                  </div>
+
+                  <div className="mt-3 rounded-2xl bg-[#101624] p-3">
+                    <div className="mb-2 flex items-center justify-between text-xs text-[#a0b2ce]">
+                      <span className="flex items-center gap-1">
+                        <Users className="h-3.5 w-3.5" />
+                        {room.playersJoined}/{room.maxPlayers} players
+                      </span>
+                      <span>{fillPct}% filled</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-[#202b3f]">
+                      <div className="h-full rounded-full bg-[#a8ff3f]" style={{ width: `${fillPct}%` }} />
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between">
+                    <p className="text-sm font-semibold text-white">${room.price}/player</p>
+                    <button className="rounded-xl bg-[#a8ff3f] px-3 py-1.5 text-xs font-semibold text-[#10160f]">View Room</button>
+                  </div>
+                </article>
+              </Link>
+            );
+          })}
+        </section>
+      </main>
 
       <Navigation />
     </div>

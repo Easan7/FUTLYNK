@@ -1,207 +1,162 @@
-/**
- * Create Group Page - Unique Design
- * Minimal form for creating social groups
- */
-
-import { useState } from "react";
-import { useLocation } from "wouter";
+import { useMemo, useState } from "react";
+import { Link, useLocation } from "wouter";
+import { ArrowLeft, Search, UserPlus, Users } from "lucide-react";
+import { toast } from "sonner";
+import Navigation from "@/components/Navigation";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Users, X, ArrowLeft } from "lucide-react";
-import Navigation from "@/components/Navigation";
-import { toast } from "sonner";
-import { Link } from "wouter";
+import SkillBadge from "@/components/SkillBadge";
+import { currentUser, players } from "@/data/mockData";
 
 export default function CreateGroup() {
   const [, setLocation] = useLocation();
   const [groupName, setGroupName] = useState("");
-  const [friendSearch, setFriendSearch] = useState("");
-  const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
+  const [search, setSearch] = useState("");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  // Mock friends list
-  const availableFriends = [
-    { id: "1", name: "Marcus Chen", skillLevel: "Advanced" },
-    { id: "2", name: "Sarah Williams", skillLevel: "Intermediate" },
-    { id: "3", name: "Diego Martinez", skillLevel: "Advanced" },
-    { id: "4", name: "Aisha Patel", skillLevel: "Intermediate" },
-    { id: "5", name: "Tom Rodriguez", skillLevel: "Beginner" },
-  ];
+  const availableFriends = players.filter((p) => p.id !== currentUser.id);
 
-  const filteredFriends = availableFriends.filter(
-    (friend) =>
-      friend.name.toLowerCase().includes(friendSearch.toLowerCase()) &&
-      !selectedFriends.includes(friend.name)
+  const filtered = useMemo(
+    () =>
+      availableFriends.filter(
+        (f) => f.name.toLowerCase().includes(search.toLowerCase()) && !selectedIds.includes(f.id)
+      ),
+    [availableFriends, search, selectedIds]
   );
 
-  const handleAddFriend = (name: string) => {
-    setSelectedFriends([...selectedFriends, name]);
-    setFriendSearch("");
-    toast.success(`${name} added to group`);
-  };
+  const selectedMembers = selectedIds
+    .map((id) => availableFriends.find((f) => f.id === id))
+    .filter(Boolean);
 
-  const handleRemoveFriend = (name: string) => {
-    setSelectedFriends(selectedFriends.filter((f) => f !== name));
-    toast.info(`${name} removed from group`);
-  };
+  const skillProfile = useMemo(() => {
+    const all = [currentUser.publicSkillBand, ...selectedMembers.map((m) => m!.publicSkillBand)];
+    const unique = new Set(all);
+    return unique.size > 1 ? "Mixed" : "Same-level";
+  }, [selectedMembers]);
 
-  const handleCreateGroup = () => {
+  const createGroup = () => {
     if (!groupName.trim()) {
       toast.error("Please enter a group name");
       return;
     }
-    if (selectedFriends.length === 0) {
-      toast.error("Please add at least one friend");
+    if (selectedMembers.length === 0) {
+      toast.error("Add at least one member");
       return;
     }
 
-    toast.success(`Group "${groupName}" created!`, {
-      description: "We'll analyze preferences and recommend suitable games.",
+    toast.success(`Group \"${groupName}\" created`, {
+      description: "We will use your group's availability and skill mix to recommend released games.",
     });
-    setTimeout(() => setLocation("/groups"), 1000);
-  };
-
-  const getSkillMix = () => {
-    const friendSkills = selectedFriends.map((name) => {
-      const friend = availableFriends.find((f) => f.name === name);
-      return friend?.skillLevel;
-    });
-    const uniqueSkills = new Set(friendSkills);
-    return uniqueSkills.size > 1 ? "Mixed" : "Same";
+    setTimeout(() => setLocation("/groups?created=1"), 500);
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] pb-20">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-[#0a0a0a]/95 backdrop-blur-sm border-b border-[#1a1a1a] p-4">
+    <div className="min-h-screen bg-[#0a0d14] pb-24">
+      <header className="sticky top-0 z-20 border-b border-white/10 bg-[#0a0d14]/95 px-4 pb-4 pt-5 backdrop-blur-sm">
         <div className="flex items-center gap-3">
           <Link href="/groups">
-            <button className="p-2 hover:bg-[#1a1a1a] rounded-lg transition-colors">
-              <ArrowLeft className="w-5 h-5 text-white" />
+            <button className="rounded-xl border border-[#2a3448] bg-[#101624] p-2 text-[#c8d4e7]">
+              <ArrowLeft className="h-4 w-4" />
             </button>
           </Link>
-          <h1 className="text-lg font-bold text-white">Create Group</h1>
+          <div>
+            <h1 className="text-xl font-semibold text-white">Create Group</h1>
+            <p className="text-xs text-[#91a3c0]">Flexible size. Designed for coordination, not booking.</p>
+          </div>
         </div>
-      </div>
+      </header>
 
-      <div className="p-4 space-y-6">
-        {/* Group Name */}
-        <div>
-          <label className="text-[10px] uppercase text-gray-500 tracking-wide mb-2 block">
-            Group Name
-          </label>
+      <main className="space-y-4 p-4">
+        <section className="surface-card p-4">
+          <label className="text-xs font-semibold uppercase tracking-wide text-[#8ea1be]">Group name</label>
           <Input
             value={groupName}
             onChange={(e) => setGroupName(e.target.value)}
-            placeholder="e.g., Friday Night Squad"
-            className="bg-[#1a1a1a] border-[#2a2a2a] text-white text-lg"
+            placeholder="e.g. Thursday Recovery Squad"
+            className="mt-2 border-[#2e3950] bg-[#0f1624] text-white"
           />
-        </div>
+        </section>
 
-        {/* Add Friends */}
-        <div>
-          <label className="text-[10px] uppercase text-gray-500 tracking-wide mb-2 block">
-            Add Friends
-          </label>
-          <Input
-            value={friendSearch}
-            onChange={(e) => setFriendSearch(e.target.value)}
-            placeholder="Search friends..."
-            className="bg-[#1a1a1a] border-[#2a2a2a] text-white"
-          />
+        <section className="surface-card p-4">
+          <label className="text-xs font-semibold uppercase tracking-wide text-[#8ea1be]">Add members</label>
+          <div className="relative mt-2">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7586a4]" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search friends"
+              className="border-[#2e3950] bg-[#0f1624] pl-9 text-white"
+            />
+          </div>
 
-          {/* Search Results */}
-          {friendSearch && filteredFriends.length > 0 && (
-            <div className="mt-2 space-y-1 max-h-48 overflow-y-auto">
-              {filteredFriends.map((friend) => (
+          {search && (
+            <div className="mt-3 space-y-2">
+              {filtered.slice(0, 5).map((friend) => (
                 <button
                   key={friend.id}
-                  onClick={() => handleAddFriend(friend.name)}
-                  className="w-full flex items-center gap-3 p-3 bg-[#1a1a1a] hover:bg-[#222222] transition-colors text-left"
+                  onClick={() => {
+                    setSelectedIds((prev) => [...prev, friend.id]);
+                    setSearch("");
+                  }}
+                  className="flex w-full items-center justify-between rounded-2xl bg-[#0f1624] p-3 text-left"
                 >
-                  <Avatar className="w-10 h-10 border border-[#2a2a2a]">
-                    <AvatarFallback className="bg-[#0f0f0f] text-white text-sm">
-                      {friend.name.split(" ").map((n) => n[0]).join("")}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <p className="text-white font-medium text-sm">{friend.name}</p>
-                    <p className="text-gray-500 text-xs">{friend.skillLevel}</p>
+                  <div>
+                    <p className="text-sm font-medium text-white">{friend.name}</p>
+                    <p className="text-xs text-[#9bb0cc]">{friend.gamesPlayed} games · {friend.reliabilityScore}% reliability</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <SkillBadge level={friend.publicSkillBand} colored />
+                    <UserPlus className="h-4 w-4 text-[#a8ff3f]" />
                   </div>
                 </button>
               ))}
             </div>
           )}
-        </div>
+        </section>
 
-        {/* Selected Friends */}
-        {selectedFriends.length > 0 && (
-          <div>
-            <label className="text-[10px] uppercase text-gray-500 tracking-wide mb-2 block">
-              Group Members ({selectedFriends.length})
-            </label>
-            <div className="space-y-2">
-              {selectedFriends.map((name) => {
-                const friend = availableFriends.find((f) => f.name === name);
-                return (
-                  <div
-                    key={name}
-                    className="flex items-center gap-3 p-3 bg-[#1a1a1a]"
-                  >
-                    <Avatar className="w-10 h-10 border border-[#2a2a2a]">
-                      <AvatarFallback className="bg-[#0f0f0f] text-white text-sm">
-                        {name.split(" ").map((n) => n[0]).join("")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <p className="text-white font-medium text-sm">{name}</p>
-                      <p className="text-gray-500 text-xs">{friend?.skillLevel}</p>
-                    </div>
-                    <button
-                      onClick={() => handleRemoveFriend(name)}
-                      className="p-2 hover:bg-[#222222] rounded-lg transition-colors"
-                    >
-                      <X className="w-4 h-4 text-gray-400" />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
+        <section className="surface-card p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-white">Group composition</h2>
+            <span className="text-xs text-[#95a8c4]">{selectedMembers.length + 1} members</span>
           </div>
-        )}
 
-        {/* Group Summary */}
-        {selectedFriends.length > 0 && (
-          <div className="p-4 bg-[#1a1a1a] border-l-2 border-[#39ff14]">
-            <p className="text-[10px] uppercase text-gray-500 tracking-wide mb-2">
-              Group Summary
-            </p>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-2xl font-bold text-white">{selectedFriends.length + 1}</p>
-                <p className="text-xs text-gray-400">Total Members</p>
+          <div className="space-y-2">
+            {[{ ...currentUser, name: `${currentUser.name} (You)` }, ...selectedMembers].map((member) => (
+              <div key={member!.id} className="flex items-center justify-between rounded-2xl bg-[#101624] p-2.5">
+                <div className="flex items-center gap-2">
+                  <Avatar className="h-8 w-8 border border-[#2d3850]">
+                    <AvatarFallback className="bg-[#1a2538] text-xs text-white">
+                      {member!.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm text-white">{member!.name}</span>
+                </div>
+                <SkillBadge level={member!.publicSkillBand} colored />
               </div>
-              <div>
-                <p className="text-2xl font-bold text-[#39ff14]">{getSkillMix()}</p>
-                <p className="text-xs text-gray-400">Skill Mix</p>
-              </div>
+            ))}
+          </div>
+
+          <div className="mt-3 rounded-2xl bg-[#101624] p-3">
+            <div className="flex items-center gap-2 text-sm text-white">
+              <Users className="h-4 w-4 text-[#a8ff3f]" />
+              {skillProfile} squad
             </div>
-            <p className="text-xs text-gray-500 mt-3">
-              {getSkillMix() === "Mixed"
-                ? "Will match to unrestricted rooms"
-                : "Will prioritize banded games"}
+            <p className="mt-1 text-xs text-[#9bb0cc]">
+              We'll use your group's availability and skill mix to recommend the best released games.
             </p>
           </div>
-        )}
+        </section>
 
-        {/* Create Button */}
         <button
-          onClick={handleCreateGroup}
-          disabled={!groupName.trim() || selectedFriends.length === 0}
-          className="w-full bg-[#39ff14] text-black font-bold py-4 rounded-lg hover:bg-[#2de00f] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          onClick={createGroup}
+          className="w-full rounded-2xl bg-[#a8ff3f] py-3 text-sm font-semibold text-[#121a0f]"
         >
           Create Group
         </button>
-      </div>
+      </main>
 
       <Navigation />
     </div>

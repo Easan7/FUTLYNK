@@ -1,224 +1,135 @@
-/**
- * Post-Game Feedback Page - Unique Design
- * Rate players after completed games
- */
-
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useParams } from "wouter";
+import { ArrowLeft, Lock, Star } from "lucide-react";
+import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, Star, AlertTriangle } from "lucide-react";
-import { toast } from "sonner";
-import wallpaperImage from "@/assets/images/wallpaper.jpg";
-
-type CompletedGame = {
-  id: string;
-  location: string;
-  date: string;
-  time: string;
-  players: { id: string; name: string }[];
-};
-
-const completedGames: Record<string, CompletedGame> = {
-  c1: {
-    id: "c1",
-    location: "Downtown Sports Arena",
-    date: "Feb 10, 2026",
-    time: "7:00 PM",
-    players: [
-      { id: "1", name: "Alex Chen" },
-      { id: "2", name: "Jordan Smith" },
-      { id: "3", name: "Sam Rivera" },
-      { id: "4", name: "Taylor Kim" },
-      { id: "5", name: "Morgan Lee" },
-      { id: "6", name: "Casey Park" },
-      { id: "7", name: "Riley Johnson" },
-    ],
-  },
-  c2: {
-    id: "c2",
-    location: "Eastside Court",
-    date: "Feb 8, 2026",
-    time: "6:30 PM",
-    players: [
-      { id: "8", name: "Diego Martinez" },
-      { id: "9", name: "Jamie Wilson" },
-      { id: "10", name: "Chris Taylor" },
-      { id: "11", name: "Pat Anderson" },
-      { id: "12", name: "Aisha Patel" },
-      { id: "13", name: "Marcus Chen" },
-      { id: "14", name: "Sarah Williams" },
-    ],
-  },
-};
+import { completedGameFeedback } from "@/data/mockData";
 
 export default function PostGameFeedback() {
   const params = useParams<{ gameId: string }>();
-  const currentGame = params?.gameId ? completedGames[params.gameId] : undefined;
   const [ratings, setRatings] = useState<Record<string, number>>({});
-  const [sportsmanshipFlags, setSportsmanshipFlags] = useState<Set<string>>(new Set());
 
-  const handleRating = (playerId: string, rating: number) => {
-    setRatings({ ...ratings, [playerId]: rating });
-  };
+  const game = params?.gameId === completedGameFeedback.id ? completedGameFeedback : null;
 
-  const toggleSportsmanshipFlag = (playerId: string) => {
-    const newFlags = new Set(sportsmanshipFlags);
-    if (newFlags.has(playerId)) {
-      newFlags.delete(playerId);
-    } else {
-      newFlags.add(playerId);
-    }
-    setSportsmanshipFlags(newFlags);
-  };
+  const splitPlayers = useMemo(() => {
+    if (!game) return { eligible: [], sameGroup: [] };
 
-  const handleSubmit = () => {
-    if (!currentGame) {
-      toast.error("Game not found.");
+    const eligible = game.players.filter(
+      (p) => p.joinedViaGroupId !== game.currentUserJoinGroupId
+    );
+    const sameGroup = game.players.filter(
+      (p) => p.joinedViaGroupId === game.currentUserJoinGroupId
+    );
+
+    return { eligible, sameGroup };
+  }, [game]);
+
+  const submit = () => {
+    if (!game) return;
+
+    if (Object.keys(ratings).length < splitPlayers.eligible.length) {
+      toast.error(`Please rate all eligible players (${splitPlayers.eligible.length})`);
       return;
     }
 
-    const ratedCount = Object.keys(ratings).length;
-    if (ratedCount < currentGame.players.length) {
-      toast.error(`Please rate all ${currentGame.players.length} players`);
-      return;
-    }
-
-    toast.success("Feedback submitted!", {
-      description: "Thank you for helping maintain game quality.",
+    toast.success("Feedback submitted", {
+      description: "Thanks. This helps keep room balancing fair.",
     });
   };
 
-  return (
-    <div className="relative min-h-screen bg-[#0a0a0a] pb-24 overflow-hidden">
-      <div className="absolute inset-0">
-        <img
-          src={wallpaperImage}
-          alt="Court texture"
-          className="w-full h-full object-cover opacity-60"
-        />
-        <div className="absolute inset-0 bg-[#030303]/80" />
-      </div>
-
-      <div className="relative z-10">
-        {/* Header */}
-        <div className="sticky top-0 z-10 bg-[#050505]/85 backdrop-blur-md border-b border-[#1a1a1a] p-4">
-          <div className="flex items-center gap-3">
-            <Link href="/">
-              <button className="p-2 hover:bg-[#1a1a1a] rounded-lg transition-colors">
-                <ArrowLeft className="w-5 h-5 text-white" />
-              </button>
-            </Link>
-            <div className="flex-1">
-              <h1 className="text-lg font-bold text-white">Rate Players</h1>
-              <p className="text-xs text-gray-500">
-                {currentGame ? currentGame.location : "Game unavailable"}
-              </p>
-            </div>
-          </div>
+  if (!game) {
+    return (
+      <div className="min-h-screen bg-[#0a0d14] pb-24">
+        <div className="p-6">
+          <p className="text-white">Game feedback unavailable.</p>
+          <Link href="/">
+            <button className="mt-3 rounded-xl bg-[#a8ff3f] px-3 py-2 text-sm font-semibold text-[#11190f]">Back home</button>
+          </Link>
         </div>
-
-        {currentGame ? (
-          <div className="p-4 space-y-6">
-            {/* Game Info */}
-            <div className="p-4 bg-[#1a1a1a] border-l-2 border-[#39ff14]">
-              <p className="text-[10px] uppercase text-gray-500 tracking-wide mb-1">
-                Completed Game
-              </p>
-              <p className="text-white font-bold">{currentGame.location}</p>
-              <p className="text-gray-400 text-sm">
-                {currentGame.date} • {currentGame.time}
-              </p>
-            </div>
-
-            {/* Instructions */}
-            <div className="space-y-2">
-              <h2 className="text-sm font-bold text-white uppercase tracking-wide">
-                Rate Each Player
-              </h2>
-              <p className="text-xs text-gray-500">
-                Your ratings help maintain game quality and match players appropriately.
-              </p>
-            </div>
-
-            {/* Player Ratings */}
-            <div className="space-y-3">
-              {currentGame.players.map((player) => (
-                <div key={player.id} className="p-4 bg-[#1a1a1a] space-y-3">
-                  {/* Player Info */}
-                  <div className="flex items-center gap-3">
-                    <Avatar className="w-10 h-10 border border-[#2a2a2a]">
-                      <AvatarFallback className="bg-[#0f0f0f] text-white text-sm font-bold">
-                        {player.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <p className="text-white font-medium">{player.name}</p>
-                  </div>
-
-                  {/* Star Rating */}
-                  <div className="flex items-center gap-2">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        onClick={() => handleRating(player.id, star)}
-                        className="transition-transform hover:scale-110"
-                      >
-                        <Star
-                          className={`w-7 h-7 ${
-                            ratings[player.id] >= star
-                              ? "fill-[#39ff14] text-[#39ff14]"
-                              : "text-gray-700"
-                          }`}
-                        />
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Sportsmanship Flag */}
-                  <button
-                    onClick={() => toggleSportsmanshipFlag(player.id)}
-                    className={`flex items-center gap-2 text-xs transition-colors ${
-                      sportsmanshipFlags.has(player.id)
-                        ? "text-red-400"
-                        : "text-gray-500 hover:text-gray-400"
-                    }`}
-                  >
-                    <AlertTriangle className="w-4 h-4" />
-                    <span>Flag for poor sportsmanship</span>
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            {/* Submit Button */}
-            <button
-              onClick={handleSubmit}
-              className="w-full bg-[#39ff14] text-black font-bold py-4 rounded-lg hover:bg-[#2de00f] transition-colors"
-            >
-              Submit Feedback
-            </button>
-          </div>
-        ) : (
-          <div className="p-6 space-y-6">
-            <div className="p-4 bg-[#1a1a1a] border border-[#2a2a2a] text-center">
-              <p className="text-white font-semibold mb-2">Game not found</p>
-              <p className="text-xs text-gray-500">
-                The session you're trying to rate is no longer available.
-              </p>
-            </div>
-            <Link href="/">
-              <button className="w-full bg-[#39ff14] text-black font-bold py-3 rounded-lg hover:bg-[#2de00f] transition-colors">
-                Browse Games
-              </button>
-            </Link>
-          </div>
-        )}
-
         <Navigation />
       </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#0a0d14] pb-24">
+      <header className="sticky top-0 z-20 border-b border-white/10 bg-[#0a0d14]/95 px-4 pb-4 pt-5 backdrop-blur-sm">
+        <div className="flex items-center gap-3">
+          <Link href="/">
+            <button className="rounded-xl border border-[#2a3448] bg-[#101624] p-2 text-[#c6d3e6]">
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+          </Link>
+          <div>
+            <h1 className="text-xl font-semibold text-white">Post-game feedback</h1>
+            <p className="text-xs text-[#93a5c2]">{game.location} · {game.date} · {game.time}</p>
+          </div>
+        </div>
+      </header>
+
+      <main className="space-y-4 p-4">
+        <section className="surface-card p-4">
+          <p className="text-sm font-semibold text-white">Fair rating rule</p>
+          <p className="mt-1 text-xs text-[#9db0cc]">
+            To protect rating integrity, players who joined through your same group cannot be rated by you.
+          </p>
+        </section>
+
+        <section className="surface-card p-4">
+          <h2 className="text-sm font-semibold text-white">Rate eligible players</h2>
+          <div className="mt-3 space-y-3">
+            {splitPlayers.eligible.map((player) => (
+              <article key={player.id} className="rounded-2xl bg-[#101624] p-3">
+                <div className="flex items-center gap-2">
+                  <Avatar className="h-9 w-9 border border-[#2d3850]">
+                    <AvatarFallback className="bg-[#1a2538] text-xs text-white">
+                      {player.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <p className="text-sm text-white">{player.name}</p>
+                </div>
+
+                <div className="mt-2 flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button key={star} onClick={() => setRatings((prev) => ({ ...prev, [player.id]: star }))}>
+                      <Star
+                        className={`h-6 w-6 ${ratings[player.id] >= star ? "fill-[#a8ff3f] text-[#a8ff3f]" : "text-[#4b5a73]"}`}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="surface-card p-4">
+          <h2 className="text-sm font-semibold text-white">Players from your group (not rateable)</h2>
+          <div className="mt-3 space-y-2">
+            {splitPlayers.sameGroup.map((player) => (
+              <div key={player.id} className="flex items-center justify-between rounded-2xl bg-[#101624] p-3">
+                <p className="text-sm text-[#a8bad4]">{player.name}</p>
+                <span className="inline-flex items-center gap-1 rounded-full border border-[#384662] bg-[#151e30] px-2 py-1 text-[11px] text-[#b9c8dd]">
+                  <Lock className="h-3.5 w-3.5" /> Same join group
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <button
+          onClick={submit}
+          className="w-full rounded-2xl bg-[#a8ff3f] py-3 text-sm font-semibold text-[#121a0f]"
+        >
+          Submit feedback
+        </button>
+      </main>
+
+      <Navigation />
     </div>
   );
 }

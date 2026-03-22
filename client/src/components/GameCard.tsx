@@ -1,12 +1,6 @@
-/*
- * GameCard Component - Cyberpunk Athleticism
- * Diagonal-cut cards with neon borders and hover glow effects
- */
-
-import { MapPin, Calendar, Clock, Users } from "lucide-react";
+import { Calendar, Clock, MapPin, Users } from "lucide-react";
 import { Link } from "wouter";
 import SkillBadge from "./SkillBadge";
-import { Button } from "./ui/button";
 
 export interface Game {
   id: string;
@@ -28,77 +22,52 @@ export default function GameCard({ game }: GameCardProps) {
 
   return (
     <Link href={`/game/${game.id}`}>
-      <div className="group relative bg-card border-2 border-border rounded-2xl p-5 transition-all duration-300 hover:border-neon-green/50 hover:scale-[1.02] hover:shadow-lg hover:shadow-neon-green/20 cursor-pointer overflow-hidden">
-        {/* Diagonal accent line */}
-        <div className="absolute top-0 right-0 w-32 h-1 bg-gradient-to-r from-neon-green to-neon-cyan transform translate-x-4 -translate-y-0 rotate-12 opacity-60 group-hover:opacity-100 transition-opacity duration-300" />
-        
-        <div className="space-y-4">
-          {/* Header */}
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 space-y-2">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <MapPin className="w-4 h-4 text-neon-cyan" />
-                <span className="text-sm font-medium">{game.location}</span>
-              </div>
-              <SkillBadge level={game.skillLevel} />
-            </div>
-            {game.price && (
-              <div className="text-right">
-                <div className="text-2xl font-display font-bold text-neon-green">
-                  ${game.price}
-                </div>
-                <div className="text-xs text-muted-foreground">per player</div>
-              </div>
-            )}
-          </div>
-
-          {/* Date & Time */}
-          <div className="flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-2 text-foreground">
-              <Calendar className="w-4 h-4 text-neon-cyan" />
-              <span className="font-medium">{game.date}</span>
-            </div>
-            <div className="flex items-center gap-2 text-foreground">
-              <Clock className="w-4 h-4 text-neon-cyan" />
-              <span className="font-medium">{game.time}</span>
+      <article className="rounded-3xl border border-[#222b3c] bg-[#121925] p-4 text-left transition-all hover:border-[#33425e] hover:bg-[#151f2e]">
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-base font-semibold text-white">{game.location}</h3>
+            <div className="mt-1 flex items-center gap-2 text-xs text-[#99a8c0]">
+              <MapPin className="h-3.5 w-3.5" />
+              <span>Indoor release</span>
             </div>
           </div>
-
-          {/* Players Progress */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-neon-green" />
-                <span className="font-accent font-semibold text-foreground">
-                  {game.playersJoined}/{game.maxPlayers} Players
-                </span>
-              </div>
-              <span className="text-xs text-muted-foreground">
-                {game.maxPlayers - game.playersJoined} spots left
-              </span>
-            </div>
-            
-            {/* Progress bar */}
-            <div className="relative h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className="absolute inset-y-0 left-0 bg-gradient-to-r from-neon-green to-neon-cyan rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(57,255,20,0.5)]"
-                style={{ width: `${playerPercentage}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Join Button */}
-          <Button
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-display font-bold text-base transition-all duration-300 hover:shadow-lg hover:shadow-neon-green/30"
-            onClick={(e) => {
-              e.preventDefault();
-              // Join game logic
-            }}
-          >
-            Join Game
-          </Button>
+          <SkillBadge level={game.skillLevel} colored />
         </div>
-      </div>
+
+        <div className="mb-3 flex items-center gap-4 text-xs text-[#b6c2d7]">
+          <span className="flex items-center gap-1">
+            <Calendar className="h-3.5 w-3.5" />
+            {game.date}
+          </span>
+          <span className="flex items-center gap-1">
+            <Clock className="h-3.5 w-3.5" />
+            {game.time}
+          </span>
+        </div>
+
+        <div className="mb-3">
+          <div className="mb-1 flex items-center justify-between text-xs text-[#9fb0ca]">
+            <span className="flex items-center gap-1">
+              <Users className="h-3.5 w-3.5" />
+              {game.playersJoined}/{game.maxPlayers} players
+            </span>
+            <span>{game.maxPlayers - game.playersJoined} spots left</span>
+          </div>
+          <div className="h-2 rounded-full bg-[#1d2738]">
+            <div
+              className="h-full rounded-full bg-[#a8ff3f]"
+              style={{ width: `${playerPercentage}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-medium text-[#a8ff3f]">${game.price ?? "-"}/player</p>
+          <span className="rounded-xl bg-[#1b2536] px-3 py-1 text-xs font-semibold text-[#dbe3f2]">
+            View room
+          </span>
+        </div>
+      </article>
     </Link>
   );
 }

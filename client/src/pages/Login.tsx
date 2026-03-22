@@ -1,196 +1,48 @@
-/**
- * Login Page - Modern Split-Screen Design
- * Unique UI with gradient mesh, floating labels, and asymmetric layout
- */
+import { ArrowRight, Sparkles } from "lucide-react";
+import LoginEntryScene from "@/components/LoginEntryScene";
 
-import { useState } from "react";
-import { useLocation } from "wouter";
-import { ArrowRight, Mail, Lock } from "lucide-react";
-import wallpaperImage from "@/assets/images/wallpaper.jpg";
+interface LoginProps {
+  onEnter: () => void;
+}
 
-export default function Login() {
-  const [, setLocation] = useLocation();
-  const [isLoading, setIsLoading] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    // Accept any credentials
-    setTimeout(() => {
-      localStorage.setItem("futlynk_authenticated", "true");
-      window.location.href = "/";
-    }, 800);
-  };
-
+export default function Login({ onEnter }: LoginProps) {
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row">
-      {/* Left Side - Visual */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-[#0a0a0a] via-[#1a1a1a] to-[#0a0a0a]">
-        <div className="absolute inset-0">
-          <img
-            src={wallpaperImage}
-            alt="Futsal"
-            className="w-full h-full object-cover opacity-30"
-          />
-          <div className="absolute inset-0 bg-gradient-to-br from-[#39ff14]/20 via-transparent to-cyan-500/20" />
+    <div className="relative min-h-screen overflow-hidden bg-[#04070c]">
+      <LoginEntryScene />
+
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(3,6,10,0.3)_0%,rgba(3,6,10,0.5)_45%,rgba(3,6,10,0.9)_100%)]" />
+
+      <div className="relative z-10 flex min-h-screen flex-col px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))]">
+        <div className="mx-auto w-full max-w-sm pt-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c5d4ea]">FutLynk tactical entry</p>
         </div>
-        
-        <div className="relative z-10 flex flex-col justify-center p-16 text-white">
-          <div className="space-y-6">
-            <div className="inline-block">
-              <h1 className="text-6xl font-bold mb-2">
-                Fut<span className="text-[#39ff14]">Lynk</span>
-              </h1>
-              <div className="h-1 w-24 bg-gradient-to-r from-[#39ff14] to-cyan-400 rounded-full" />
+
+        <div className="flex flex-1 items-end py-5 sm:items-center">
+          <div className="mx-auto w-full max-w-sm rounded-3xl border border-[#2d3a52] bg-[#0b121d]/92 p-5 backdrop-blur-md sm:p-6">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#415577] bg-[#0f1928] px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-[#a8ff3f]">
+              <Sparkles className="h-3.5 w-3.5" /> FutLynk
             </div>
-            
-            <p className="text-2xl text-gray-300 max-w-md leading-relaxed">
-              Connect with players. Find your game. Elevate your futsal experience.
+
+            <h1 className="mt-3 text-[1.9rem] font-bold leading-tight text-white sm:text-4xl">
+              Find Balanced Games.
+              <br />
+              Coordinate Better.
+            </h1>
+
+            <p className="mt-3 text-sm leading-5 text-[#c0cfe5] sm:text-[15px]">
+              Tactical recommendations, smarter group overlap, and better-fit futsal sessions released by the platform.
             </p>
 
-            <div className="grid grid-cols-3 gap-6 pt-8">
-              <div className="space-y-2">
-                <div className="text-4xl font-bold text-[#39ff14]">10K+</div>
-                <div className="text-sm text-gray-400 uppercase tracking-wider">Active Players</div>
-              </div>
-              <div className="space-y-2">
-                <div className="text-4xl font-bold text-cyan-400">500+</div>
-                <div className="text-sm text-gray-400 uppercase tracking-wider">Weekly Games</div>
-              </div>
-              <div className="space-y-2">
-                <div className="text-4xl font-bold text-white">24/7</div>
-                <div className="text-sm text-gray-400 uppercase tracking-wider">Available</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Right Side - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-4 sm:p-8 bg-[#0a0a0a]">
-        <div className="w-full max-w-md space-y-6 sm:space-y-8">
-          {/* Mobile Logo */}
-          <div className="lg:hidden text-center mb-6">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#39ff14]/10 border-2 border-[#39ff14] mb-3">
-              <svg className="w-8 h-8 text-[#39ff14]" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
-              </svg>
-            </div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
-              Fut<span className="text-[#39ff14]">Lynk</span>
-            </h1>
-            <p className="text-sm text-gray-400">Welcome back</p>
-          </div>
-
-          {/* Form Header */}
-          <div className="space-y-2">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white">Sign in</h2>
-            <p className="text-sm sm:text-base text-gray-400">Enter any credentials to continue</p>
-          </div>
-
-          {/* Login Form */}
-          <form onSubmit={handleLogin} className="space-y-6">
-            {/* Email Input */}
-            <div className="relative group">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 group-focus-within:text-[#39ff14] transition-colors" />
-              <input
-                type="text"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email or username"
-                className="w-full pl-12 pr-4 py-4 bg-[#1a1a1a] border-2 border-[#2a2a2a] rounded-xl text-white placeholder:text-gray-600 focus:border-[#39ff14] focus:outline-none transition-all"
-                required
-              />
-            </div>
-
-            {/* Password Input */}
-            <div className="relative group">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 group-focus-within:text-[#39ff14] transition-colors" />
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-                className="w-full pl-12 pr-4 py-4 bg-[#1a1a1a] border-2 border-[#2a2a2a] rounded-xl text-white placeholder:text-gray-600 focus:border-[#39ff14] focus:outline-none transition-all"
-                required
-              />
-            </div>
-
-            {/* Remember Me & Forgot Password */}
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2 text-gray-400 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="w-4 h-4 rounded border-[#2a2a2a] bg-[#1a1a1a] text-[#39ff14] focus:ring-[#39ff14] focus:ring-offset-0"
-                />
-                Remember me
-              </label>
-              <button type="button" className="text-[#39ff14] hover:text-[#2de00f] transition-colors">
-                Forgot password?
-              </button>
-            </div>
-
-            {/* Submit Button */}
             <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-3 sm:py-4 bg-gradient-to-r from-[#39ff14] to-[#2de00f] text-black rounded-xl font-bold text-base sm:text-lg hover:shadow-lg hover:shadow-[#39ff14]/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 group"
+              onClick={onEnter}
+              className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#a8ff3f] text-sm font-bold text-[#10170d]"
             >
-              {isLoading ? (
-                <div className="w-6 h-6 border-3 border-black border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <>
-                  <span>Sign In</span>
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </>
-              )}
+              Enter FutLynk
+              <ArrowRight className="h-4 w-4" />
             </button>
-          </form>
 
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-[#2a2a2a]" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-[#0a0a0a] text-gray-500">or continue with</span>
-            </div>
+            <p className="mt-2 text-center text-[11px] text-[#8da0bd]">Prototype entry only. No credentials required.</p>
           </div>
-
-          {/* Social Login */}
-          <div className="grid grid-cols-2 gap-4">
-            <button
-              type="button"
-              className="py-3 px-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl text-white hover:bg-[#222222] hover:border-[#39ff14] transition-all flex items-center justify-center gap-2"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-              </svg>
-              Google
-            </button>
-            <button
-              type="button"
-              className="py-3 px-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl text-white hover:bg-[#222222] hover:border-[#39ff14] transition-all flex items-center justify-center gap-2"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-              </svg>
-              Facebook
-            </button>
-          </div>
-
-          {/* Sign Up Link */}
-          <p className="text-center text-sm text-gray-400">
-            Don't have an account?{" "}
-            <button type="button" className="text-[#39ff14] hover:text-[#2de00f] font-medium transition-colors">
-              Sign up
-            </button>
-          </p>
         </div>
       </div>
     </div>

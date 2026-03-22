@@ -1,28 +1,26 @@
-/**
- * Profile Editor - Full Page Experience
- * Modern UI with section-based layout and inline editing
- */
-
 import { useState } from "react";
-import { Link, useLocation } from "wouter";
-import { ArrowLeft, Check, X, Plus } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useLocation } from "wouter";
+import { ArrowLeft, Check } from "lucide-react";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
 
 const availableTags = [
-  "Reliable", "Team Player", "Forward", "Midfielder", "Defender", 
-  "Goalkeeper", "Punctual", "Aggressive", "Technical", "Fast"
+  "Reliable",
+  "Team Player",
+  "Forward",
+  "Midfielder",
+  "Defender",
+  "Goalkeeper",
+  "Punctual",
+  "Technical",
+  "Fast",
 ];
 
 const availableAchievements = [
   { id: "1", name: "10 Games", description: "Played 10 games" },
-  { id: "2", name: "Perfect Attendance", description: "Never missed a game" },
+  { id: "2", name: "Perfect Attendance", description: "No no-shows" },
   { id: "3", name: "50 Games", description: "Played 50 games" },
-  { id: "4", name: "Team Captain", description: "Led a team to victory" },
-  { id: "5", name: "Hat Trick", description: "Scored 3 goals in one game" },
-  { id: "6", name: "Clean Sheet", description: "Goalkeeper with no goals conceded" },
+  { id: "4", name: "Team Captain", description: "Led a squad" },
 ];
 
 export default function ProfileEditor() {
@@ -32,134 +30,86 @@ export default function ProfileEditor() {
   const [selectedTags, setSelectedTags] = useState(["Reliable", "Team Player", "Forward", "Punctual"]);
   const [selectedAchievements, setSelectedAchievements] = useState(["1", "2"]);
 
-  const handleSave = () => {
-    toast.success("Profile updated successfully!");
+  const save = () => {
+    toast.success("Profile updated");
     setLocation("/profile");
   };
 
   const toggleTag = (tag: string) => {
     if (selectedTags.includes(tag)) {
-      setSelectedTags(selectedTags.filter(t => t !== tag));
-    } else {
-      if (selectedTags.length < 6) {
-        setSelectedTags([...selectedTags, tag]);
-      } else {
-        toast.error("Maximum 6 tags allowed");
-      }
+      setSelectedTags((prev) => prev.filter((t) => t !== tag));
+      return;
     }
+    if (selectedTags.length >= 6) {
+      toast.error("Maximum 6 tags");
+      return;
+    }
+    setSelectedTags((prev) => [...prev, tag]);
   };
 
   const toggleAchievement = (id: string) => {
     if (selectedAchievements.includes(id)) {
-      setSelectedAchievements(selectedAchievements.filter(a => a !== id));
-    } else {
-      setSelectedAchievements([...selectedAchievements, id]);
+      setSelectedAchievements((prev) => prev.filter((a) => a !== id));
+      return;
     }
+    setSelectedAchievements((prev) => [...prev, id]);
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-[#0a0a0a]/95 backdrop-blur-sm border-b border-[#1a1a1a]">
-        <div className="flex items-center justify-between p-4">
+    <div className="min-h-screen bg-[#0b0f18] pb-10">
+      <header className="sticky top-0 z-10 border-b border-white/10 bg-[#0b0f18]/95 px-4 py-4 backdrop-blur-sm">
+        <div className="flex items-center justify-between">
           <button
             onClick={() => setLocation("/profile")}
-            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+            className="inline-flex items-center gap-1 rounded-xl border border-[#2f3b53] bg-[#11192a] px-3 py-2 text-xs font-semibold text-[#d2deee]"
           >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="font-medium">Cancel</span>
+            <ArrowLeft className="h-4 w-4" /> Back
           </button>
-          <h1 className="text-lg font-bold text-white">Edit Profile</h1>
+          <h1 className="text-lg font-semibold text-white">Edit profile</h1>
           <button
-            onClick={handleSave}
-            className="px-4 py-2 bg-[#39ff14] text-black rounded-lg font-bold hover:bg-[#2de00f] transition-colors"
+            onClick={save}
+            className="rounded-xl bg-[#a8ff3f] px-3 py-2 text-xs font-semibold text-[#10170e]"
           >
             Save
           </button>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-2xl mx-auto p-6 space-y-8">
-        {/* Profile Picture Section */}
-        <section className="flex flex-col items-center space-y-4 py-6">
-          <Avatar className="w-32 h-32 border-4 border-[#2a2a2a]">
-            <AvatarFallback className="bg-gradient-to-br from-[#39ff14]/20 to-cyan-500/20 text-white text-4xl font-bold">
-              AC
-            </AvatarFallback>
-          </Avatar>
-          <button className="text-[#39ff14] hover:text-[#2de00f] font-medium transition-colors">
-            Change Photo
-          </button>
-        </section>
-
-        {/* Basic Info Section */}
-        <section className="space-y-6">
-          <h2 className="text-xl font-bold text-white">Basic Information</h2>
-          
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-400 uppercase tracking-wide">
-                Display Name
-              </label>
-              <Input
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                className="bg-[#1a1a1a] border-2 border-[#2a2a2a] text-white text-lg py-6 focus:border-[#39ff14] transition-all"
-                placeholder="Your display name"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-400 uppercase tracking-wide">
-                Username
-              </label>
-              <div className="relative">
-                <Input
-                  value={username}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (value.startsWith("@") || value === "") {
-                      setUsername(value);
-                    } else {
-                      setUsername("@" + value);
-                    }
-                  }}
-                  className="bg-[#1a1a1a] border-2 border-[#2a2a2a] text-white text-lg py-6 focus:border-[#39ff14] transition-all"
-                  placeholder="@username"
-                />
-                {username && username !== "@" && (
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                    <Check className="w-5 h-5 text-[#39ff14]" />
-                  </div>
-                )}
-              </div>
-              <p className="text-xs text-gray-500">
-                Your unique identifier on FutLynk
-              </p>
-            </div>
+      <main className="mx-auto max-w-2xl space-y-4 p-4">
+        <section className="surface-card p-4">
+          <h2 className="text-sm font-semibold text-white">Basic info</h2>
+          <div className="mt-3 space-y-2">
+            <Input
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Display name"
+              className="border-[#2f3a51] bg-[#0f1624] text-white"
+            />
+            <Input
+              value={username}
+              onChange={(e) => {
+                const value = e.target.value;
+                setUsername(value.startsWith("@") || value === "" ? value : `@${value}`);
+              }}
+              placeholder="@username"
+              className="border-[#2f3a51] bg-[#0f1624] text-white"
+            />
           </div>
         </section>
 
-        {/* Player Tags Section */}
-        <section className="space-y-6">
-          <div>
-            <h2 className="text-xl font-bold text-white mb-2">Player Tags</h2>
-            <p className="text-sm text-gray-400">
-              Select up to 6 tags that describe your playing style ({selectedTags.length}/6)
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
+        <section className="surface-card p-4">
+          <h2 className="text-sm font-semibold text-white">Player tags ({selectedTags.length}/6)</h2>
+          <div className="mt-3 flex flex-wrap gap-2">
             {availableTags.map((tag) => {
-              const isSelected = selectedTags.includes(tag);
+              const active = selectedTags.includes(tag);
               return (
                 <button
                   key={tag}
                   onClick={() => toggleTag(tag)}
-                  className={`px-4 py-2 rounded-full font-medium text-sm transition-colors ${
-                    isSelected
-                      ? "bg-[#39ff14] text-black"
-                      : "bg-[#2a2a2a] text-gray-300 hover:bg-[#333333]"
+                  className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                    active
+                      ? "border-[#a8ff3f] bg-[#1b2830] text-[#a8ff3f]"
+                      : "border-[#32415d] bg-[#101726] text-[#d0dced]"
                   }`}
                 >
                   {tag}
@@ -169,83 +119,32 @@ export default function ProfileEditor() {
           </div>
         </section>
 
-        {/* Achievements Section */}
-        <section className="space-y-6">
-          <div>
-            <h2 className="text-xl font-bold text-white mb-2">Achievements</h2>
-            <p className="text-sm text-gray-400">
-              Choose which achievements to display on your profile
-            </p>
-          </div>
-
-          <div className="space-y-3">
+        <section className="surface-card p-4">
+          <h2 className="text-sm font-semibold text-white">Achievements shown</h2>
+          <div className="mt-3 space-y-2">
             {availableAchievements.map((achievement) => {
-              const isSelected = selectedAchievements.includes(achievement.id);
-              const isUnlocked = parseInt(achievement.id) <= 2; // Mock: first 2 are unlocked
-              
+              const active = selectedAchievements.includes(achievement.id);
               return (
                 <button
                   key={achievement.id}
-                  onClick={() => isUnlocked && toggleAchievement(achievement.id)}
-                  disabled={!isUnlocked}
-                  className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
-                    !isUnlocked
-                      ? "bg-[#0f0f0f] border-[#1a1a1a] opacity-50 cursor-not-allowed"
-                      : isSelected
-                      ? "bg-[#1a1a1a] border-[#39ff14]"
-                      : "bg-[#1a1a1a] border-[#2a2a2a] hover:border-[#39ff14]"
+                  onClick={() => toggleAchievement(achievement.id)}
+                  className={`w-full rounded-2xl border p-3 text-left ${
+                    active ? "border-[#a8ff3f] bg-[#182436]" : "border-[#31405a] bg-[#101726]"
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          isUnlocked ? "bg-[#39ff14]/10 border-2 border-[#39ff14]/30" : "bg-[#1a1a1a] border-2 border-[#2a2a2a]"
-                        }`}>
-                          {isUnlocked ? (
-                            <svg className="w-5 h-5 text-[#39ff14]" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                            </svg>
-                          ) : (
-                            <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                            </svg>
-                          )}
-                        </div>
-                        <div>
-                          <p className={`font-bold ${isUnlocked ? "text-white" : "text-gray-600"}`}>
-                            {achievement.name}
-                          </p>
-                          <p className="text-sm text-gray-500">{achievement.description}</p>
-                        </div>
-                      </div>
+                    <div>
+                      <p className="text-sm font-semibold text-white">{achievement.name}</p>
+                      <p className="text-xs text-[#9aadc9]">{achievement.description}</p>
                     </div>
-                    {isUnlocked && (
-                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                        isSelected
-                          ? "bg-[#39ff14] border-[#39ff14]"
-                          : "border-gray-600"
-                      }`}>
-                        {isSelected && <Check className="w-4 h-4 text-black" />}
-                      </div>
-                    )}
+                    {active && <Check className="h-4 w-4 text-[#a8ff3f]" />}
                   </div>
                 </button>
               );
             })}
           </div>
         </section>
-
-        {/* Save Button (Mobile) */}
-        <div className="lg:hidden">
-          <button
-            onClick={handleSave}
-            className="w-full py-4 bg-gradient-to-r from-[#39ff14] to-[#2de00f] text-black rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-[#39ff14]/20 transition-all"
-          >
-            Save Changes
-          </button>
-        </div>
-      </div>
+      </main>
     </div>
   );
 }
