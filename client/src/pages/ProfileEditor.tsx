@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, Check } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 
@@ -23,14 +23,33 @@ const availableAchievements = [
   { id: "4", name: "Team Captain", description: "Led a squad" },
 ];
 
+const PROFILE_STORAGE_KEY = "futlynk_profile";
+
 export default function ProfileEditor() {
   const [, setLocation] = useLocation();
-  const [displayName, setDisplayName] = useState("Alex Chen");
-  const [username, setUsername] = useState("@alexchen");
-  const [selectedTags, setSelectedTags] = useState(["Reliable", "Team Player", "Forward", "Punctual"]);
-  const [selectedAchievements, setSelectedAchievements] = useState(["1", "2"]);
+  const savedProfile =
+    typeof window !== "undefined" ? window.localStorage.getItem(PROFILE_STORAGE_KEY) : null;
+  const parsedProfile = savedProfile ? JSON.parse(savedProfile) : null;
+
+  const [displayName, setDisplayName] = useState(parsedProfile?.displayName ?? "Alex Chen");
+  const [username, setUsername] = useState(parsedProfile?.username ?? "@alexchen");
+  const [selectedTags, setSelectedTags] = useState<string[]>(
+    parsedProfile?.selectedTags ?? ["Reliable", "Team Player", "Forward", "Punctual"]
+  );
+  const [selectedAchievements, setSelectedAchievements] = useState<string[]>(
+    parsedProfile?.selectedAchievements ?? ["1", "2"]
+  );
 
   const save = () => {
+    window.localStorage.setItem(
+      PROFILE_STORAGE_KEY,
+      JSON.stringify({
+        displayName,
+        username,
+        selectedTags,
+        selectedAchievements,
+      })
+    );
     toast.success("Profile updated");
     setLocation("/profile");
   };
@@ -56,35 +75,24 @@ export default function ProfileEditor() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b0f18] pb-10">
-      <header className="sticky top-0 z-10 border-b border-white/10 bg-[#0b0f18]/95 px-4 py-4 backdrop-blur-sm">
+    <div className="min-h-screen bg-[#070a08] pb-10">
+      <header className="app-header">
         <div className="flex items-center justify-between">
-          <button
-            onClick={() => setLocation("/profile")}
-            className="inline-flex items-center gap-1 rounded-xl border border-[#2f3b53] bg-[#11192a] px-3 py-2 text-xs font-semibold text-[#d2deee]"
-          >
-            <ArrowLeft className="h-4 w-4" /> Back
+          <button onClick={() => setLocation("/profile")} className="btn-secondary text-xs">
+            <X className="h-4 w-4" /> Cancel
           </button>
-          <h1 className="text-lg font-semibold text-white">Edit profile</h1>
-          <button
-            onClick={save}
-            className="rounded-xl bg-[#a8ff3f] px-3 py-2 text-xs font-semibold text-[#10170e]"
-          >
-            Save
+          <h1 className="text-lg font-semibold text-[#f2f7f2]">Edit Profile</h1>
+          <button onClick={save} className="btn-primary text-xs">
+            <Check className="h-4 w-4" /> Save
           </button>
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl space-y-4 p-4">
-        <section className="surface-card p-4">
-          <h2 className="text-sm font-semibold text-white">Basic info</h2>
+      <main className="mx-auto max-w-2xl space-y-3 p-4">
+        <section className="surface-card">
+          <h2 className="text-sm font-semibold text-[#f2f7f2]">Basic Info</h2>
           <div className="mt-3 space-y-2">
-            <Input
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Display name"
-              className="border-[#2f3a51] bg-[#0f1624] text-white"
-            />
+            <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Display name" />
             <Input
               value={username}
               onChange={(e) => {
@@ -92,13 +100,12 @@ export default function ProfileEditor() {
                 setUsername(value.startsWith("@") || value === "" ? value : `@${value}`);
               }}
               placeholder="@username"
-              className="border-[#2f3a51] bg-[#0f1624] text-white"
             />
           </div>
         </section>
 
-        <section className="surface-card p-4">
-          <h2 className="text-sm font-semibold text-white">Player tags ({selectedTags.length}/6)</h2>
+        <section className="surface-card">
+          <h2 className="text-sm font-semibold text-[#f2f7f2]">Player Tags ({selectedTags.length}/6)</h2>
           <div className="mt-3 flex flex-wrap gap-2">
             {availableTags.map((tag) => {
               const active = selectedTags.includes(tag);
@@ -106,11 +113,7 @@ export default function ProfileEditor() {
                 <button
                   key={tag}
                   onClick={() => toggleTag(tag)}
-                  className={`rounded-full border px-3 py-1 text-xs font-semibold ${
-                    active
-                      ? "border-[#a8ff3f] bg-[#1b2830] text-[#a8ff3f]"
-                      : "border-[#32415d] bg-[#101726] text-[#d0dced]"
-                  }`}
+                  className={`chip ${active ? "chip-active" : ""}`}
                 >
                   {tag}
                 </button>
@@ -119,8 +122,8 @@ export default function ProfileEditor() {
           </div>
         </section>
 
-        <section className="surface-card p-4">
-          <h2 className="text-sm font-semibold text-white">Achievements shown</h2>
+        <section className="surface-card">
+          <h2 className="text-sm font-semibold text-[#f2f7f2]">Achievements</h2>
           <div className="mt-3 space-y-2">
             {availableAchievements.map((achievement) => {
               const active = selectedAchievements.includes(achievement.id);
@@ -128,16 +131,14 @@ export default function ProfileEditor() {
                 <button
                   key={achievement.id}
                   onClick={() => toggleAchievement(achievement.id)}
-                  className={`w-full rounded-2xl border p-3 text-left ${
-                    active ? "border-[#a8ff3f] bg-[#182436]" : "border-[#31405a] bg-[#101726]"
-                  }`}
+                  className={`surface-inner w-full text-left ${active ? "border-[#88dd39]" : ""}`}
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-semibold text-white">{achievement.name}</p>
-                      <p className="text-xs text-[#9aadc9]">{achievement.description}</p>
+                      <p className="text-sm font-semibold text-[#edf3ee]">{achievement.name}</p>
+                      <p className="text-xs text-[#95a39a]">{achievement.description}</p>
                     </div>
-                    {active && <Check className="h-4 w-4 text-[#a8ff3f]" />}
+                    {active && <Check className="h-4 w-4 text-[#9dff3f]" />}
                   </div>
                 </button>
               );

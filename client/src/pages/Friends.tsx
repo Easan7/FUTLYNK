@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "wouter";
-import { MessageCircle, Search, Shield, UserPlus, Users } from "lucide-react";
+import { Search, UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import { Input } from "@/components/ui/input";
@@ -9,97 +8,93 @@ import { currentUser, players } from "@/data/mockData";
 
 export default function Friends() {
   const [search, setSearch] = useState("");
+  const [showAddFriend, setShowAddFriend] = useState(false);
+  const [pendingRequests, setPendingRequests] = useState<string[]>([]);
 
   const friends = useMemo(() => players.filter((p) => p.id !== currentUser.id), []);
   const filtered = friends.filter((f) => f.name.toLowerCase().includes(search.toLowerCase()));
 
+  const sendRequest = (friendId: string, friendName: string) => {
+    if (pendingRequests.includes(friendId)) return;
+    setPendingRequests((prev) => [...prev, friendId]);
+    toast.success(`Friend request sent to ${friendName}`);
+  };
+
   return (
-    <div className="min-h-screen bg-[#0b0f18] pb-24">
-      <header className="border-b border-white/10 px-4 pb-4 pt-6">
-        <div className="flex items-center justify-between">
+    <div className="app-shell">
+      <header className="app-header">
+        <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-[#a8ff3f]" />
-            <h1 className="text-2xl font-semibold text-white">Friends</h1>
+            <Users className="h-5 w-5 text-[#9dff3f]" />
+            <h1 className="text-2xl font-semibold text-[#f2f7f2]">Friends</h1>
           </div>
-          <button
-            onClick={() => toast.success("Friend request flow is mocked for prototype")}
-            className="rounded-xl border border-[#32415d] bg-[#111a29] px-3 py-2 text-xs font-semibold text-[#d5deec]"
-          >
-            <UserPlus className="mr-1 inline h-4 w-4" /> Add
+          <button onClick={() => setShowAddFriend((prev) => !prev)} className="btn-primary h-9 px-3 text-xs">
+            <UserPlus className="mr-1 h-4 w-4" /> {showAddFriend ? "Close" : "Add Friend"}
           </button>
         </div>
 
-        <div className="relative mt-4">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7688a6]" />
+        <div className="relative mt-3">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7d8b81]" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name"
-            className="border-[#2f3a51] bg-[#101726] pl-9 text-white"
+            placeholder={showAddFriend ? "Search players to add" : "Search friends"}
+            className="pl-9"
           />
         </div>
       </header>
 
-      <main className="space-y-3 p-4">
-        <Link href="/groups">
-          <article className="surface-card p-4">
-            <p className="text-sm font-semibold text-white">Build a coordination group</p>
-            <p className="mt-1 text-xs text-[#9caec9]">Aggregate availability and find best-fit released games in one tap.</p>
-          </article>
-        </Link>
-
-        {filtered.map((friend) => (
-          <article key={friend.id} className="surface-card p-4">
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-3">
-                <div className="relative">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#1b2538] text-sm font-semibold text-white">
-                    {friend.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
+      <main className="space-y-2 p-4">
+        {showAddFriend && (
+          <section className="surface-card">
+            <h2 className="text-sm font-semibold text-[#f2f7f2]">Add Friends</h2>
+            <p className="mt-1 text-xs text-[#97a49a]">Search players and send requests.</p>
+            <div className="mt-3 space-y-2">
+              {filtered.slice(0, 6).map((friend) => (
+                <div key={friend.id} className="surface-inner flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm text-[#edf3ee]">{friend.name}</p>
+                    <p className="mt-0.5 text-xs text-[#95a39a]">{friend.gamesPlayed} games · {friend.reliabilityScore}%</p>
                   </div>
-                  {friend.isOnline && <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#131b2a] bg-[#a8ff3f]" />}
+                  <button
+                    onClick={() => sendRequest(friend.id, friend.name)}
+                    disabled={pendingRequests.includes(friend.id)}
+                    className={pendingRequests.includes(friend.id) ? "btn-secondary text-xs" : "btn-primary text-xs"}
+                  >
+                    {pendingRequests.includes(friend.id) ? "Requested" : "Add"}
+                  </button>
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-white">{friend.name}</p>
-                  <div className="mt-1 flex items-center gap-2">
-                    <SkillBadge level={friend.publicSkillBand} colored />
-                    <span className="text-xs text-[#9fb1cd]">{friend.gamesPlayed} games</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="text-right">
-                <p className="text-xs text-[#8ea1be]">Reliability</p>
-                <p className="text-sm font-semibold text-[#a8ff3f]">{friend.reliabilityScore}%</p>
-              </div>
-            </div>
-
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {friend.tags.map((tag) => (
-                <span key={tag} className="rounded-full border border-[#33425d] bg-[#0f1726] px-2 py-1 text-[11px] text-[#c3d0e2]">
-                  {tag}
-                </span>
               ))}
             </div>
+          </section>
+        )}
 
-            <div className="mt-3 flex gap-2">
-              <button
-                onClick={() => toast.info(`Mock message sent to ${friend.name}`)}
-                className="flex-1 rounded-xl bg-[#182133] py-2 text-xs font-semibold text-[#d7e1f0]"
-              >
-                <MessageCircle className="mr-1 inline h-4 w-4" /> Message
-              </button>
-              <button
-                onClick={() => toast.info(`${friend.name} muted in prototype`)}
-                className="rounded-xl border border-[#394764] px-3 py-2 text-xs font-semibold text-[#d0dbee]"
-              >
-                <Shield className="h-4 w-4" />
-              </button>
-            </div>
-          </article>
-        ))}
+        <section className="surface-card">
+          <h2 className="text-sm font-semibold text-[#f2f7f2]">Friend List</h2>
+          <div className="mt-3 space-y-2">
+            {filtered.map((friend) => (
+              <article key={friend.id} className="surface-inner flex items-center justify-between gap-2">
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <div className="grid h-10 w-10 place-items-center rounded-full bg-[#202820] text-sm font-semibold text-[#eef3ef]">
+                      {friend.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
+                    </div>
+                    {friend.isOnline && <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-[#9dff3f]" />}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-[#edf3ee]">{friend.name}</p>
+                    <p className="mt-0.5 text-xs text-[#95a39a]">{friend.gamesPlayed} games</p>
+                  </div>
+                </div>
+
+                <SkillBadge level={friend.publicSkillBand} colored />
+              </article>
+            ))}
+          </div>
+        </section>
       </main>
 
       <Navigation />
