@@ -17,6 +17,7 @@ import Notifications from "./pages/Notifications";
 import Login from "./pages/Login";
 import ProfileEditor from "./pages/ProfileEditor";
 import Wallet from "./pages/Wallet";
+import Availability from "./pages/Availability";
 
 function Router() {
   return (
@@ -32,6 +33,7 @@ function Router() {
       <Route path={"/notifications"} component={Notifications} />
       <Route path={"/profile/edit"} component={ProfileEditor} />
       <Route path={"/wallet"} component={Wallet} />
+      <Route path={"/availability"} component={Availability} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

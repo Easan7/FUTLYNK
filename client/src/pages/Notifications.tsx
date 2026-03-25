@@ -3,6 +3,8 @@ import { Link } from "wouter";
 import { ArrowLeft, CalendarClock, Check, MessageCircle, ShieldCheck, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
+import PitchOverlay from "@/components/PitchOverlay";
+import StatBlock from "@/components/StatBlock";
 
 type Notification = {
   id: string;
@@ -83,16 +85,20 @@ export default function Notifications() {
   return (
     <div className="app-shell">
       <header className="app-header">
+        <PitchOverlay variant="header" />
         <div className="flex items-center gap-3">
           <Link href="/profile">
-            <button className="btn-secondary !px-3">
+            <button className="btn-secondary relative z-10 !px-3">
               <ArrowLeft className="h-4 w-4" />
             </button>
           </Link>
-          <div>
+          <div className="relative z-10">
             <h1 className="text-2xl font-semibold text-[#f2f7f2]">Notifications</h1>
             <p className="text-xs text-[#95a39a]">{unreadCount} unread</p>
           </div>
+        </div>
+        <div className="relative z-10 mt-3 max-w-[200px]">
+          <StatBlock variant="compact" label="Inbox" value={notifications.length} subValue={`${unreadCount} unread`} />
         </div>
       </header>
 

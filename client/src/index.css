@@ -117,15 +117,15 @@
   }
 
   .app-header {
-    @apply sticky top-0 z-20 border-b border-[#1e251f] bg-[#070a08]/95 px-4 pb-4 pt-5 backdrop-blur-sm;
+    @apply sticky top-0 z-20 overflow-hidden border-b border-[#1e251f] bg-[#070a08]/95 px-4 pb-4 pt-5 backdrop-blur-sm;
   }
 
   .surface-card {
-    @apply rounded-2xl border border-[#232a24] bg-[#101510] p-4;
+    @apply rounded-2xl border border-[#232a24] bg-[#101510] p-4 transition-[background-color,border-color,transform] duration-200 ease-out;
   }
 
   .surface-inner {
-    @apply rounded-xl border border-[#262d27] bg-[#141a14] p-3;
+    @apply rounded-xl border border-[#262d27] bg-[#141a14] p-3 transition-colors duration-200 ease-out;
   }
 
   .section-heading {
@@ -137,15 +137,15 @@
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-xl bg-[#9dff3f] px-4 py-2.5 text-sm font-semibold text-[#10170d] transition-colors hover:bg-[#b0ff65];
+    @apply inline-flex items-center justify-center rounded-xl bg-[#9dff3f] px-4 py-2.5 text-sm font-semibold text-[#10170d] transition-colors duration-200 ease-out hover:bg-[#b0ff65];
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-xl border border-[#303830] bg-[#171d18] px-4 py-2.5 text-sm font-medium text-[#d3ddd5] transition-colors hover:bg-[#1d241e];
+    @apply inline-flex items-center justify-center rounded-xl border border-[#303830] bg-[#171d18] px-4 py-2.5 text-sm font-medium text-[#d3ddd5] transition-colors duration-200 ease-out hover:bg-[#1d241e];
   }
 
   .btn-destructive {
-    @apply inline-flex items-center justify-center rounded-xl border border-[#3a433b] bg-[#151a16] px-4 py-2.5 text-sm font-medium text-[#d7e0d9] transition-colors hover:bg-[#1a211b];
+    @apply inline-flex items-center justify-center rounded-xl border border-[#3a433b] bg-[#151a16] px-4 py-2.5 text-sm font-medium text-[#d7e0d9] transition-colors duration-200 ease-out hover:bg-[#1a211b];
   }
 
   .chip {

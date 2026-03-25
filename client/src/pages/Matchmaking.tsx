@@ -5,6 +5,7 @@ import Navigation from "@/components/Navigation";
 import SkillBadge from "@/components/SkillBadge";
 import { currentUser, getAllowedRoomsForUser, getFitLabel, getFitReason, getRoomFitScore } from "@/data/mockData";
 import { Input } from "@/components/ui/input";
+import PitchOverlay from "@/components/PitchOverlay";
 
 type FilterKey = "all" | "intermediate" | "hybrid";
 
@@ -43,10 +44,11 @@ export default function Matchmaking() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <h1 className="text-2xl font-semibold text-[#f2f7f2]">Search</h1>
-        <p className="mt-1 text-xs text-[#97a49b]">Find rooms by time, level, and player count.</p>
+        <PitchOverlay variant="header" />
+        <h1 className="relative z-10 text-2xl font-semibold text-[#f2f7f2]">Search</h1>
+        <p className="relative z-10 mt-1 text-xs text-[#97a49b]">Find rooms by time, level, and player count.</p>
 
-        <div className="mt-3 flex items-center gap-2">
+        <div className="relative z-10 mt-3 flex items-center gap-2">
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -58,7 +60,7 @@ export default function Matchmaking() {
           </button>
         </div>
 
-        <div className="mt-3 flex items-center gap-2 overflow-x-auto">
+        <div className="relative z-10 mt-3 flex items-center gap-2 overflow-x-auto">
           {["all", "intermediate", "hybrid"].map((key) => (
             <button
               key={key}
@@ -80,13 +82,15 @@ export default function Matchmaking() {
       </header>
 
       <main className="space-y-3 p-4">
+        <PitchOverlay variant="divider" />
         {filteredRooms.map((room) => {
           const fillPct = Math.round((room.playersJoined / room.maxPlayers) * 100);
 
           return (
-            <article key={room.id} className="surface-card">
+            <article key={room.id} className="surface-card relative overflow-hidden">
+              <PitchOverlay variant="card" />
               <div className="flex items-start justify-between gap-2">
-                <div>
+                <div className="relative z-10">
                   <h3 className="text-base font-semibold text-[#f2f7f2]">{room.location}</h3>
                   <p className="mt-1 text-xs text-[#98a69d]">
                     {room.date} · {room.time} · ${room.price}
@@ -102,7 +106,7 @@ export default function Matchmaking() {
                 )}
               </div>
 
-              <div className="mt-3 flex items-center justify-between text-xs text-[#9aa89f]">
+              <div className="relative z-10 mt-3 flex items-center justify-between text-xs text-[#9aa89f]">
                 <span className="inline-flex items-center gap-1">
                   <Users className="h-3.5 w-3.5" />
                   {room.playersJoined}/{room.maxPlayers} players
@@ -110,12 +114,12 @@ export default function Matchmaking() {
                 <span>{fillPct}% full</span>
               </div>
 
-              <div className="mt-2 h-1.5 rounded-full bg-[#252d27]">
+              <div className="relative z-10 mt-2 h-1.5 rounded-full bg-[#252d27]">
                 <div className="h-full rounded-full bg-[#9dff3f]" style={{ width: `${fillPct}%` }} />
               </div>
 
               <Link href={`/game/${room.id}?source=matchmaking`}>
-                <button className="btn-primary mt-3 w-full">Join Game</button>
+                <button className="btn-primary relative z-10 mt-3 w-full">Join Game</button>
               </Link>
             </article>
           );

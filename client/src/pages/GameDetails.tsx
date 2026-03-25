@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import { Input } from "@/components/ui/input";
 import { players, rooms } from "@/data/mockData";
+import PitchOverlay from "@/components/PitchOverlay";
+import ProgressRing from "@/components/ProgressRing";
 
 const mockRosterByRoom: Record<string, string[]> = {
   "1": ["u-me", "u-2", "u-6", "u-4", "u-1", "u-3", "u-7", "u-5"],
@@ -43,13 +45,14 @@ export default function GameDetails() {
   return (
     <div className="app-shell">
       <header className="app-header">
+        <PitchOverlay variant="header" />
         <div className="flex items-center gap-3">
           <Link href="/">
-            <button className="btn-secondary !px-3">
+            <button className="btn-secondary relative z-10 !px-3">
               <ArrowLeft className="h-4 w-4" />
             </button>
           </Link>
-          <div>
+          <div className="relative z-10">
             <h1 className="text-xl font-semibold text-[#f2f7f2]">{room.location}</h1>
             <p className="text-xs text-[#97a49b]">
               {room.date} · {room.time}
@@ -85,18 +88,16 @@ export default function GameDetails() {
           </p>
         </section>
 
-        <section className="surface-card">
-          <div className="flex items-end justify-between">
+        <section className="surface-card relative overflow-hidden">
+          <PitchOverlay variant="card" />
+          <div className="relative z-10 flex items-center justify-between">
             <div>
               <p className="text-xs text-[#8f9d93]">Room Fill</p>
-              <p className="text-2xl font-semibold text-[#f2f7f2]">
-                {playersJoined}/{room.maxPlayers}
+              <p className="mt-1 text-sm text-[#d9e5db]">
+                {playersJoined}/{room.maxPlayers} players
               </p>
             </div>
-            <span className="chip chip-active">{fillPct}%</span>
-          </div>
-          <div className="mt-2 h-2 rounded-full bg-[#252d27]">
-            <div className="h-full rounded-full bg-[#9dff3f]" style={{ width: `${fillPct}%` }} />
+            <ProgressRing size="lg" value={playersJoined / room.maxPlayers} label={`${fillPct}%`} />
           </div>
         </section>
 

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { completedGameFeedback } from "@/data/mockData";
+import { awardGameCompletion } from "@/lib/playerProgress";
 
 export default function PostGameFeedback() {
   const params = useParams<{ gameId: string }>();
@@ -27,7 +28,16 @@ export default function PostGameFeedback() {
       toast.error(`Please rate all eligible players (${splitPlayers.eligible.length})`);
       return;
     }
-    toast.success("Ratings submitted");
+    const reward = awardGameCompletion(game.id, 50);
+    if (reward.awarded) {
+      toast.success("Ratings submitted", {
+        description: "+50 points added to your rewards balance.",
+      });
+      return;
+    }
+    toast.success("Ratings submitted", {
+      description: "Points for this match were already claimed.",
+    });
   };
 
   if (!game) {

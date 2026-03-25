@@ -5,6 +5,7 @@ import Navigation from "@/components/Navigation";
 import { Input } from "@/components/ui/input";
 import SkillBadge from "@/components/SkillBadge";
 import { currentUser, players } from "@/data/mockData";
+import PitchOverlay from "@/components/PitchOverlay";
 
 export default function Friends() {
   const [search, setSearch] = useState("");
@@ -23,17 +24,21 @@ export default function Friends() {
   return (
     <div className="app-shell">
       <header className="app-header">
+        <PitchOverlay variant="header" />
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
+          <div className="relative z-10 flex items-center gap-2">
             <Users className="h-5 w-5 text-[#9dff3f]" />
             <h1 className="text-2xl font-semibold text-[#f2f7f2]">Friends</h1>
           </div>
-          <button onClick={() => setShowAddFriend((prev) => !prev)} className="btn-primary h-9 px-3 text-xs">
+          <button
+            onClick={() => setShowAddFriend((prev) => !prev)}
+            className="btn-primary relative z-10 h-9 px-3 text-xs"
+          >
             <UserPlus className="mr-1 h-4 w-4" /> {showAddFriend ? "Close" : "Add Friend"}
           </button>
         </div>
 
-        <div className="relative mt-3">
+        <div className="relative z-10 mt-3">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7d8b81]" />
           <Input
             value={search}

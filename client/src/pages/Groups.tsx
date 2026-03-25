@@ -6,6 +6,8 @@ import Navigation from "@/components/Navigation";
 import SkillBadge from "@/components/SkillBadge";
 import { Input } from "@/components/ui/input";
 import { getGroupOverlapSlots, getGroupRecommendedRooms, getGroupSkillSummary, groups, players } from "@/data/mockData";
+import PitchOverlay from "@/components/PitchOverlay";
+import ProgressRing from "@/components/ProgressRing";
 
 export default function Groups() {
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
@@ -42,13 +44,13 @@ export default function Groups() {
     return (
       <div className="app-shell">
         <header className="app-header">
+          <PitchOverlay variant="header" />
           <div className="flex items-center gap-3">
-            <button onClick={() => setSelectedGroupId(null)} className="btn-secondary !px-3">
+            <button onClick={() => setSelectedGroupId(null)} className="btn-secondary relative z-10 !px-3">
               <ArrowLeft className="h-4 w-4" />
             </button>
-            <div>
+            <div className="relative z-10">
               <h1 className="text-xl font-semibold text-[#f2f7f2]">{selectedGroup.name}</h1>
-              <p className="text-xs text-[#95a39a]">{members.length} members</p>
             </div>
           </div>
         </header>
@@ -76,7 +78,8 @@ export default function Groups() {
             <h3 className="text-sm font-semibold text-[#f2f7f2]">Availability Overlap</h3>
             <div className="mt-3 space-y-2">
               {overlapSlots.map((slot) => (
-                <div key={slot.slot} className="surface-inner">
+                <div key={slot.slot} className="surface-inner flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-[#dce6de]">{slot.slot}</span>
                     <span className="text-[#9dff3f]">
@@ -89,6 +92,12 @@ export default function Groups() {
                       style={{ width: `${(slot.count / selectedGroup.memberIds.length) * 100}%` }}
                     />
                   </div>
+                  </div>
+                  <ProgressRing
+                    size="sm"
+                    value={slot.count / selectedGroup.memberIds.length}
+                    label={`${Math.round((slot.count / selectedGroup.memberIds.length) * 100)}`}
+                  />
                 </div>
               ))}
             </div>
@@ -149,13 +158,14 @@ export default function Groups() {
   return (
     <div className="app-shell">
       <header className="app-header">
+        <PitchOverlay variant="header" />
         <div className="flex items-center justify-between">
-          <div>
+          <div className="relative z-10">
             <h1 className="text-2xl font-semibold text-[#f2f7f2]">Groups</h1>
             <p className="mt-1 text-xs text-[#96a39a]">Lightweight squads for planning games.</p>
           </div>
           <Link href="/create">
-            <button className="btn-primary h-10 px-3 text-xs">
+            <button className="btn-primary relative z-10 h-10 px-3 text-xs">
               <Plus className="mr-1 h-4 w-4" /> Create
             </button>
           </Link>

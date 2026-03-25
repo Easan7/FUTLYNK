@@ -5,6 +5,8 @@ import Navigation from "@/components/Navigation";
 import { currentUser, rooms } from "@/data/mockData";
 import GameCard, { type Game } from "@/components/GameCard";
 import { toast } from "sonner";
+import PitchOverlay from "@/components/PitchOverlay";
+import StatBlock from "@/components/StatBlock";
 
 const myUpcoming = [rooms[0], rooms[1]];
 const pendingRatings = [{ id: "c1", location: "Downtown Sports Arena", date: "Mar 20" }];
@@ -15,19 +17,24 @@ export default function Home() {
   return (
     <div className="app-shell">
       <header className="app-header">
+        <PitchOverlay variant="header" />
         <div className="flex items-center justify-between">
-          <div>
+          <div className="relative z-10">
             <p className="text-[11px] text-[#93a299]">Welcome back</p>
             <h1 className="text-2xl font-semibold text-[#f2f7f2]">My Games</h1>
           </div>
           <Link href="/notifications">
-            <button className="btn-secondary !px-3">
+            <button className="btn-secondary relative z-10 !px-3">
               <Bell className="h-4 w-4" />
             </button>
           </Link>
         </div>
 
-       
+        <div className="relative z-10 mt-3 grid grid-cols-3 gap-2">
+          <StatBlock variant="card" label="Joined" value={upcomingGames.length} />
+          <StatBlock variant="card" label="Reliability" value={`${currentUser.reliabilityScore}%`} />
+          <StatBlock variant="card" label="Streak" value={`${currentUser.streakWeeks}w`} />
+        </div>
       </header>
 
       <main className="space-y-3 p-4">
@@ -52,6 +59,7 @@ export default function Home() {
             <h2 className="section-heading">Upcoming Games</h2>
             <span className="text-xs text-[#91a097]">{upcomingGames.length} joined</span>
           </div>
+          <PitchOverlay variant="divider" className="mb-3" />
 
           <div className="space-y-3">
             {upcomingGames.map((room) => {
