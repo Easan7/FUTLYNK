@@ -4,6 +4,9 @@ import { Canvas } from "@react-three/fiber";
 interface JourneyCanvasProps {
   className?: string;
   cameraPosition?: [number, number, number];
+  fov?: number;
+  orthographic?: boolean;
+  zoom?: number;
   children: ReactNode;
 }
 
@@ -17,8 +20,19 @@ function supportsWebGL() {
   }
 }
 
-export default function JourneyCanvas({ className = "h-48", cameraPosition = [3, 3, 3], children }: JourneyCanvasProps) {
+export default function JourneyCanvas({
+  className = "h-48",
+  cameraPosition = [3, 3, 3],
+  fov = 34,
+  orthographic = false,
+  zoom = 120,
+  children,
+}: JourneyCanvasProps) {
   const canRender = useMemo(() => supportsWebGL(), []);
+  const prefersReducedMotion = useMemo(
+    () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    []
+  );
 
   if (!canRender) {
     return (
@@ -31,14 +45,16 @@ export default function JourneyCanvas({ className = "h-48", cameraPosition = [3,
   return (
     <div className={`${className} overflow-hidden rounded-xl border border-[#2b342b] bg-[#0f130f]`}>
       <Canvas
-        dpr={[1, 1.5]}
-        camera={{ position: cameraPosition, fov: 35 }}
+        dpr={prefersReducedMotion ? 1 : [1, 1.35]}
+        orthographic={orthographic}
+        camera={orthographic ? { position: cameraPosition, zoom } : { position: cameraPosition, fov }}
         gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
       >
         <Suspense fallback={null}>
-          <ambientLight intensity={0.7} />
-          <directionalLight position={[4, 5, 3]} intensity={1} color="#f0fff0" />
-          <directionalLight position={[-3, 2, -2]} intensity={0.35} color="#9dff3f" />
+          <ambientLight intensity={0.48} color="#f2f8f2" />
+          <directionalLight position={[4.5, 5.2, 2.8]} intensity={1.02} color="#f1f6f1" />
+          <directionalLight position={[-3.2, 1.4, -3.1]} intensity={0.24} color="#cdd8cd" />
+          <directionalLight position={[0, 2.4, -4]} intensity={0.18} color="#9dff3f" />
           {children}
         </Suspense>
       </Canvas>

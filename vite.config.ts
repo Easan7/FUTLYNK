@@ -1,9 +1,11 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
+import os from "node:os";
 import path from "node:path";
 import { defineConfig } from "vite";
 
 const plugins = [react(), tailwindcss()];
+const isWsl = /microsoft/i.test(os.release()) || Boolean(process.env.WSL_DISTRO_NAME);
 
 export default defineConfig({
   plugins,
@@ -22,8 +24,18 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    strictPort: false, // Will find next available port if 3000 is busy
-    host: true,
+    strictPort: true,
+    host: "127.0.0.1",
+    hmr: {
+      host: "127.0.0.1",
+    },
+    watch: isWsl
+      ? {
+          // WSL projects under /mnt/* can miss FS events without polling.
+          usePolling: true,
+          interval: 120,
+        }
+      : undefined,
     allowedHosts: [
       "localhost",
       "127.0.0.1",

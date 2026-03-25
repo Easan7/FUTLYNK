@@ -8,7 +8,7 @@ import PitchOverlay from "@/components/PitchOverlay";
 import StatBlock from "@/components/StatBlock";
 import PlayerJourney3D from "@/components/profile3d/PlayerJourney3D";
 import { loadPlayerProgress } from "@/lib/playerProgress";
-import type { Achievement3D, RecentMatch3D } from "@/components/profile3d/shared/types";
+import type { Achievement3D } from "@/components/profile3d/shared/types";
 
 const PROFILE_STORAGE_KEY = "futlynk_profile";
 
@@ -61,20 +61,6 @@ export default function Profile() {
   const avatarId = parsedProfile?.avatarId ?? "pitch";
   const avatarTheme = avatarOptions[avatarId] ?? avatarOptions.pitch;
   const totalGamesPlayed = currentUser.gamesPlayed + progress.gamesLogged;
-
-  const matches3d: RecentMatch3D[] = useMemo(
-    () =>
-      matchHistory.map((m) => ({
-        id: m.id,
-        date: m.date,
-        venue: m.venue,
-        players: m.players,
-        rating: m.rating,
-        importance: m.importance,
-        special: m.special,
-      })),
-    []
-  );
 
   const achievements3d: Achievement3D[] = useMemo(() => {
     const selected = parsedProfile?.selectedAchievements ?? ["1", "2", "5", "6"];
@@ -169,8 +155,16 @@ export default function Profile() {
             attendance: currentUser.reliabilityScore,
             points: progress.points,
           }}
-          matches={matches3d}
           achievements={achievements3d}
+          snapshot={{
+            strongestVenue: "Downtown Sports Arena",
+            lastResult: matchHistory[0]?.result ?? "W 0-0",
+            formLastFive: "W-W-L-W-D",
+            avgRating: 4.2,
+            groupGames: 12,
+            fairPlayScore: 94,
+            nextFocus: "Keep consistency in high-tempo midweek games",
+          }}
         />
 
         <section className="surface-card">
