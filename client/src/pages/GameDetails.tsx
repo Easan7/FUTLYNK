@@ -47,10 +47,8 @@ export default function GameDetails() {
       <header className="app-header">
         <PitchOverlay variant="header" />
         <div className="flex items-center gap-3">
-          <Link href="/">
-            <button className="btn-secondary relative z-10 !px-3">
-              <ArrowLeft className="h-4 w-4" />
-            </button>
+          <Link href="/" className="btn-secondary relative z-10 !min-h-10 !px-3" aria-label="Back to games">
+            <ArrowLeft className="h-4 w-4" />
           </Link>
           <div className="relative z-10">
             <h1 className="text-xl font-semibold text-[#f2f7f2]">{room.location}</h1>
@@ -151,6 +149,7 @@ export default function GameDetails() {
 
         <button
           onClick={() => {
+            if (isJoined && !window.confirm("Leave this room?")) return;
             setIsJoined((prev) => !prev);
             toast.success(isJoined ? "You left this room" : "Joined room successfully");
           }}

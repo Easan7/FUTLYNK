@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
-import { Search, SlidersHorizontal, Users } from "lucide-react";
+import { SlidersHorizontal, Users } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import SkillBadge from "@/components/SkillBadge";
 import { currentUser, getAllowedRoomsForUser, getFitLabel, getFitReason, getRoomFitScore } from "@/data/mockData";
@@ -40,6 +40,7 @@ export default function Matchmaking() {
       )
       .filter((room) => (useAvailability ? room.matchingAvailability : true));
   }, [activeFilter, evaluatedRooms, query, useAvailability]);
+  const featuredRoom = filteredRooms[0];
 
   return (
     <div className="app-shell">
@@ -48,16 +49,13 @@ export default function Matchmaking() {
         <h1 className="relative z-10 text-2xl font-semibold text-[#f2f7f2]">Search</h1>
         <p className="relative z-10 mt-1 text-xs text-[#97a49b]">Find rooms by time, level, and player count.</p>
 
-        <div className="relative z-10 mt-3 flex items-center gap-2">
+        <div className="relative z-10 mt-3">
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search venue or room"
             className="h-10"
           />
-          <button className="btn-primary h-10 px-3">
-            <Search className="h-4 w-4" />
-          </button>
         </div>
 
         <div className="relative z-10 mt-3 flex items-center gap-2 overflow-x-auto">
@@ -83,7 +81,31 @@ export default function Matchmaking() {
 
       <main className="space-y-3 p-4">
         <PitchOverlay variant="divider" />
-        {filteredRooms.map((room) => {
+        {featuredRoom ? (
+          <article className="surface-card pitch-lines relative overflow-hidden border-[#3a4c3c]">
+            <PitchOverlay variant="card" />
+            <div className="relative z-10 flex items-start justify-between gap-2">
+              <div>
+                <p className="text-[11px] font-medium text-[#9faea4]">Top Match</p>
+                <h2 className="mt-1 text-lg font-semibold text-[#f2f7f2]">{featuredRoom.location}</h2>
+                <p className="mt-1 text-xs text-[#98a69d]">
+                  {featuredRoom.date} · {featuredRoom.time} · ${featuredRoom.price}
+                </p>
+                <p className="mt-1 text-[11px] text-[#b8c5bb]">
+                  <span className="text-[#9dff3f]">{featuredRoom.fitLabel}</span> · {featuredRoom.fitReason}
+                </p>
+              </div>
+              <span className="chip chip-active">
+                {featuredRoom.playersJoined}/{featuredRoom.maxPlayers}
+              </span>
+            </div>
+            <Link href={`/game/${featuredRoom.id}?source=matchmaking`} className="btn-primary relative z-10 mt-3 w-full">
+              Join Best Match
+            </Link>
+          </article>
+        ) : null}
+
+        {filteredRooms.slice(1).map((room) => {
           const fillPct = Math.round((room.playersJoined / room.maxPlayers) * 100);
 
           return (
@@ -118,15 +140,31 @@ export default function Matchmaking() {
                 <div className="h-full rounded-full bg-[#9dff3f]" style={{ width: `${fillPct}%` }} />
               </div>
 
-              <Link href={`/game/${room.id}?source=matchmaking`}>
-                <button className="btn-primary relative z-10 mt-3 w-full">Join Game</button>
+              <Link href={`/game/${room.id}?source=matchmaking`} className="btn-primary relative z-10 mt-3 w-full">
+                Join Game
               </Link>
             </article>
           );
         })}
 
         {filteredRooms.length === 0 && (
-          <p className="surface-card text-sm text-[#9aa79e]">No rooms found for this filter.</p>
+          <section className="surface-card">
+            <p className="text-sm text-[#9aa79e]">No rooms found for current filters.</p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button
+                className="btn-secondary text-xs"
+                onClick={() => {
+                  setActiveFilter("all");
+                  setUseAvailability(false);
+                }}
+              >
+                Relax Filters
+              </button>
+              <button className="btn-secondary text-xs" onClick={() => setQuery("")}>
+                Clear Search
+              </button>
+            </div>
+          </section>
         )}
       </main>
 

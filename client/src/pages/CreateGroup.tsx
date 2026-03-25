@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, Search, UserPlus } from "lucide-react";
+import { ArrowLeft, Search, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,8 @@ export default function CreateGroup() {
   const [groupName, setGroupName] = useState("");
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [nameError, setNameError] = useState("");
+  const [memberError, setMemberError] = useState("");
 
   const availableFriends = players.filter((p) => p.id !== currentUser.id);
 
@@ -28,27 +30,29 @@ export default function CreateGroup() {
     .filter(Boolean);
 
   const createGroup = () => {
+    setNameError("");
+    setMemberError("");
     if (!groupName.trim()) {
-      toast.error("Enter a group name");
-      return;
+      setNameError("Enter a group name.");
     }
     if (selectedMembers.length === 0) {
-      toast.error("Add at least one member");
+      setMemberError("Add at least one member.");
+    }
+    if (!groupName.trim() || selectedMembers.length === 0) {
+      toast.error("Fix the highlighted fields");
       return;
     }
 
     toast.success(`Group \"${groupName}\" created`);
-    setTimeout(() => setLocation("/groups?created=1"), 500);
+    setLocation("/groups?created=1");
   };
 
   return (
     <div className="app-shell">
       <header className="app-header">
         <div className="flex items-center gap-3">
-          <Link href="/groups">
-            <button className="btn-secondary !px-3">
-              <ArrowLeft className="h-4 w-4" />
-            </button>
+          <Link href="/groups" className="btn-secondary !min-h-10 !px-3" aria-label="Back to groups">
+            <ArrowLeft className="h-4 w-4" />
           </Link>
           <div>
             <h1 className="text-xl font-semibold text-[#f2f7f2]">Create Group</h1>
@@ -62,10 +66,14 @@ export default function CreateGroup() {
           <label className="text-xs text-[#93a198]">Group name</label>
           <Input
             value={groupName}
-            onChange={(e) => setGroupName(e.target.value)}
+            onChange={(e) => {
+              setGroupName(e.target.value);
+              if (nameError) setNameError("");
+            }}
             placeholder="Friday Core"
             className="mt-2"
           />
+          {nameError ? <p className="mt-2 text-xs text-[#d8a9a9]">{nameError}</p> : null}
         </section>
 
         <section className="surface-card">
@@ -103,21 +111,33 @@ export default function CreateGroup() {
               ))}
             </div>
           )}
+          {memberError ? <p className="mt-2 text-xs text-[#d8a9a9]">{memberError}</p> : null}
         </section>
 
         <section className="surface-card">
           <h2 className="text-sm font-semibold text-[#f2f7f2]">Selected Members</h2>
           <div className="mt-3 space-y-2">
             {[{ ...currentUser, name: `${currentUser.name} (You)` }, ...selectedMembers].map((member) => (
-              <div key={member!.id} className="surface-inner flex items-center justify-between">
+              <div key={member!.id} className="surface-inner flex items-center justify-between gap-2">
                 <span className="text-sm text-[#e9f0ea]">{member!.name}</span>
-                <SkillBadge level={member!.publicSkillBand} colored />
+                <div className="flex items-center gap-2">
+                  <SkillBadge level={member!.publicSkillBand} colored />
+                  {member!.id !== currentUser.id ? (
+                    <button
+                      onClick={() => setSelectedIds((prev) => prev.filter((id) => id !== member!.id))}
+                      className="btn-secondary !min-h-8 !px-2"
+                      aria-label={`Remove ${member!.name}`}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  ) : null}
+                </div>
               </div>
             ))}
           </div>
         </section>
 
-        <button onClick={createGroup} className="btn-primary w-full">
+        <button onClick={createGroup} className="btn-primary w-full" disabled={!groupName.trim()}>
           Create Group
         </button>
       </main>

@@ -45,10 +45,8 @@ export default function Wallet() {
       <header className="app-header">
         <PitchOverlay variant="header" />
         <div className="flex items-center gap-3">
-          <Link href="/profile">
-            <button className="btn-secondary relative z-10 !px-3">
-              <ArrowLeft className="h-4 w-4" />
-            </button>
+          <Link href="/profile" className="btn-secondary relative z-10 !min-h-10 !px-3" aria-label="Back to profile">
+            <ArrowLeft className="h-4 w-4" />
           </Link>
           <div className="relative z-10">
             <h1 className="text-2xl font-semibold text-[#f2f7f2]">Wallet & Rewards</h1>

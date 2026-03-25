@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -62,7 +63,7 @@
   --border: #222923;
   --input: #141914;
   --ring: #9dff3f;
-  --radius: 1rem;
+  --radius: 0.75rem;
   --chart-1: #9dff3f;
   --chart-2: #88d943;
   --chart-3: #6fad3b;
@@ -85,7 +86,7 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: "Inter", "Segoe UI", sans-serif;
+    font-family: "Barlow", "Segoe UI", sans-serif;
     margin: 0;
   }
 
@@ -109,6 +110,21 @@
   input[type="radio"]:not(:disabled) {
     @apply cursor-pointer;
   }
+
+  :focus-visible {
+    outline: 2px solid #9dff3f;
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition-duration: 0ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @layer components {
@@ -121,7 +137,7 @@
   }
 
   .surface-card {
-    @apply rounded-2xl border border-[#232a24] bg-[#101510] p-4 transition-[background-color,border-color,transform] duration-200 ease-out;
+    @apply rounded-xl border border-[#232a24] bg-[#101510] p-4 transition-[background-color,border-color,transform] duration-200 ease-out;
   }
 
   .surface-inner {
@@ -137,15 +153,15 @@
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-xl bg-[#9dff3f] px-4 py-2.5 text-sm font-semibold text-[#10170d] transition-colors duration-200 ease-out hover:bg-[#b0ff65];
+    @apply inline-flex min-h-11 items-center justify-center rounded-lg bg-[#9dff3f] px-4 py-2.5 text-sm font-semibold text-[#10170d] transition-colors duration-200 ease-out hover:bg-[#b0ff65];
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-xl border border-[#303830] bg-[#171d18] px-4 py-2.5 text-sm font-medium text-[#d3ddd5] transition-colors duration-200 ease-out hover:bg-[#1d241e];
+    @apply inline-flex min-h-11 items-center justify-center rounded-lg border border-[#303830] bg-[#171d18] px-4 py-2.5 text-sm font-medium text-[#d3ddd5] transition-colors duration-200 ease-out hover:bg-[#1d241e];
   }
 
   .btn-destructive {
-    @apply inline-flex items-center justify-center rounded-xl border border-[#3a433b] bg-[#151a16] px-4 py-2.5 text-sm font-medium text-[#d7e0d9] transition-colors duration-200 ease-out hover:bg-[#1a211b];
+    @apply inline-flex min-h-11 items-center justify-center rounded-lg border border-[#3a433b] bg-[#151a16] px-4 py-2.5 text-sm font-medium text-[#d7e0d9] transition-colors duration-200 ease-out hover:bg-[#1a211b];
   }
 
   .chip {

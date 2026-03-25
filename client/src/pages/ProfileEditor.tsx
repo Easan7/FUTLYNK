@@ -64,8 +64,20 @@ export default function ProfileEditor() {
   const [selectedAchievements, setSelectedAchievements] = useState<string[]>(
     parsedProfile?.selectedAchievements ?? ["1", "2", "5"]
   );
+  const [formError, setFormError] = useState("");
+  const hasValidName = displayName.trim().length >= 2;
+  const hasValidUsername = /^@[a-zA-Z0-9_]{3,20}$/.test(username);
 
   const save = () => {
+    setFormError("");
+    if (!hasValidName) {
+      setFormError("Display name must be at least 2 characters.");
+      return;
+    }
+    if (!hasValidUsername) {
+      setFormError("Username must be @ + 3-20 letters, numbers, or underscores.");
+      return;
+    }
     window.localStorage.setItem(
       PROFILE_STORAGE_KEY,
       JSON.stringify({
@@ -116,11 +128,18 @@ export default function ProfileEditor() {
       <header className="app-header">
         <PitchOverlay variant="header" />
         <div className="flex items-center justify-between">
-          <button onClick={() => setLocation("/profile")} className="btn-secondary text-xs">
+          <button
+            onClick={() => {
+              if (window.confirm("Discard profile changes?")) {
+                setLocation("/profile");
+              }
+            }}
+            className="btn-secondary text-xs"
+          >
             <X className="h-4 w-4" /> Cancel
           </button>
           <h1 className="text-lg font-semibold text-[#f2f7f2]">Edit Profile</h1>
-          <button onClick={save} className="btn-primary text-xs">
+          <button onClick={save} className="btn-primary text-xs" disabled={!hasValidName || !hasValidUsername}>
             <Check className="h-4 w-4" /> Save
           </button>
         </div>
@@ -139,6 +158,7 @@ export default function ProfileEditor() {
               }}
               placeholder="@username"
             />
+            <p className="text-xs text-[#95a39a]">Username format: @name (3-20 chars, letters/numbers/_)</p>
           </div>
         </section>
 
@@ -208,6 +228,7 @@ export default function ProfileEditor() {
             })}
           </div>
         </section>
+        {formError ? <p className="rounded-lg border border-[#4a2f2f] bg-[#241717] px-3 py-2 text-xs text-[#e0bbbb]">{formError}</p> : null}
       </main>
     </div>
   );

@@ -22,7 +22,8 @@ export default function Navigation() {
             <Link
               key={item.path}
               href={item.path}
-              className={`flex min-w-[72px] flex-col items-center gap-1 px-2 py-2 transition-colors duration-200 ${
+              aria-current={isActive ? "page" : undefined}
+              className={`flex min-w-[72px] flex-col items-center gap-1 rounded-md px-2 py-2 transition-colors duration-200 ${
                 isActive ? "text-[#9dff3f]" : "text-[#77857b]"
               }`}
             >

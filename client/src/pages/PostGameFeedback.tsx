@@ -45,8 +45,8 @@ export default function PostGameFeedback() {
       <div className="app-shell">
         <div className="p-4">
           <p className="text-[#edf3ee]">Game feedback unavailable.</p>
-          <Link href="/">
-            <button className="btn-primary mt-3">Back to My Games</button>
+          <Link href="/" className="btn-primary mt-3">
+            Back to My Games
           </Link>
         </div>
         <Navigation />
@@ -58,10 +58,8 @@ export default function PostGameFeedback() {
     <div className="app-shell">
       <header className="app-header">
         <div className="flex items-center gap-3">
-          <Link href="/">
-            <button className="btn-secondary !px-3">
-              <ArrowLeft className="h-4 w-4" />
-            </button>
+          <Link href="/" className="btn-secondary !min-h-10 !px-3" aria-label="Back to games">
+            <ArrowLeft className="h-4 w-4" />
           </Link>
           <div>
             <h1 className="text-xl font-semibold text-[#f2f7f2]">Rate Players</h1>

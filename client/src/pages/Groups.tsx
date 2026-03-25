@@ -164,10 +164,8 @@ export default function Groups() {
             <h1 className="text-2xl font-semibold text-[#f2f7f2]">Groups</h1>
             <p className="mt-1 text-xs text-[#96a39a]">Lightweight squads for planning games.</p>
           </div>
-          <Link href="/create">
-            <button className="btn-primary relative z-10 h-10 px-3 text-xs">
-              <Plus className="mr-1 h-4 w-4" /> Create
-            </button>
+          <Link href="/create" className="btn-primary relative z-10 h-10 px-3 text-xs">
+            <Plus className="mr-1 h-4 w-4" /> Create
           </Link>
         </div>
       </header>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, CalendarDays, Plus } from "lucide-react";
+import { ArrowLeft, CalendarDays, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import { Input } from "@/components/ui/input";
@@ -47,6 +47,7 @@ export default function Availability() {
   const [specificDates, setSpecificDates] = useState<Array<{ date: string; time: string }>>(
     parsedAvailability?.specificDates ?? []
   );
+  const [inlineError, setInlineError] = useState("");
 
   const persistAvailability = (nextRules: RecurringRule[], nextDates: Array<{ date: string; time: string }>) => {
     window.localStorage.setItem(
@@ -56,12 +57,17 @@ export default function Availability() {
   };
 
   const addRecurringRule = () => {
+    setInlineError("");
     if (selectedDays.length === 0) {
-      toast.error("Select at least one day");
+      setInlineError("Select at least one day.");
       return;
     }
     if (rangeFrom >= rangeTo) {
-      toast.error("End time must be after start time");
+      setInlineError("End time must be after start time.");
+      return;
+    }
+    if (recurringRules.some((rule) => rule.from === rangeFrom && rule.to === rangeTo && rule.days.join(",") === selectedDays.join(","))) {
+      setInlineError("This recurring window already exists.");
       return;
     }
 
@@ -75,8 +81,13 @@ export default function Availability() {
   };
 
   const addSpecificDate = () => {
+    setInlineError("");
     if (!specificDate) {
-      toast.error("Select a date first");
+      setInlineError("Select a date first.");
+      return;
+    }
+    if (specificDates.some((item) => item.date === specificDate && item.time === specificTime)) {
+      setInlineError("This specific date/time already exists.");
       return;
     }
     const nextDates = [...specificDates, { date: specificDate, time: specificTime }];
@@ -84,6 +95,7 @@ export default function Availability() {
     setSpecificDate("");
     setSpecificTime("19:00");
     persistAvailability(recurringRules, nextDates);
+    toast.success("Specific date added");
   };
 
   return (
@@ -91,10 +103,8 @@ export default function Availability() {
       <header className="app-header">
         <PitchOverlay variant="header" />
         <div className="flex items-center gap-3">
-          <Link href="/profile">
-            <button className="btn-secondary relative z-10 !px-3">
-              <ArrowLeft className="h-4 w-4" />
-            </button>
+          <Link href="/profile" className="btn-secondary relative z-10 !min-h-10 !px-3" aria-label="Back to profile">
+            <ArrowLeft className="h-4 w-4" />
           </Link>
           <div className="relative z-10">
             <h1 className="text-2xl font-semibold text-[#f2f7f2]">Availability</h1>
@@ -170,10 +180,23 @@ export default function Availability() {
               <div className="space-y-2">
                 {recurringRules.map((rule) => (
                   <div key={rule.id} className="surface-inner flex items-center justify-between text-xs">
-                    <span className="text-[#d6dfd8]">{rule.days.join(", ")}</span>
-                    <span className="text-[#9dff3f]">
-                      {rule.from} - {rule.to}
-                    </span>
+                    <div>
+                      <span className="text-[#d6dfd8]">{rule.days.join(", ")}</span>
+                      <span className="ml-2 text-[#9dff3f]">
+                        {rule.from} - {rule.to}
+                      </span>
+                    </div>
+                    <button
+                      className="btn-secondary !min-h-8 !px-2"
+                      onClick={() => {
+                        const nextRules = recurringRules.filter((item) => item.id !== rule.id);
+                        setRecurringRules(nextRules);
+                        persistAvailability(nextRules, specificDates);
+                      }}
+                      aria-label="Remove recurring window"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -188,12 +211,29 @@ export default function Availability() {
                 <Plus className="mr-1 h-3.5 w-3.5" /> Add Date
               </button>
               {specificDates.map((item, index) => (
-                <div key={`${item.date}-${item.time}-${index}`} className="surface-inner text-xs text-[#d6dfd8]">
-                  {item.date} · {item.time}
+                <div
+                  key={`${item.date}-${item.time}-${index}`}
+                  className="surface-inner flex items-center justify-between gap-2 text-xs text-[#d6dfd8]"
+                >
+                  <span>
+                    {item.date} · {item.time}
+                  </span>
+                  <button
+                    className="btn-secondary !min-h-8 !px-2"
+                    onClick={() => {
+                      const nextDates = specificDates.filter((_, dateIndex) => dateIndex !== index);
+                      setSpecificDates(nextDates);
+                      persistAvailability(recurringRules, nextDates);
+                    }}
+                    aria-label="Remove specific date"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                 </div>
               ))}
             </div>
           )}
+          {inlineError ? <p className="mt-3 text-xs text-[#d8a9a9]">{inlineError}</p> : null}
         </section>
       </main>
 

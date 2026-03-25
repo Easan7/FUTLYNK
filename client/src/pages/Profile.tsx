@@ -83,34 +83,24 @@ export default function Profile() {
         <div className="flex items-center justify-between">
           <h1 className="relative z-10 text-2xl font-semibold text-[#f2f7f2]">Profile</h1>
           <div className="relative z-10 flex items-center gap-2">
-            <Link href="/notifications">
-              <button className="btn-secondary !px-3">
-                <Bell className="h-4 w-4" />
-              </button>
+            <Link href="/notifications" className="btn-secondary !min-h-10 !px-3" aria-label="Notifications">
+              <Bell className="h-4 w-4" />
             </Link>
-            <Link href="/profile/edit">
-              <button className="btn-secondary !px-3">
-                <Edit3 className="h-4 w-4" />
-              </button>
+            <Link href="/profile/edit" className="btn-secondary !min-h-10 !px-3" aria-label="Edit profile">
+              <Edit3 className="h-4 w-4" />
             </Link>
           </div>
         </div>
 
         <div className="relative z-10 mt-3 grid grid-cols-3 gap-2">
-          <Link href="/friends">
-            <button className="btn-secondary w-full">
-              <Users className="h-4 w-4" /> Friends
-            </button>
+          <Link href="/friends" className="btn-secondary w-full">
+            <Users className="h-4 w-4" /> Friends
           </Link>
-          <Link href="/availability">
-            <button className="btn-secondary w-full">
-              <CalendarDays className="h-4 w-4" /> Availability
-            </button>
+          <Link href="/availability" className="btn-secondary w-full">
+            <CalendarDays className="h-4 w-4" /> Availability
           </Link>
-          <Link href="/wallet">
-            <button className="btn-primary w-full">
-              <Wallet className="h-4 w-4" /> Wallet
-            </button>
+          <Link href="/wallet" className="btn-primary w-full">
+            <Wallet className="h-4 w-4" /> Wallet
           </Link>
         </div>
       </header>
