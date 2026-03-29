@@ -111,3 +111,8 @@ temp/
 
 # Webdev artifacts (checkpoint zips, migrations, etc.)
 .webdev/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
