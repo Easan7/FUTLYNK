@@ -1,18 +1,62 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { Bell, CalendarDays, Star } from "lucide-react";
 import Navigation from "@/components/Navigation";
-import { currentUser, rooms } from "@/data/mockData";
 import GameCard, { type Game } from "@/components/GameCard";
+import type { SkillLevel } from "@/components/SkillBadge";
 import { toast } from "sonner";
 import PitchOverlay from "@/components/PitchOverlay";
 import StatBlock from "@/components/StatBlock";
+import { apiGet, apiPost, DEFAULT_USER_ID } from "@/lib/api";
 
-const myUpcoming = [rooms[0], rooms[1]];
-const pendingRatings = [{ id: "c1", location: "Downtown Sports Arena", date: "Mar 20" }];
+const toSkillLevel = (value: string | null | undefined): SkillLevel =>
+  value === "Beginner" || value === "Intermediate" || value === "Advanced" || value === "Hybrid"
+    ? value
+    : "Hybrid";
+
+type HomeData = {
+  currentUser: {
+    id: string;
+    name: string;
+    reliabilityScore: number;
+    streakWeeks: number;
+  };
+  upcomingGames: Array<{
+    id: string;
+    location: string;
+    date: string;
+    time: string;
+    price: number;
+    playersJoined: number;
+    maxPlayers: number;
+    allowedBand: string | null;
+  }>;
+  pendingRatings: Array<{ id: string; location: string; date: string }>;
+};
 
 export default function Home() {
-  const [upcomingGames, setUpcomingGames] = useState(myUpcoming);
+  const [data, setData] = useState<HomeData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const loadHome = async () => {
+    try {
+      setLoading(true);
+      const payload = await apiGet<HomeData>(`/api/v1/app/home?user_id=${DEFAULT_USER_ID}`);
+      setData(payload);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to load home data";
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadHome();
+  }, []);
+
+  const upcomingGames = data?.upcomingGames ?? [];
+  const pendingRatings = data?.pendingRatings ?? [];
   const nextGame = upcomingGames[0];
 
   return (
@@ -31,12 +75,13 @@ export default function Home() {
 
         <div className="relative z-10 mt-3 grid grid-cols-3 gap-2">
           <StatBlock variant="card" label="Joined" value={upcomingGames.length} />
-          <StatBlock variant="card" label="Reliability" value={`${currentUser.reliabilityScore}%`} />
-          <StatBlock variant="card" label="Streak" value={`${currentUser.streakWeeks}w`} />
+          <StatBlock variant="card" label="Reliability" value={`${data?.currentUser?.reliabilityScore ?? 0}%`} />
+          <StatBlock variant="card" label="Streak" value={`${data?.currentUser?.streakWeeks ?? 0}w`} />
         </div>
       </header>
 
       <main className="space-y-3 p-4">
+        {loading ? <section className="surface-card text-sm text-[#9aa79e]">Loading…</section> : null}
         {nextGame ? (
           <section className="surface-card pitch-lines relative overflow-hidden">
             <PitchOverlay variant="card" />
@@ -58,9 +103,14 @@ export default function Home() {
               </Link>
               <button
                 className="btn-secondary"
-                onClick={() => {
+                onClick={async () => {
                   if (!window.confirm("Leave this game?")) return;
-                  setUpcomingGames((prev) => prev.filter((g) => g.id !== nextGame.id));
+                  await apiPost(`/api/v1/rooms/${nextGame.id}/leave`, { user_id: DEFAULT_USER_ID });
+                  setData((prev) =>
+                    prev
+                      ? { ...prev, upcomingGames: prev.upcomingGames.filter((g) => g.id !== nextGame.id) }
+                      : prev
+                  );
                   toast.success("You left this game");
                 }}
               >
@@ -103,7 +153,7 @@ export default function Home() {
                 playersJoined: room.playersJoined,
                 maxPlayers: room.maxPlayers,
                 price: room.price,
-                skillLevel: room.allowedBand ?? "Hybrid",
+                skillLevel: toSkillLevel(room.allowedBand),
               };
 
               return (
@@ -113,9 +163,14 @@ export default function Home() {
                   href={`/game/${room.id}`}
                   actionLabel="Leave Game"
                   actionVariant="secondary"
-                  onAction={() => {
+                  onAction={async () => {
                     if (!window.confirm("Leave this game?")) return;
-                    setUpcomingGames((prev) => prev.filter((g) => g.id !== room.id));
+                    await apiPost(`/api/v1/rooms/${room.id}/leave`, { user_id: DEFAULT_USER_ID });
+                    setData((prev) =>
+                      prev
+                        ? { ...prev, upcomingGames: prev.upcomingGames.filter((g) => g.id !== room.id) }
+                        : prev
+                    );
                     toast.success("You left this game");
                   }}
                 />

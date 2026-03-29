@@ -1,45 +1,96 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { ArrowLeft, MessageSquare, Plus, Users } from "lucide-react";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import SkillBadge from "@/components/SkillBadge";
 import { Input } from "@/components/ui/input";
-import { getGroupOverlapSlots, getGroupRecommendedRooms, getGroupSkillSummary, groups, players } from "@/data/mockData";
 import PitchOverlay from "@/components/PitchOverlay";
 import ProgressRing from "@/components/ProgressRing";
+import { apiGet, apiPost, DEFAULT_USER_ID } from "@/lib/api";
+
+type GroupCard = {
+  id: string;
+  name: string;
+  memberCount: number;
+  topOverlap: string;
+};
+
+type GroupDetail = {
+  group: { id: string; name: string; memberIds: string[] };
+  members: Array<{ id: string; name: string; publicSkillBand: string }>;
+  overlapSlots: Array<{ slot: string; count: number }>;
+  recommendations: Array<{ room: any; fitScore: number }>;
+  chat: Array<{ id: string; user: string; text: string }>;
+};
 
 export default function Groups() {
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [chatMessage, setChatMessage] = useState("");
-  const [chat, setChat] = useState([
-    { id: "1", user: "Marcus", text: "Can we lock Friday?" },
-    { id: "2", user: "Sarah", text: "I can do Fri or Sun." },
-  ]);
+  const [groups, setGroups] = useState<GroupCard[]>([]);
+  const [detail, setDetail] = useState<GroupDetail | null>(null);
 
-  const selectedGroup = groups.find((g) => g.id === selectedGroupId) ?? null;
-
-  const groupCards = useMemo(() => {
-    return groups.map((group) => {
-      const skill = getGroupSkillSummary(group);
-      const overlap = getGroupOverlapSlots(group)[0];
-      return { group, skill, overlap };
-    });
-  }, []);
-
-  const sendChat = () => {
-    if (!chatMessage.trim()) return;
-    setChat((prev) => [{ id: String(prev.length + 1), user: "You", text: chatMessage }, ...prev]);
-    setChatMessage("");
+  const loadGroups = async () => {
+    try {
+      const payload = await apiGet<{ groups: GroupCard[] }>(`/api/v1/groups?user_id=${DEFAULT_USER_ID}`);
+      setGroups(payload.groups ?? []);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to load groups");
+    }
   };
 
-  if (selectedGroup) {
-    const summary = getGroupSkillSummary(selectedGroup);
-    const overlapSlots = getGroupOverlapSlots(selectedGroup);
-    const recommendations = getGroupRecommendedRooms(selectedGroup);
-    const members = selectedGroup.memberIds
-      .map((id) => players.find((p) => p.id === id))
-      .filter(Boolean);
+  const loadDetail = async (groupId: string) => {
+    try {
+      const payload = await apiGet<GroupDetail>(`/api/v1/groups/${groupId}?user_id=${DEFAULT_USER_ID}`);
+      setDetail(payload);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to load group details");
+    }
+  };
+
+  useEffect(() => {
+    void loadGroups();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedGroupId) {
+      setDetail(null);
+      return;
+    }
+    void loadDetail(selectedGroupId);
+  }, [selectedGroupId]);
+
+  const groupCards = useMemo(
+    () =>
+      groups.map((group) => ({
+        group,
+        skill: { profile: "Mixed" },
+        overlap: { slot: group.topOverlap },
+      })),
+    [groups]
+  );
+
+  const sendChat = async () => {
+    if (!selectedGroupId || !chatMessage.trim()) return;
+    await apiPost(`/api/v1/groups/${selectedGroupId}/chat`, { user_id: DEFAULT_USER_ID, text: chatMessage });
+    setChatMessage("");
+    await loadDetail(selectedGroupId);
+  };
+
+  if (selectedGroupId) {
+    if (!detail) {
+      return (
+        <div className="app-shell">
+          <main className="p-4 text-sm text-[#9aa79e]">Loading group...</main>
+          <Navigation />
+        </div>
+      );
+    }
+
+    const selectedGroup = detail.group;
+    const overlapSlots = detail.overlapSlots;
+    const recommendations = detail.recommendations;
+    const members = detail.members;
 
     return (
       <div className="app-shell">
@@ -61,17 +112,17 @@ export default function Groups() {
             <div className="mt-3 flex -space-x-2">
               {members.slice(0, 5).map((member) => (
                 <div
-                  key={member!.id}
+                  key={member.id}
                   className="grid h-9 w-9 place-items-center rounded-full border-2 border-[#101510] bg-[#202720] text-xs text-[#e7eee8]"
                 >
-                  {member!.name
+                  {member.name
                     .split(" ")
                     .map((n) => n[0])
                     .join("")}
                 </div>
               ))}
             </div>
-            <p className="mt-3 text-xs text-[#99a69d]">Skill profile: {summary.profile}</p>
+            <p className="mt-3 text-xs text-[#99a69d]">Skill profile: Mixed</p>
           </section>
 
           <section className="surface-card">
@@ -80,18 +131,18 @@ export default function Groups() {
               {overlapSlots.map((slot) => (
                 <div key={slot.slot} className="surface-inner flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-[#dce6de]">{slot.slot}</span>
-                    <span className="text-[#9dff3f]">
-                      {slot.count}/{selectedGroup.memberIds.length}
-                    </span>
-                  </div>
-                  <div className="mt-2 h-1.5 rounded-full bg-[#252d27]">
-                    <div
-                      className="h-full rounded-full bg-[#9dff3f]"
-                      style={{ width: `${(slot.count / selectedGroup.memberIds.length) * 100}%` }}
-                    />
-                  </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[#dce6de]">{slot.slot}</span>
+                      <span className="text-[#9dff3f]">
+                        {slot.count}/{selectedGroup.memberIds.length}
+                      </span>
+                    </div>
+                    <div className="mt-2 h-1.5 rounded-full bg-[#252d27]">
+                      <div
+                        className="h-full rounded-full bg-[#9dff3f]"
+                        style={{ width: `${(slot.count / selectedGroup.memberIds.length) * 100}%` }}
+                      />
+                    </div>
                   </div>
                   <ProgressRing
                     size="sm"
@@ -115,16 +166,12 @@ export default function Groups() {
                         {item.room.date} · {item.room.time} · ${item.room.price}
                       </p>
                     </div>
-                    {item.room.allowedBand ? (
-                      <SkillBadge level={item.room.allowedBand} colored />
-                    ) : (
-                      <SkillBadge level="Hybrid" colored />
-                    )}
+                    {item.room.allowedBand ? <SkillBadge level={item.room.allowedBand} colored /> : <SkillBadge level="Hybrid" colored />}
                   </div>
                 </div>
               ))}
             </div>
-            <button onClick={() => toast.success("Updated recommendations")} className="btn-primary mt-3 w-full">
+            <button onClick={() => void loadDetail(selectedGroupId)} className="btn-primary mt-3 w-full">
               Refresh Recommendations
             </button>
           </section>
@@ -135,7 +182,7 @@ export default function Groups() {
               <MessageSquare className="h-4 w-4 text-[#94a299]" />
             </div>
             <div className="space-y-2">
-              {chat.map((msg) => (
+              {detail.chat.map((msg) => (
                 <div key={msg.id} className="surface-inner text-xs text-[#d8e2da]">
                   <span className="font-semibold text-[#eff5ef]">{msg.user}:</span> {msg.text}
                 </div>
@@ -143,7 +190,7 @@ export default function Groups() {
             </div>
             <div className="mt-3 flex gap-2">
               <Input value={chatMessage} onChange={(e) => setChatMessage(e.target.value)} placeholder="Message group" />
-              <button onClick={sendChat} className="btn-secondary">
+              <button onClick={() => void sendChat()} className="btn-secondary">
                 Send
               </button>
             </div>
@@ -176,7 +223,7 @@ export default function Groups() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-base font-semibold text-[#f2f7f2]">{group.name}</h2>
-                <p className="mt-1 text-xs text-[#98a69d]">{group.memberIds.length} members</p>
+                <p className="mt-1 text-xs text-[#98a69d]">{group.memberCount} members</p>
               </div>
               <span className="chip">{skill.profile}</span>
             </div>

@@ -1,23 +1,14 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { Bell, CalendarDays, Clock3, Edit3, Users, Wallet } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import SkillBadge from "@/components/SkillBadge";
-import { currentUser } from "@/data/mockData";
+import type { SkillLevel } from "@/components/SkillBadge";
 import PitchOverlay from "@/components/PitchOverlay";
 import StatBlock from "@/components/StatBlock";
 import PlayerJourney3D from "@/components/profile3d/PlayerJourney3D";
-import { loadPlayerProgress } from "@/lib/playerProgress";
 import type { Achievement3D } from "@/components/profile3d/shared/types";
-
-const PROFILE_STORAGE_KEY = "futlynk_profile";
-
-const avatarOptions = {
-  pitch: { label: "Pitch", bg: "bg-[#1f2a1f]", ring: "border-[#3f5a3f]", text: "text-[#dff0e1]" },
-  lime: { label: "Lime", bg: "bg-[#26331f]", ring: "border-[#6ea63f]", text: "text-[#ecf9e0]" },
-  urban: { label: "Urban", bg: "bg-[#222826]", ring: "border-[#3d4542]", text: "text-[#d8e3dc]" },
-  forest: { label: "Forest", bg: "bg-[#1c2c20]", ring: "border-[#4f7c59]", text: "text-[#e0efe4]" },
-} as const;
+import { apiGet, DEFAULT_USER_ID } from "@/lib/api";
 
 const achievementsCatalog = [
   { id: "1", name: "10 Games", description: "Consistency milestone", category: "consistency", rarity: "common", shape: "coin" },
@@ -29,41 +20,45 @@ const achievementsCatalog = [
 ] as const;
 
 const matchHistory = [
-  { id: "m1", date: "Mar 20", venue: "Downtown Sports Arena", result: "W 8-6", players: 10, rating: 4.4, importance: 0.8, special: "mvp" as const },
-  { id: "m2", date: "Mar 16", venue: "Metro Futsal Complex", result: "L 5-7", players: 9, rating: 3.9, importance: 0.6, special: "rivalry" as const },
-  { id: "m3", date: "Mar 12", venue: "Westgate Indoor Sports", result: "W 6-4", players: 10, rating: 4.2, importance: 0.7, special: "clean-sheet" as const },
-  { id: "m4", date: "Mar 09", venue: "Eastside Court", result: "W 8-5", players: 8, rating: 4.1, importance: 0.55 },
+  { id: "m1", date: "Mar 20", venue: "Downtown Sports Arena", result: "W 8-6" },
+  { id: "m2", date: "Mar 16", venue: "Metro Futsal Complex", result: "L 5-7" },
+  { id: "m3", date: "Mar 12", venue: "Westgate Indoor Sports", result: "W 6-4" },
+  { id: "m4", date: "Mar 09", venue: "Eastside Court", result: "W 8-5" },
 ];
 
+const toSkillLevel = (value: string | undefined): SkillLevel =>
+  value === "Beginner" || value === "Intermediate" || value === "Advanced" || value === "Hybrid"
+    ? value
+    : "Intermediate";
+
+type ProfilePayload = {
+  profile: {
+    displayName: string;
+    username: string;
+    publicSkillBand: string;
+    reliabilityScore: number;
+    gamesPlayed: number;
+    avatarId: string;
+    selectedTags: string[];
+    selectedAchievements: string[];
+    points: number;
+  };
+};
+
 export default function Profile() {
-  let parsedProfile: {
-    displayName?: string;
-    username?: string;
-    selectedTags?: string[];
-    selectedAchievements?: string[];
-    avatarId?: keyof typeof avatarOptions;
-  } | null = null;
+  const [profile, setProfile] = useState<ProfilePayload["profile"] | null>(null);
 
-  if (typeof window !== "undefined") {
-    const raw = window.localStorage.getItem(PROFILE_STORAGE_KEY);
-    if (raw) {
-      try {
-        parsedProfile = JSON.parse(raw);
-      } catch {
-        parsedProfile = null;
-      }
-    }
-  }
+  useEffect(() => {
+    const load = async () => {
+      const payload = await apiGet<ProfilePayload>(`/api/v1/profile?user_id=${DEFAULT_USER_ID}`);
+      setProfile(payload.profile);
+    };
 
-  const progress = loadPlayerProgress();
-  const displayName = parsedProfile?.displayName ?? currentUser.name;
-  const selectedTags = parsedProfile?.selectedTags ?? ["Reliable", "Team Player", "Forward", "Punctual"];
-  const avatarId = parsedProfile?.avatarId ?? "pitch";
-  const avatarTheme = avatarOptions[avatarId] ?? avatarOptions.pitch;
-  const totalGamesPlayed = currentUser.gamesPlayed + progress.gamesLogged;
+    void load();
+  }, []);
 
   const achievements3d: Achievement3D[] = useMemo(() => {
-    const selected = parsedProfile?.selectedAchievements ?? ["1", "2", "5", "6"];
+    const selected = profile?.selectedAchievements ?? ["1", "2", "5", "6"];
     return achievementsCatalog.map((a) => ({
       id: a.id,
       name: a.name,
@@ -74,7 +69,10 @@ export default function Profile() {
       category: a.category as Achievement3D["category"],
       shape: a.shape as Achievement3D["shape"],
     }));
-  }, [parsedProfile]);
+  }, [profile?.selectedAchievements]);
+
+  const displayName = profile?.displayName ?? "Alex Chen";
+  const selectedTags = profile?.selectedTags ?? ["Reliable", "Team Player", "Forward", "Punctual"];
 
   return (
     <div className="app-shell">
@@ -108,10 +106,7 @@ export default function Profile() {
       <main className="space-y-3 p-4">
         <section className="surface-card pitch-lines">
           <div className="flex items-center gap-3">
-            <div
-              className={`grid h-14 w-14 place-items-center rounded-full border-2 ${avatarTheme.ring} ${avatarTheme.bg} text-lg font-semibold ${avatarTheme.text}`}
-              title={avatarTheme.label}
-            >
+            <div className="grid h-14 w-14 place-items-center rounded-full border-2 border-[#3f5a3f] bg-[#1f2a1f] text-lg font-semibold text-[#dff0e1]">
               {displayName
                 .split(" ")
                 .map((p) => p[0])
@@ -121,29 +116,29 @@ export default function Profile() {
             <div>
               <h2 className="text-lg font-semibold text-[#f2f7f2]">{displayName}</h2>
               <div className="mt-1 flex items-center gap-2">
-                <SkillBadge level={currentUser.publicSkillBand} colored />
+                <SkillBadge level={toSkillLevel(profile?.publicSkillBand)} colored />
                 <span className="text-xs text-[#93a198]">{selectedTags.slice(0, 3).join(" • ")}</span>
               </div>
             </div>
           </div>
 
           <div className="mt-3 grid grid-cols-3 gap-2">
-            <StatBlock label="Games" value={totalGamesPlayed} />
-            <StatBlock label="Reliability" value={`${currentUser.reliabilityScore}%`} />
-            <StatBlock label="Points" value={progress.points} subValue="FutPoints" />
+            <StatBlock label="Games" value={profile?.gamesPlayed ?? 0} />
+            <StatBlock label="Reliability" value={`${profile?.reliabilityScore ?? 0}%`} />
+            <StatBlock label="Points" value={profile?.points ?? 0} subValue="FutPoints" />
           </div>
         </section>
 
         <PlayerJourney3D
           cardData={{
             name: displayName,
-            skill: currentUser.publicSkillBand,
+            skill: profile?.publicSkillBand ?? "Intermediate",
             tags: selectedTags,
-            games: totalGamesPlayed,
-            reliability: currentUser.reliabilityScore,
+            games: profile?.gamesPlayed ?? 0,
+            reliability: profile?.reliabilityScore ?? 0,
             sportsmanship: 94,
-            attendance: currentUser.reliabilityScore,
-            points: progress.points,
+            attendance: profile?.reliabilityScore ?? 0,
+            points: profile?.points ?? 0,
           }}
           achievements={achievements3d}
           snapshot={{

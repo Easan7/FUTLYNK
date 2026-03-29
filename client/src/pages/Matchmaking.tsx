@@ -1,11 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { SlidersHorizontal, Users } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import SkillBadge from "@/components/SkillBadge";
-import { currentUser, getAllowedRoomsForUser, getFitLabel, getFitReason, getRoomFitScore } from "@/data/mockData";
 import { Input } from "@/components/ui/input";
 import PitchOverlay from "@/components/PitchOverlay";
+import { toast } from "sonner";
+import { apiGet, DEFAULT_USER_ID } from "@/lib/api";
 
 type FilterKey = "all" | "intermediate" | "hybrid";
 
@@ -13,20 +14,47 @@ export default function Matchmaking() {
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const [query, setQuery] = useState("");
   const [useAvailability, setUseAvailability] = useState(true);
+  const [rooms, setRooms] = useState<any[]>([]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const payload = await apiGet<{ rooms: any[] }>(
+          `/api/v1/rooms/discover?user_id=${DEFAULT_USER_ID}&use_availability=${useAvailability}`
+        );
+        setRooms(payload.rooms ?? []);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to load rooms";
+        toast.error(message);
+      }
+    };
+
+    void load();
+  }, [useAvailability]);
 
   const evaluatedRooms = useMemo(() => {
-    return getAllowedRoomsForUser(currentUser.publicSkillBand)
-      .map((room) => {
-        const fitScore = getRoomFitScore(currentUser.hiddenSkillRating, room);
-        return {
-          ...room,
-          fitScore,
-          fitLabel: getFitLabel(fitScore),
-          fitReason: getFitReason(room, fitScore),
-        };
-      })
+    return rooms
+      .map((room) => ({
+        ...room,
+        fitLabel:
+          room.fitScore >= 86
+            ? "Best fit for you"
+            : room.fitScore >= 76
+              ? "Highly balanced"
+              : room.fitScore >= 66
+                ? "Good fit"
+                : "Similar level players",
+        fitReason:
+          room.fitScore >= 86
+            ? "Strong skill alignment and stable room balance"
+            : room.matchingAvailability
+              ? "Matches your availability and expected pace"
+              : room.hiddenRatingSpread <= 0.4
+                ? "Tight skill spread for a cleaner game"
+                : "Suitable room with comparable level players",
+      }))
       .sort((a, b) => b.fitScore - a.fitScore);
-  }, []);
+  }, [rooms]);
 
   const filteredRooms = useMemo(() => {
     return evaluatedRooms

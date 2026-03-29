@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { ArrowLeft, CalendarClock, Check, MessageCircle, ShieldCheck, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import PitchOverlay from "@/components/PitchOverlay";
 import StatBlock from "@/components/StatBlock";
+import { apiDelete, apiGet, apiPost, DEFAULT_USER_ID } from "@/lib/api";
 
 type Notification = {
   id: string;
@@ -16,62 +17,28 @@ type Notification = {
   actionable?: "friend-request" | "rate";
 };
 
-const initialNotifications: Notification[] = [
-  {
-    id: "n1",
-    type: "match",
-    title: "Game spot available",
-    message: "Balanced Midweek 5v5 matches your level.",
-    time: "6m ago",
-    read: false,
-  },
-  {
-    id: "n2",
-    type: "group",
-    title: "Group overlap found",
-    message: "Friday Core has 4 members available Fri 8:30 PM.",
-    time: "42m ago",
-    read: false,
-  },
-  {
-    id: "n3",
-    type: "message",
-    title: "New group message",
-    message: "Sarah: Can we lock the Wed slot tonight?",
-    time: "1h ago",
-    read: true,
-  },
-  {
-    id: "n4",
-    type: "integrity",
-    title: "Pending feedback",
-    message: "Rate players from your last game.",
-    time: "1d ago",
-    read: true,
-    actionable: "rate",
-  },
-  {
-    id: "n5",
-    type: "group",
-    title: "Friend request",
-    message: "Jamie Wilson wants to connect.",
-    time: "2d ago",
-    read: false,
-    actionable: "friend-request",
-  },
-];
-
 export default function Notifications() {
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  const load = async () => {
+    const payload = await apiGet<{ notifications: Notification[] }>(`/api/v1/notifications?user_id=${DEFAULT_USER_ID}`);
+    setNotifications(payload.notifications ?? []);
+  };
+
+  useEffect(() => {
+    void load();
+  }, []);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  const markRead = (id: string) => {
+  const markRead = async (id: string) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    await apiPost(`/api/v1/notifications/${id}/read`, { user_id: DEFAULT_USER_ID });
   };
 
-  const removeNotification = (id: string, message: string) => {
+  const removeNotification = async (id: string, message: string) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
+    await apiDelete(`/api/v1/notifications/${id}?user_id=${DEFAULT_USER_ID}`);
     toast.success(message);
   };
 
@@ -104,7 +71,7 @@ export default function Notifications() {
         {notifications.map((notification) => (
           <article
             key={notification.id}
-            onClick={() => markRead(notification.id)}
+            onClick={() => void markRead(notification.id)}
             className={`surface-card ${notification.read ? "" : "border-[#4d5f4e]"}`}
           >
             <div className="flex items-start gap-3">
@@ -121,7 +88,7 @@ export default function Notifications() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        removeNotification(notification.id, "Friend request accepted");
+                        void removeNotification(notification.id, "Friend request accepted");
                       }}
                       className="btn-primary flex-1 !py-2 text-xs"
                     >
@@ -130,7 +97,7 @@ export default function Notifications() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        removeNotification(notification.id, "Friend request declined");
+                        void removeNotification(notification.id, "Friend request declined");
                       }}
                       className="btn-secondary flex-1 !py-2 text-xs"
                     >

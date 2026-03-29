@@ -1,17 +1,34 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "wouter";
 import { ArrowLeft, Flag, Lock, Star } from "lucide-react";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { completedGameFeedback } from "@/data/mockData";
-import { awardGameCompletion } from "@/lib/playerProgress";
+import { apiGet, apiPost, DEFAULT_USER_ID } from "@/lib/api";
+
+type FeedbackGame = {
+  id: string;
+  location: string;
+  date: string;
+  time: string;
+  currentUserJoinGroupId: string | null;
+  players: Array<{ id: string; name: string; joinedViaGroupId: string | null }>;
+};
 
 export default function PostGameFeedback() {
   const params = useParams<{ gameId: string }>();
+  const gameId = params?.gameId ?? "c1";
   const [ratings, setRatings] = useState<Record<string, number>>({});
+  const [game, setGame] = useState<FeedbackGame | null>(null);
 
-  const game = params?.gameId === completedGameFeedback.id ? completedGameFeedback : null;
+  useEffect(() => {
+    const load = async () => {
+      const payload = await apiGet<FeedbackGame>(`/api/v1/feedback/${gameId}?user_id=${DEFAULT_USER_ID}`);
+      setGame(payload);
+    };
+
+    void load();
+  }, [gameId]);
 
   const splitPlayers = useMemo(() => {
     if (!game) return { eligible: [], sameGroup: [] };
@@ -22,19 +39,31 @@ export default function PostGameFeedback() {
     return { eligible, sameGroup };
   }, [game]);
 
-  const submit = () => {
+  const submit = async () => {
     if (!game) return;
     if (Object.keys(ratings).length < splitPlayers.eligible.length) {
       toast.error(`Please rate all eligible players (${splitPlayers.eligible.length})`);
       return;
     }
-    const reward = awardGameCompletion(game.id, 50);
-    if (reward.awarded) {
+
+    const payload = splitPlayers.eligible.map((player) => ({
+      rated_user_id: player.id,
+      stars: ratings[player.id],
+      flagged_sportsmanship: false,
+    }));
+
+    const result = await apiPost<{ awarded: boolean }>(`/api/v1/feedback/${game.id}/submit`, {
+      user_id: DEFAULT_USER_ID,
+      ratings: payload,
+    });
+
+    if (result.awarded) {
       toast.success("Ratings submitted", {
         description: "+50 points added to your rewards balance.",
       });
       return;
     }
+
     toast.success("Ratings submitted", {
       description: "Points for this match were already claimed.",
     });
@@ -130,7 +159,7 @@ export default function PostGameFeedback() {
           </div>
         </section>
 
-        <button onClick={submit} className="btn-primary w-full">
+        <button onClick={() => void submit()} className="btn-primary w-full">
           Submit Feedback
         </button>
       </main>

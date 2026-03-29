@@ -1,11 +1,24 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { ArrowLeft, Search, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import { Input } from "@/components/ui/input";
 import SkillBadge from "@/components/SkillBadge";
-import { currentUser, players } from "@/data/mockData";
+import type { SkillLevel } from "@/components/SkillBadge";
+import { apiGet, apiPost, DEFAULT_USER_ID } from "@/lib/api";
+
+const toSkillLevel = (value: string): SkillLevel =>
+  value === "Beginner" || value === "Intermediate" || value === "Advanced" || value === "Hybrid"
+    ? value
+    : "Hybrid";
+
+type FriendOption = {
+  id: string;
+  name: string;
+  gamesPlayed: number;
+  publicSkillBand: string;
+};
 
 export default function CreateGroup() {
   const [, setLocation] = useLocation();
@@ -14,8 +27,24 @@ export default function CreateGroup() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [nameError, setNameError] = useState("");
   const [memberError, setMemberError] = useState("");
+  const [availableFriends, setAvailableFriends] = useState<FriendOption[]>([]);
 
-  const availableFriends = players.filter((p) => p.id !== currentUser.id);
+  useEffect(() => {
+    const loadFriends = async () => {
+      const payload = await apiGet<{ friends: any[] }>(`/api/v1/friends?user_id=${DEFAULT_USER_ID}`);
+      const options = (payload.friends ?? [])
+        .filter((f) => f.isFriend)
+        .map((f) => ({
+          id: f.id,
+          name: f.name,
+          gamesPlayed: f.gamesPlayed,
+          publicSkillBand: f.publicSkillBand,
+        }));
+      setAvailableFriends(options);
+    };
+
+    void loadFriends();
+  }, []);
 
   const filtered = useMemo(
     () =>
@@ -27,9 +56,9 @@ export default function CreateGroup() {
 
   const selectedMembers = selectedIds
     .map((id) => availableFriends.find((f) => f.id === id))
-    .filter(Boolean);
+    .filter(Boolean) as FriendOption[];
 
-  const createGroup = () => {
+  const createGroup = async () => {
     setNameError("");
     setMemberError("");
     if (!groupName.trim()) {
@@ -42,6 +71,12 @@ export default function CreateGroup() {
       toast.error("Fix the highlighted fields");
       return;
     }
+
+    await apiPost("/api/v1/groups", {
+      user_id: DEFAULT_USER_ID,
+      name: groupName,
+      member_ids: selectedMembers.map((m) => m.id),
+    });
 
     toast.success(`Group \"${groupName}\" created`);
     setLocation("/groups?created=1");
@@ -104,7 +139,7 @@ export default function CreateGroup() {
                     <p className="text-xs text-[#95a39a]">{friend.gamesPlayed} games</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <SkillBadge level={friend.publicSkillBand} colored />
+                    <SkillBadge level={toSkillLevel(friend.publicSkillBand)} colored />
                     <UserPlus className="h-4 w-4 text-[#9dff3f]" />
                   </div>
                 </button>
@@ -117,16 +152,16 @@ export default function CreateGroup() {
         <section className="surface-card">
           <h2 className="text-sm font-semibold text-[#f2f7f2]">Selected Members</h2>
           <div className="mt-3 space-y-2">
-            {[{ ...currentUser, name: `${currentUser.name} (You)` }, ...selectedMembers].map((member) => (
-              <div key={member!.id} className="surface-inner flex items-center justify-between gap-2">
-                <span className="text-sm text-[#e9f0ea]">{member!.name}</span>
+            {[{ id: DEFAULT_USER_ID, name: "Alex Chen (You)", publicSkillBand: "Intermediate" }, ...selectedMembers].map((member) => (
+              <div key={member.id} className="surface-inner flex items-center justify-between gap-2">
+                <span className="text-sm text-[#e9f0ea]">{member.name}</span>
                 <div className="flex items-center gap-2">
-                  <SkillBadge level={member!.publicSkillBand} colored />
-                  {member!.id !== currentUser.id ? (
+                  <SkillBadge level={toSkillLevel(member.publicSkillBand)} colored />
+                  {member.id !== DEFAULT_USER_ID ? (
                     <button
-                      onClick={() => setSelectedIds((prev) => prev.filter((id) => id !== member!.id))}
+                      onClick={() => setSelectedIds((prev) => prev.filter((id) => id !== member.id))}
                       className="btn-secondary !min-h-8 !px-2"
-                      aria-label={`Remove ${member!.name}`}
+                      aria-label={`Remove ${member.name}`}
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
@@ -137,7 +172,7 @@ export default function CreateGroup() {
           </div>
         </section>
 
-        <button onClick={createGroup} className="btn-primary w-full" disabled={!groupName.trim()}>
+        <button onClick={() => void createGroup()} className="btn-primary w-full" disabled={!groupName.trim()}>
           Create Group
         </button>
       </main>

@@ -1,24 +1,50 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Search, UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import { Input } from "@/components/ui/input";
 import SkillBadge from "@/components/SkillBadge";
-import { currentUser, players } from "@/data/mockData";
+import type { SkillLevel } from "@/components/SkillBadge";
 import PitchOverlay from "@/components/PitchOverlay";
+import { apiGet, apiPost, DEFAULT_USER_ID } from "@/lib/api";
+
+const toSkillLevel = (value: string): SkillLevel =>
+  value === "Beginner" || value === "Intermediate" || value === "Advanced" || value === "Hybrid"
+    ? value
+    : "Hybrid";
+
+type Friend = {
+  id: string;
+  name: string;
+  publicSkillBand: string;
+  reliabilityScore: number;
+  gamesPlayed: number;
+  isOnline: boolean;
+  isFriend: boolean;
+  requestPending: boolean;
+};
 
 export default function Friends() {
   const [search, setSearch] = useState("");
   const [showAddFriend, setShowAddFriend] = useState(false);
-  const [pendingRequests, setPendingRequests] = useState<string[]>([]);
+  const [people, setPeople] = useState<Friend[]>([]);
 
-  const friends = useMemo(() => players.filter((p) => p.id !== currentUser.id), []);
-  const filtered = friends.filter((f) => f.name.toLowerCase().includes(search.toLowerCase()));
+  const load = async (q = "") => {
+    const payload = await apiGet<{ friends: Friend[] }>(`/api/v1/friends?user_id=${DEFAULT_USER_ID}&q=${encodeURIComponent(q)}`);
+    setPeople(payload.friends ?? []);
+  };
 
-  const sendRequest = (friendId: string, friendName: string) => {
-    if (pendingRequests.includes(friendId)) return;
-    setPendingRequests((prev) => [...prev, friendId]);
+  useEffect(() => {
+    void load(search);
+  }, [search]);
+
+  const friends = useMemo(() => people.filter((p) => p.isFriend), [people]);
+  const filtered = showAddFriend ? people : friends;
+
+  const sendRequest = async (friendId: string, friendName: string) => {
+    await apiPost("/api/v1/friends/requests", { user_id: DEFAULT_USER_ID, friend_id: friendId });
     toast.success(`Friend request sent to ${friendName}`);
+    await load(search);
   };
 
   return (
@@ -55,18 +81,18 @@ export default function Friends() {
             <h2 className="text-sm font-semibold text-[#f2f7f2]">Add Friends</h2>
             <p className="mt-1 text-xs text-[#97a49a]">Search players and send requests.</p>
             <div className="mt-3 space-y-2">
-              {filtered.slice(0, 6).map((friend) => (
+              {filtered.slice(0, 8).map((friend) => (
                 <div key={friend.id} className="surface-inner flex items-center justify-between gap-2">
                   <div>
                     <p className="text-sm text-[#edf3ee]">{friend.name}</p>
                     <p className="mt-0.5 text-xs text-[#95a39a]">{friend.gamesPlayed} games · {friend.reliabilityScore}%</p>
                   </div>
                   <button
-                    onClick={() => sendRequest(friend.id, friend.name)}
-                    disabled={pendingRequests.includes(friend.id)}
-                    className={pendingRequests.includes(friend.id) ? "btn-secondary text-xs" : "btn-primary text-xs"}
+                    onClick={() => void sendRequest(friend.id, friend.name)}
+                    disabled={friend.requestPending || friend.isFriend}
+                    className={friend.requestPending || friend.isFriend ? "btn-secondary text-xs" : "btn-primary text-xs"}
                   >
-                    {pendingRequests.includes(friend.id) ? "Requested" : "Add"}
+                    {friend.isFriend ? "Friend" : friend.requestPending ? "Requested" : "Add"}
                   </button>
                 </div>
               ))}
@@ -77,7 +103,7 @@ export default function Friends() {
         <section className="surface-card">
           <h2 className="text-sm font-semibold text-[#f2f7f2]">Friend List</h2>
           <div className="mt-3 space-y-2">
-            {filtered.map((friend) => (
+            {friends.map((friend) => (
               <article key={friend.id} className="surface-inner flex items-center justify-between gap-2">
                 <div className="flex items-center gap-3">
                   <div className="relative">
@@ -95,7 +121,7 @@ export default function Friends() {
                   </div>
                 </div>
 
-                <SkillBadge level={friend.publicSkillBand} colored />
+                <SkillBadge level={toSkillLevel(friend.publicSkillBand)} colored />
               </article>
             ))}
           </div>

@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { ArrowLeft, CalendarDays, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import { Input } from "@/components/ui/input";
 import PitchOverlay from "@/components/PitchOverlay";
+import { apiDelete, apiGet, apiPost, DEFAULT_USER_ID } from "@/lib/api";
 
-const AVAILABILITY_STORAGE_KEY = "futlynk_availability";
 const weekdayKeys = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 
 type RecurringRule = {
@@ -16,47 +16,31 @@ type RecurringRule = {
   to: string;
 };
 
-type StoredAvailability = {
-  recurringRules: RecurringRule[];
-  specificDates: Array<{ date: string; time: string }>;
-};
-
 export default function Availability() {
-  const savedAvailability =
-    typeof window !== "undefined" ? window.localStorage.getItem(AVAILABILITY_STORAGE_KEY) : null;
-
-  let parsedAvailability: StoredAvailability | null = null;
-  if (savedAvailability) {
-    try {
-      parsedAvailability = JSON.parse(savedAvailability);
-    } catch {
-      parsedAvailability = null;
-    }
-  }
-
   const [availabilityMode, setAvailabilityMode] = useState<"recurring" | "specific">("recurring");
   const [selectedDays, setSelectedDays] = useState<string[]>(["Tue", "Thu"]);
   const [rangeFrom, setRangeFrom] = useState("19:00");
   const [rangeTo, setRangeTo] = useState("21:00");
-  const [recurringRules, setRecurringRules] = useState<RecurringRule[]>(
-    parsedAvailability?.recurringRules ?? [{ id: "r1", days: ["Tue", "Thu"], from: "19:00", to: "21:00" }]
-  );
+  const [recurringRules, setRecurringRules] = useState<RecurringRule[]>([]);
 
   const [specificDate, setSpecificDate] = useState("");
   const [specificTime, setSpecificTime] = useState("19:00");
-  const [specificDates, setSpecificDates] = useState<Array<{ date: string; time: string }>>(
-    parsedAvailability?.specificDates ?? []
-  );
+  const [specificDates, setSpecificDates] = useState<Array<{ id: string; date: string; time: string }>>([]);
   const [inlineError, setInlineError] = useState("");
 
-  const persistAvailability = (nextRules: RecurringRule[], nextDates: Array<{ date: string; time: string }>) => {
-    window.localStorage.setItem(
-      AVAILABILITY_STORAGE_KEY,
-      JSON.stringify({ recurringRules: nextRules, specificDates: nextDates })
+  const load = async () => {
+    const payload = await apiGet<{ recurringRules: RecurringRule[]; specificDates: Array<{ id: string; date: string; time: string }> }>(
+      `/api/v1/availability?user_id=${DEFAULT_USER_ID}`
     );
+    setRecurringRules(payload.recurringRules ?? []);
+    setSpecificDates(payload.specificDates ?? []);
   };
 
-  const addRecurringRule = () => {
+  useEffect(() => {
+    void load();
+  }, []);
+
+  const addRecurringRule = async () => {
     setInlineError("");
     if (selectedDays.length === 0) {
       setInlineError("Select at least one day.");
@@ -66,36 +50,40 @@ export default function Availability() {
       setInlineError("End time must be after start time.");
       return;
     }
-    if (recurringRules.some((rule) => rule.from === rangeFrom && rule.to === rangeTo && rule.days.join(",") === selectedDays.join(","))) {
-      setInlineError("This recurring window already exists.");
-      return;
-    }
 
-    const nextRules = [
-      ...recurringRules,
-      { id: `${Date.now()}`, days: [...selectedDays], from: rangeFrom, to: rangeTo },
-    ];
-    setRecurringRules(nextRules);
-    persistAvailability(nextRules, specificDates);
+    await apiPost("/api/v1/availability/recurring", {
+      user_id: DEFAULT_USER_ID,
+      days: selectedDays,
+      from_time: rangeFrom,
+      to_time: rangeTo,
+    });
+
     toast.success("Recurring window added");
+    await load();
   };
 
-  const addSpecificDate = () => {
+  const addSpecificDate = async () => {
     setInlineError("");
     if (!specificDate) {
       setInlineError("Select a date first.");
       return;
     }
-    if (specificDates.some((item) => item.date === specificDate && item.time === specificTime)) {
-      setInlineError("This specific date/time already exists.");
-      return;
-    }
-    const nextDates = [...specificDates, { date: specificDate, time: specificTime }];
-    setSpecificDates(nextDates);
+
+    await apiPost("/api/v1/availability/specific", {
+      user_id: DEFAULT_USER_ID,
+      date_value: specificDate,
+      time_value: specificTime,
+    });
+
     setSpecificDate("");
     setSpecificTime("19:00");
-    persistAvailability(recurringRules, nextDates);
     toast.success("Specific date added");
+    await load();
+  };
+
+  const removeRule = async (id: string) => {
+    await apiDelete(`/api/v1/availability/${id}?user_id=${DEFAULT_USER_ID}`);
+    await load();
   };
 
   return (
@@ -173,7 +161,7 @@ export default function Availability() {
                 </div>
               </div>
 
-              <button onClick={addRecurringRule} className="btn-secondary text-xs">
+              <button onClick={() => void addRecurringRule()} className="btn-secondary text-xs">
                 <Plus className="h-3.5 w-3.5" /> Add Recurring Window
               </button>
 
@@ -188,11 +176,7 @@ export default function Availability() {
                     </div>
                     <button
                       className="btn-secondary !min-h-8 !px-2"
-                      onClick={() => {
-                        const nextRules = recurringRules.filter((item) => item.id !== rule.id);
-                        setRecurringRules(nextRules);
-                        persistAvailability(nextRules, specificDates);
-                      }}
+                      onClick={() => void removeRule(rule.id)}
                       aria-label="Remove recurring window"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -207,12 +191,12 @@ export default function Availability() {
                 <Input type="date" value={specificDate} onChange={(e) => setSpecificDate(e.target.value)} />
                 <Input type="time" value={specificTime} onChange={(e) => setSpecificTime(e.target.value)} />
               </div>
-              <button onClick={addSpecificDate} className="btn-secondary text-xs">
+              <button onClick={() => void addSpecificDate()} className="btn-secondary text-xs">
                 <Plus className="mr-1 h-3.5 w-3.5" /> Add Date
               </button>
-              {specificDates.map((item, index) => (
+              {specificDates.map((item) => (
                 <div
-                  key={`${item.date}-${item.time}-${index}`}
+                  key={item.id}
                   className="surface-inner flex items-center justify-between gap-2 text-xs text-[#d6dfd8]"
                 >
                   <span>
@@ -220,11 +204,7 @@ export default function Availability() {
                   </span>
                   <button
                     className="btn-secondary !min-h-8 !px-2"
-                    onClick={() => {
-                      const nextDates = specificDates.filter((_, dateIndex) => dateIndex !== index);
-                      setSpecificDates(nextDates);
-                      persistAvailability(recurringRules, nextDates);
-                    }}
+                    onClick={() => void removeRule(item.id)}
                     aria-label="Remove specific date"
                   >
                     <Trash2 className="h-3.5 w-3.5" />

@@ -1,30 +1,43 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { ArrowLeft, Gift, Ticket, Wallet as WalletIcon } from "lucide-react";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import PitchOverlay from "@/components/PitchOverlay";
 import StatBlock from "@/components/StatBlock";
-import { loadPlayerProgress, redeemVoucher } from "@/lib/playerProgress";
+import { apiGet, apiPost, DEFAULT_USER_ID } from "@/lib/api";
 
-const initialActivity = [
-  { id: "a1", text: "Top up", amount: "+$20.00", time: "Mar 20" },
-  { id: "a2", text: "Game fee", amount: "-$15.00", time: "Mar 18" },
-  { id: "a3", text: "Game fee", amount: "-$18.00", time: "Mar 16" },
-];
-
-const vouchers = [
-  { id: "v1", title: "$5 Court Credit", cost: 120, code: "FUT5-COURT", detail: "Use on next booking" },
-  { id: "v2", title: "Free Water Pack", cost: 90, code: "HYDRATE-90", detail: "Redeem at partner venue" },
-  { id: "v3", title: "10% Gear Discount", cost: 180, code: "FUTGEAR10", detail: "Sports store partner" },
-];
+type WalletData = {
+  walletBalance: number;
+  points: number;
+  vouchers: Array<{ id: string; title: string; cost: number; code: string; detail: string; isRedeemed: boolean }>;
+  activity: Array<{ id: string; text: string; amount: string; time: string }>;
+};
 
 export default function Wallet() {
-  const [walletBalance, setWalletBalance] = useState(125.5);
-  const [progress, setProgress] = useState(loadPlayerProgress());
+  const [data, setData] = useState<WalletData | null>(null);
 
-  const handleRedeem = (voucherId: string, cost: number, code: string) => {
-    const result = redeemVoucher(voucherId, cost);
+  const load = async () => {
+    const payload = await apiGet<WalletData>(`/api/v1/wallet?user_id=${DEFAULT_USER_ID}`);
+    setData(payload);
+  };
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  const handleTopup = async (amount: number) => {
+    await apiPost("/api/v1/wallet/topup", { user_id: DEFAULT_USER_ID, amount });
+    toast.success(`Added $${amount}`);
+    await load();
+  };
+
+  const handleRedeem = async (voucherId: string, code: string) => {
+    const result = await apiPost<{ ok: boolean; reason?: string }>("/api/v1/wallet/redeem", {
+      user_id: DEFAULT_USER_ID,
+      voucher_id: voucherId,
+    });
+
     if (!result.ok) {
       if (result.reason === "already-redeemed") {
         toast.info("Voucher already redeemed");
@@ -34,11 +47,17 @@ export default function Wallet() {
       return;
     }
 
-    setProgress(result.progress);
     toast.success("Voucher redeemed", {
       description: `Code: ${code}`,
     });
+
+    await load();
   };
+
+  const walletBalance = data?.walletBalance ?? 0;
+  const points = data?.points ?? 0;
+  const vouchers = data?.vouchers ?? [];
+  const activity = data?.activity ?? [];
 
   return (
     <div className="app-shell">
@@ -62,11 +81,11 @@ export default function Wallet() {
           </h2>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <StatBlock label="Available" value={`$${walletBalance.toFixed(2)}`} />
-            <StatBlock label="FutPoints" value={progress.points} subValue="Earned from played games" />
+            <StatBlock label="FutPoints" value={points} subValue="Earned from played games" />
           </div>
           <div className="mt-3 grid grid-cols-3 gap-2">
             {[10, 20, 50].map((amount) => (
-              <button key={amount} onClick={() => setWalletBalance((prev) => prev + amount)} className="btn-primary !px-2 text-xs">
+              <button key={amount} onClick={() => void handleTopup(amount)} className="btn-primary !px-2 text-xs">
                 +${amount}
               </button>
             ))}
@@ -79,8 +98,7 @@ export default function Wallet() {
           </h3>
           <div className="mt-3 space-y-2">
             {vouchers.map((voucher) => {
-              const isRedeemed = progress.redeemedVoucherIds.includes(voucher.id);
-              const canRedeem = progress.points >= voucher.cost && !isRedeemed;
+              const canRedeem = points >= voucher.cost && !voucher.isRedeemed;
 
               return (
                 <div key={voucher.id} className="surface-inner">
@@ -91,14 +109,14 @@ export default function Wallet() {
                       <p className="mt-1 text-xs text-[#b7c5ba]">{voucher.cost} points</p>
                     </div>
                     <button
-                      onClick={() => handleRedeem(voucher.id, voucher.cost, voucher.code)}
+                      onClick={() => void handleRedeem(voucher.id, voucher.code)}
                       disabled={!canRedeem}
                       className={canRedeem ? "btn-primary text-xs" : "btn-secondary text-xs"}
                     >
-                      {isRedeemed ? "Redeemed" : "Redeem"}
+                      {voucher.isRedeemed ? "Redeemed" : "Redeem"}
                     </button>
                   </div>
-                  {isRedeemed && (
+                  {voucher.isRedeemed && (
                     <div className="mt-2 inline-flex items-center gap-1 rounded-lg border border-[#334132] bg-[#1a2219] px-2 py-1 text-[11px] text-[#cfe0d1]">
                       <Ticket className="h-3 w-3 text-[#9dff3f]" /> {voucher.code}
                     </div>
@@ -112,13 +130,13 @@ export default function Wallet() {
         <section className="surface-card">
           <h3 className="text-sm font-semibold text-[#f2f7f2]">Recent Activity</h3>
           <div className="mt-3 space-y-2">
-            {initialActivity.map((item) => (
+            {activity.map((item) => (
               <div key={item.id} className="surface-inner flex items-center justify-between text-xs">
                 <div>
                   <p className="text-[#e4ece6]">{item.text}</p>
                   <p className="text-[#8f9d93]">{item.time}</p>
                 </div>
-                <span className={item.amount.startsWith("+") ? "text-[#9dff3f]" : "text-[#cbd5cd]"}>{item.amount}</span>
+                <span className={item.amount.startsWith("+") ? "text-[#9dff3f]" : "text-[#cbd5cd]"}>${item.amount}</span>
               </div>
             ))}
           </div>

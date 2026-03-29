@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Check, Flame, ShieldCheck, Star, Target, Trophy, X } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import PitchOverlay from "@/components/PitchOverlay";
+import { apiGet, apiPut, DEFAULT_USER_ID } from "@/lib/api";
 
 const availableTags = [
   "Reliable",
@@ -32,43 +33,34 @@ const avatarOptions = [
   { id: "forest", label: "Forest", bg: "bg-[#1c2c20]", ring: "border-[#4f7c59]", text: "text-[#e0efe4]" },
 ] as const;
 
-const PROFILE_STORAGE_KEY = "futlynk_profile";
-
 export default function ProfileEditor() {
   const [, setLocation] = useLocation();
-  const savedProfile =
-    typeof window !== "undefined" ? window.localStorage.getItem(PROFILE_STORAGE_KEY) : null;
 
-  let parsedProfile: {
-    displayName?: string;
-    username?: string;
-    selectedTags?: string[];
-    selectedAchievements?: string[];
-    avatarId?: string;
-  } | null = null;
-
-  if (savedProfile) {
-    try {
-      parsedProfile = JSON.parse(savedProfile);
-    } catch {
-      parsedProfile = null;
-    }
-  }
-
-  const [displayName, setDisplayName] = useState(parsedProfile?.displayName ?? "Alex Chen");
-  const [username, setUsername] = useState(parsedProfile?.username ?? "@alexchen");
-  const [selectedAvatar, setSelectedAvatar] = useState(parsedProfile?.avatarId ?? "pitch");
-  const [selectedTags, setSelectedTags] = useState<string[]>(
-    parsedProfile?.selectedTags ?? ["Reliable", "Team Player", "Forward", "Punctual"]
-  );
-  const [selectedAchievements, setSelectedAchievements] = useState<string[]>(
-    parsedProfile?.selectedAchievements ?? ["1", "2", "5"]
-  );
+  const [displayName, setDisplayName] = useState("Alex Chen");
+  const [username, setUsername] = useState("@alexchen");
+  const [selectedAvatar, setSelectedAvatar] = useState("pitch");
+  const [selectedTags, setSelectedTags] = useState<string[]>(["Reliable", "Team Player", "Forward", "Punctual"]);
+  const [selectedAchievements, setSelectedAchievements] = useState<string[]>(["1", "2", "5"]);
   const [formError, setFormError] = useState("");
+
+  useEffect(() => {
+    const load = async () => {
+      const payload = await apiGet<{ profile: any }>(`/api/v1/profile?user_id=${DEFAULT_USER_ID}`);
+      const p = payload.profile;
+      setDisplayName(p.displayName ?? "Alex Chen");
+      setUsername(p.username ?? "@alexchen");
+      setSelectedAvatar(p.avatarId ?? "pitch");
+      setSelectedTags(p.selectedTags ?? ["Reliable", "Team Player", "Forward", "Punctual"]);
+      setSelectedAchievements(p.selectedAchievements ?? ["1", "2", "5"]);
+    };
+
+    void load();
+  }, []);
+
   const hasValidName = displayName.trim().length >= 2;
   const hasValidUsername = /^@[a-zA-Z0-9_]{3,20}$/.test(username);
 
-  const save = () => {
+  const save = async () => {
     setFormError("");
     if (!hasValidName) {
       setFormError("Display name must be at least 2 characters.");
@@ -78,16 +70,16 @@ export default function ProfileEditor() {
       setFormError("Username must be @ + 3-20 letters, numbers, or underscores.");
       return;
     }
-    window.localStorage.setItem(
-      PROFILE_STORAGE_KEY,
-      JSON.stringify({
-        displayName,
-        username,
-        avatarId: selectedAvatar,
-        selectedTags,
-        selectedAchievements,
-      })
-    );
+
+    await apiPut("/api/v1/profile", {
+      user_id: DEFAULT_USER_ID,
+      display_name: displayName,
+      username,
+      avatar_id: selectedAvatar,
+      selected_tags: selectedTags,
+      selected_achievements: selectedAchievements,
+    });
+
     toast.success("Profile updated");
     setLocation("/profile");
   };
@@ -139,7 +131,7 @@ export default function ProfileEditor() {
             <X className="h-4 w-4" /> Cancel
           </button>
           <h1 className="text-lg font-semibold text-[#f2f7f2]">Edit Profile</h1>
-          <button onClick={save} className="btn-primary text-xs" disabled={!hasValidName || !hasValidUsername}>
+          <button onClick={() => void save()} className="btn-primary text-xs" disabled={!hasValidName || !hasValidUsername}>
             <Check className="h-4 w-4" /> Save
           </button>
         </div>

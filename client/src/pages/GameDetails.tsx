@@ -1,46 +1,78 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useRoute } from "wouter";
 import { ArrowLeft, MapPin, Send } from "lucide-react";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import { Input } from "@/components/ui/input";
-import { players, rooms } from "@/data/mockData";
 import PitchOverlay from "@/components/PitchOverlay";
 import ProgressRing from "@/components/ProgressRing";
+import { apiGet, apiPost, DEFAULT_USER_ID } from "@/lib/api";
 
-const mockRosterByRoom: Record<string, string[]> = {
-  "1": ["u-me", "u-2", "u-6", "u-4", "u-1", "u-3", "u-7", "u-5"],
-  "2": ["u-me", "u-1", "u-2", "u-7", "u-3", "u-4"],
-  "3": ["u-me", "u-2", "u-4", "u-6", "u-5"],
-  "4": ["u-1", "u-3", "u-6", "u-2", "u-4", "u-7", "u-5", "u-me", "u-2"],
-  "5": ["u-me", "u-7", "u-5", "u-2"],
+type RoomDetailResponse = {
+  room: {
+    id: string;
+    location: string;
+    date: string;
+    time: string;
+    distanceKm: number;
+    price: number;
+    maxPlayers: number;
+    allowedBand: string | null;
+  };
+  roster: Array<{
+    id: string;
+    name: string;
+    publicSkillBand: string;
+    reliabilityScore: number;
+  }>;
+  chat: Array<{ id: string; user: string; text: string }>;
+  isJoined: boolean;
 };
 
 export default function GameDetails() {
   const [, params] = useRoute("/game/:id");
   const roomId = params?.id ?? "1";
-  const room = rooms.find((r) => r.id === roomId) ?? rooms[0];
-
-  const roster = useMemo(() => {
-    const ids = mockRosterByRoom[room.id] ?? ["u-me", "u-2", "u-4"];
-    return ids.map((id) => players.find((p) => p.id === id)).filter(Boolean);
-  }, [room.id]);
-
-  const [isJoined, setIsJoined] = useState(room.playersJoined >= 6);
+  const [detail, setDetail] = useState<RoomDetailResponse | null>(null);
   const [message, setMessage] = useState("");
-  const [chat, setChat] = useState([
-    { id: "1", user: "Sarah", text: "I can bring bibs." },
-    { id: "2", user: "Marcus", text: "See you 15 mins before kickoff." },
-  ]);
+  const [chat, setChat] = useState<Array<{ id: string; user: string; text: string }>>([]);
+  const [isJoined, setIsJoined] = useState(false);
 
+  const loadDetail = async () => {
+    try {
+      const payload = await apiGet<RoomDetailResponse>(`/api/v1/rooms/${roomId}?user_id=${DEFAULT_USER_ID}`);
+      setDetail(payload);
+      setChat(payload.chat);
+      setIsJoined(payload.isJoined);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Failed to load room details";
+      toast.error(msg);
+    }
+  };
+
+  useEffect(() => {
+    void loadDetail();
+  }, [roomId]);
+
+  const room = detail?.room;
+  const roster = useMemo(() => detail?.roster ?? [], [detail?.roster]);
   const playersJoined = roster.length;
-  const fillPct = Math.round((playersJoined / room.maxPlayers) * 100);
+  const fillPct = room ? Math.round((playersJoined / room.maxPlayers) * 100) : 0;
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (!message.trim()) return;
-    setChat((prev) => [{ id: String(prev.length + 1), user: "You", text: message }, ...prev]);
+    await apiPost(`/api/v1/rooms/${roomId}/chat`, { user_id: DEFAULT_USER_ID, text: message });
+    setChat((prev) => [{ id: String(Date.now()), user: "You", text: message }, ...prev]);
     setMessage("");
   };
+
+  if (!room) {
+    return (
+      <div className="app-shell">
+        <main className="p-4 text-sm text-[#9aa79e]">Loading room...</main>
+        <Navigation />
+      </div>
+    );
+  }
 
   return (
     <div className="app-shell">
@@ -103,20 +135,20 @@ export default function GameDetails() {
           <h2 className="text-sm font-semibold text-[#f2f7f2]">Players</h2>
           <div className="mt-3 space-y-2">
             {roster.map((player) => (
-              <div key={player!.id} className="surface-inner flex items-center justify-between gap-3">
+              <div key={player.id} className="surface-inner flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="grid h-9 w-9 place-items-center rounded-full bg-[#202720] text-xs font-semibold text-[#dce6de]">
-                    {player!.name
+                    {player.name
                       .split(" ")
                       .map((n) => n[0])
                       .join("")}
                   </div>
                   <div>
-                    <p className="text-sm text-[#edf3ee]">{player!.name}</p>
-                    <p className="text-xs text-[#95a39a]">{player!.publicSkillBand}</p>
+                    <p className="text-sm text-[#edf3ee]">{player.name}</p>
+                    <p className="text-xs text-[#95a39a]">{player.publicSkillBand}</p>
                   </div>
                 </div>
-                <span className="chip">{player!.reliabilityScore}%</span>
+                <span className="chip">{player.reliabilityScore}%</span>
               </div>
             ))}
           </div>
@@ -148,9 +180,11 @@ export default function GameDetails() {
         )}
 
         <button
-          onClick={() => {
+          onClick={async () => {
             if (isJoined && !window.confirm("Leave this room?")) return;
+            await apiPost(`/api/v1/rooms/${roomId}/${isJoined ? "leave" : "join"}`, { user_id: DEFAULT_USER_ID });
             setIsJoined((prev) => !prev);
+            await loadDetail();
             toast.success(isJoined ? "You left this room" : "Joined room successfully");
           }}
           className={isJoined ? "btn-destructive w-full" : "btn-primary w-full"}
