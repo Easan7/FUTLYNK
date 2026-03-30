@@ -15,12 +15,18 @@ type OnboardingFlowProps = {
   onFinish: () => void;
 };
 
+const solidBackgroundByTheme: Record<OnboardingSlide["theme"], string> = {
+  core: "#1b2b1a",
+  discover: "#1a2f1b",
+  groups: "#1d311d",
+  allinone: "#1b2d1f",
+};
+
 function SlideArt({ slide }: { slide: OnboardingSlide }) {
   if (slide.theme === "discover") {
     return (
       <div className="relative h-full w-full">
-        <div className="absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#b8ff6f]/20 blur-2xl" />
-        <div className="absolute left-1/2 top-1/2 w-[86%] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[#4b6a46] bg-[#122114]/90 p-3">
+        <div className="absolute left-1/2 top-1/2 w-[88%] -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-[#4f7149] bg-[#102112] p-3.5 shadow-[0_20px_38px_rgba(6,14,8,0.32)]">
           <div className="mb-2 flex items-center justify-between text-[11px] text-[#b9ccb8]">
             <span className="inline-flex items-center gap-1">
               <MapPinned className="h-3.5 w-3.5 text-[#9dff3f]" />
@@ -50,8 +56,7 @@ function SlideArt({ slide }: { slide: OnboardingSlide }) {
   if (slide.theme === "groups") {
     return (
       <div className="relative h-full w-full">
-        <div className="absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#b8ff6f]/20 blur-2xl" />
-        <div className="absolute left-1/2 top-1/2 w-[86%] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[#4b6a46] bg-[#122114]/90 p-3">
+        <div className="absolute left-1/2 top-1/2 w-[88%] -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-[#4f7149] bg-[#102112] p-3.5 shadow-[0_20px_38px_rgba(6,14,8,0.32)]">
           <p className="mb-2 text-[11px] text-[#b9ccb8]">Group Availability</p>
           <div className="grid grid-cols-3 gap-2">
             {["A", "S", "D"].map((initial, i) => (
@@ -76,8 +81,7 @@ function SlideArt({ slide }: { slide: OnboardingSlide }) {
   if (slide.theme === "allinone") {
     return (
       <div className="relative h-full w-full">
-        <div className="absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#b8ff6f]/20 blur-2xl" />
-        <div className="absolute left-1/2 top-1/2 w-[86%] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[#4b6a46] bg-[#122114]/90 p-3">
+        <div className="absolute left-1/2 top-1/2 w-[88%] -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-[#4f7149] bg-[#102112] p-3.5 shadow-[0_20px_38px_rgba(6,14,8,0.32)]">
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-xl border border-[#334633] bg-[#18291a] p-2">
               <CalendarCheck2 className="h-4 w-4 text-[#9dff3f]" />
@@ -103,8 +107,7 @@ function SlideArt({ slide }: { slide: OnboardingSlide }) {
 
   return (
     <div className="relative h-full w-full">
-      <div className="absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#b8ff6f]/20 blur-2xl" />
-      <div className="absolute left-1/2 top-1/2 w-[86%] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[#4b6a46] bg-[#122114]/90 p-3">
+      <div className="absolute left-1/2 top-1/2 w-[88%] -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-[#4f7149] bg-[#102112] p-3.5 shadow-[0_20px_38px_rgba(6,14,8,0.32)]">
         <div className="flex items-center justify-between">
           <p className="text-[11px] text-[#b9ccb8]">FUTLYNK Matchday</p>
           <Target className="h-4 w-4 text-[#9dff3f]" />
@@ -127,13 +130,15 @@ export default function OnboardingFlow({ onFinish }: OnboardingFlowProps) {
   const progressText = useMemo(() => `${index + 1} / ${onboardingSlides.length}`, [index]);
 
   return (
-    <div className="fixed inset-0 z-[80] overflow-hidden bg-[#0a100a]">
-      <div className={`absolute inset-0 bg-gradient-to-b ${slide.accent} opacity-[0.2] transition-all duration-300`} />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_12%,rgba(184,255,111,0.42),transparent_40%),radial-gradient(circle_at_84%_78%,rgba(157,255,63,0.22),transparent_44%)]" />
-
+    <div
+      className="fixed inset-0 z-[80] overflow-hidden transition-colors duration-300"
+      style={{ backgroundColor: solidBackgroundByTheme[slide.theme] }}
+    >
       <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-8 pt-[max(1.2rem,env(safe-area-inset-top))]">
         <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#d6ebd1]">FUTLYNK</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#d6ebd1]" style={{ fontFamily: '"Rajdhani","Barlow",sans-serif' }}>
+            FUTLYNK
+          </p>
           <button onClick={onFinish} className="text-sm font-medium text-[#f5fff2] underline-offset-2 hover:underline">
             Skip
           </button>
@@ -146,18 +151,21 @@ export default function OnboardingFlow({ onFinish }: OnboardingFlowProps) {
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.24, ease: "easeOut" }}
+              transition={{ duration: 0.28, ease: "easeOut" }}
               className="flex h-full flex-col"
             >
-              <div className="relative h-[42vh] min-h-[260px]">
+              <div className="relative h-[45vh] min-h-[290px]">
                 <SlideArt slide={slide} />
               </div>
 
-              <div className="mt-2 text-center">
-                <h1 className="text-[clamp(1.85rem,6.2vw,2.5rem)] font-semibold leading-tight text-[#f8fff5]">
+              <div className="mt-3 text-center">
+                <h1
+                  className="text-[clamp(2.05rem,6.8vw,2.9rem)] font-semibold leading-[1.02] text-[#f8fff5]"
+                  style={{ fontFamily: '"Rajdhani","Barlow",sans-serif' }}
+                >
                   {slide.title}
                 </h1>
-                <p className="mx-auto mt-4 max-w-[30ch] text-[1rem] leading-relaxed text-[#d5e5d2]">
+                <p className="mx-auto mt-4 max-w-[31ch] text-[1rem] leading-relaxed text-[#d5e5d2]">
                   {slide.description}
                 </p>
               </div>
@@ -165,19 +173,23 @@ export default function OnboardingFlow({ onFinish }: OnboardingFlowProps) {
           </AnimatePresence>
         </div>
 
-        <div className="mt-6">
+        <div className="mt-5">
           <div className="mb-4 flex items-center justify-center gap-2.5">
             {onboardingSlides.map((item, dotIndex) => (
               <span
                 key={item.id}
                 className={`h-2.5 rounded-full transition-all duration-250 ${
-                  dotIndex === index ? "w-7 bg-[#b8ff6f]" : "w-2.5 bg-[#557553]"
+                  dotIndex === index ? "w-7 bg-[#beff78]" : "w-2.5 bg-[#6f8f6d]"
                 }`}
               />
             ))}
           </div>
 
-          <button onClick={() => (isLast ? onFinish() : setIndex((prev) => prev + 1))} className="btn-primary w-full text-base">
+          <button
+            onClick={() => (isLast ? onFinish() : setIndex((prev) => prev + 1))}
+            className="btn-primary w-full text-base shadow-[0_14px_30px_rgba(157,255,63,0.24)]"
+            style={{ fontFamily: '"Rajdhani","Barlow",sans-serif' }}
+          >
             {isLast ? "Get Started" : "Continue"}
           </button>
           <p className="mt-3 text-center text-xs text-[#afc5ae]">{progressText}</p>
