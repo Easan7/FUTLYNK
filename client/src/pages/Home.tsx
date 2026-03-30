@@ -81,16 +81,16 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="space-y-3 p-4">
+      <main className="space-y-4 p-4">
         {loading ? <section className="surface-card text-sm text-[#9aa79e]">Loading…</section> : null}
         {nextGame ? (
           <section className="surface-card pitch-lines relative overflow-hidden">
             <PitchOverlay variant="card" />
             <div className="relative z-10 flex items-start justify-between gap-3">
               <div>
-                <p className="text-[11px] font-medium text-[#9eada3]">Next Match</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#9eada3]">Next Match</p>
                 <h2 className="mt-1 text-base font-semibold text-[#f2f7f2]">{nextGame.location}</h2>
-                <p className="mt-1 text-xs text-[#9aa79e]">
+                <p className="mt-1 text-sm text-[#9aa79e]">
                   {nextGame.date} · {nextGame.time}
                   {nextGame.priceVisible === false ? "" : ` · $${nextGame.price}`}
                 </p>
@@ -124,16 +124,19 @@ export default function Home() {
 
         {pendingRatings.length > 0 && (
           <section className="surface-card">
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                <p className="text-sm font-semibold text-[#f2f7f2]">Rate Players</p>
-                <p className="mt-1 text-xs text-[#9aa79e]">
-                  {pendingRatings[0].location} · {pendingRatings[0].date}
-                </p>
-              </div>
-              <Link href="/feedback/c1" className="btn-primary h-9 px-3 text-xs">
-                Rate Now
-              </Link>
+            <p className="text-sm font-semibold text-[#f2f7f2]">Rate Players</p>
+            <div className="mt-3 space-y-2">
+              {pendingRatings.map((item) => (
+                <div key={item.id} className="surface-inner flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-medium text-[#eef4ef]">{item.location}</p>
+                    <p className="mt-1 text-sm text-[#9aa79e]">{item.date}</p>
+                  </div>
+                  <Link href={`/feedback/${item.id}`} className="btn-primary h-9 px-3 text-xs">
+                    Rate
+                  </Link>
+                </div>
+              ))}
             </div>
           </section>
         )}
@@ -182,26 +185,6 @@ export default function Home() {
             {upcomingGames.length <= 1 && (
               <p className="surface-inner text-sm text-[#9aa79e]">No additional upcoming games.</p>
             )}
-          </div>
-        </section>
-
-        <section className="surface-card">
-          <div className="flex items-start justify-between">
-            <div>
-              <h3 className="text-sm font-semibold text-[#f2f7f2]">Play With Your Group</h3>
-              <p className="mt-1 text-xs text-[#9aa79e]">Check overlap slots and recommended rooms.</p>
-            </div>
-            <CalendarDays className="h-4 w-4 text-[#9dff3f]" />
-          </div>
-          <Link href="/groups" className="btn-secondary mt-3 w-full">
-            Open Groups
-          </Link>
-        </section>
-
-        <section className="surface-inner">
-          <div className="flex items-center gap-2 text-sm text-[#cfdacf]">
-            <Star className="h-4 w-4 text-[#9dff3f]" />
-            Keep ratings updated for fair matching
           </div>
         </section>
       </main>

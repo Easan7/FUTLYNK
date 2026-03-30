@@ -132,12 +132,17 @@
     @apply min-h-screen bg-[#070a08] pb-24 text-[#e7ece8];
   }
 
+  .app-shell .text-xs {
+    font-size: 0.825rem;
+    line-height: 1.2rem;
+  }
+
   .app-header {
     @apply sticky top-0 z-20 overflow-hidden border-b border-[#1e251f] bg-[#070a08]/95 px-4 pb-4 pt-5 backdrop-blur-sm;
   }
 
   .surface-card {
-    @apply rounded-xl border border-[#232a24] bg-[#101510] p-4 transition-[background-color,border-color,transform] duration-200 ease-out;
+    @apply rounded-xl border border-[#232a24] bg-[#101510] p-4 transition-[background-color,border-color,transform,box-shadow] duration-200 ease-out;
   }
 
   .surface-inner {
@@ -153,11 +158,11 @@
   }
 
   .btn-primary {
-    @apply inline-flex min-h-11 items-center justify-center rounded-lg bg-[#9dff3f] px-4 py-2.5 text-sm font-semibold text-[#10170d] transition-colors duration-200 ease-out hover:bg-[#b0ff65];
+    @apply inline-flex min-h-11 items-center justify-center rounded-lg bg-[#9dff3f] px-4 py-2.5 text-sm font-semibold text-[#10170d] transition-[background-color,transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:bg-[#b0ff65];
   }
 
   .btn-secondary {
-    @apply inline-flex min-h-11 items-center justify-center rounded-lg border border-[#303830] bg-[#171d18] px-4 py-2.5 text-sm font-medium text-[#d3ddd5] transition-colors duration-200 ease-out hover:bg-[#1d241e];
+    @apply inline-flex min-h-11 items-center justify-center rounded-lg border border-[#303830] bg-[#171d18] px-4 py-2.5 text-sm font-medium text-[#d3ddd5] transition-[background-color,border-color,transform] duration-200 ease-out hover:-translate-y-0.5 hover:border-[#3d493f] hover:bg-[#1d241e];
   }
 
   .btn-destructive {
@@ -165,7 +170,7 @@
   }
 
   .chip {
-    @apply inline-flex items-center rounded-full border border-[#2b332c] bg-[#141a15] px-3 py-1 text-[11px] font-medium text-[#c8d3ca];
+    @apply inline-flex items-center rounded-full border border-[#2f3b31] bg-[#151e17] px-3 py-1 text-xs font-medium text-[#c8d3ca];
   }
 
   .chip-active {

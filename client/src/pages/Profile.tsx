@@ -36,6 +36,7 @@ type ProfilePayload = {
     streakWeeks: number;
     walletBalance: number;
     recentMatches: Array<{ id: string; location: string; date: string; time: string; status: string }>;
+    communityTags: string[];
   };
 };
 
@@ -69,6 +70,7 @@ export default function Profile() {
   const displayName = profile?.displayName ?? "Alex Chen";
   const username = profile?.username ?? "@alexchen";
   const selectedTags = profile?.selectedTags ?? ["Reliable", "Team Player", "Forward", "Punctual"];
+  const communityTags = profile?.communityTags ?? [];
   const recentMatches = profile?.recentMatches ?? [];
   const avatarStyle = avatarStyles[profile?.avatarId ?? "pitch"] ?? avatarStyles.pitch;
   const initials = displayName
@@ -126,37 +128,36 @@ export default function Profile() {
             <div>
               <h2 className="text-lg font-semibold text-[#f2f7f2]">{displayName}</h2>
               <p className="mt-0.5 text-xs text-[#96a39a]">{username}</p>
-              <div className="mt-1 flex items-center gap-2">
+              <div className="mt-1 flex items-center justify-between gap-2">
                 <SkillBadge level={toSkillLevel(profile?.publicSkillBand)} colored />
-                <span className="text-xs text-[#93a198]">{selectedTags.slice(0, 2).join(" • ")}</span>
+                {isOwnProfile ? (
+                  <span className="rounded-full border border-[#557f31] bg-[#203119] px-2.5 py-1 text-xs font-semibold text-[#c6f59a]">
+                    FutPoints {profile?.points ?? 0}
+                  </span>
+                ) : null}
               </div>
             </div>
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 border-t border-[#2f372f] pt-3 text-sm">
-            <div className="flex items-center justify-between border-b border-[#222a23] py-1.5">
+            <div className="flex items-center justify-between border-b border-[#222a23] py-2">
               <span className="text-[#95a39a]">Games Played</span>
               <span className="font-semibold text-[#edf3ee]">{profile?.gamesPlayed ?? 0}</span>
             </div>
-            <div className="flex items-center justify-between border-b border-[#222a23] py-1.5">
+            <div className="flex items-center justify-between border-b border-[#222a23] py-2">
               <span className="text-[#95a39a]">Reliability</span>
               <span className="font-semibold text-[#edf3ee]">{profile?.reliabilityScore ?? 0}%</span>
             </div>
-            <div className="flex items-center justify-between border-b border-[#222a23] py-1.5">
+            <div className="flex items-center justify-between border-b border-[#222a23] py-2">
               <span className="text-[#95a39a]">Current Streak</span>
               <span className="font-semibold text-[#edf3ee]">{profile?.streakWeeks ?? 0} weeks</span>
             </div>
-            <div className="flex items-center justify-between border-b border-[#222a23] py-1.5">
-              <span className="text-[#95a39a]">FutPoints</span>
-              <span className="font-semibold text-[#9dff3f]">{profile?.points ?? 0}</span>
-            </div>
           </div>
-          <div className="mt-2 text-right text-[11px] text-[#96a39a]">Wallet Balance: ${Number(profile?.walletBalance ?? 0).toFixed(2)}</div>
         </section>
 
         <section className="surface-card">
           <h3 className="flex items-center gap-2 text-sm font-semibold text-[#f2f7f2]">
-            <Tag className="h-4 w-4 text-[#9dff3f]" /> Profile Tags
+            <Tag className="h-4 w-4 text-[#9dff3f]" />Player Tags
           </h3>
           <div className="mt-3 flex flex-wrap gap-2">
             {selectedTags.length > 0 ? (
@@ -171,9 +172,25 @@ export default function Profile() {
           </div>
         </section>
 
+        {communityTags.length > 0 ? (
+          <section className="surface-card">
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-[#f2f7f2]">
+              <Tag className="h-4 w-4 text-[#9dff3f]" /> Community Tags
+            </h3>
+            <p className="mt-1 text-sm text-[#99a79e]">Earned from player ratings (more than 5 votes).</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {communityTags.map((tag) => (
+                <span key={tag} className="chip chip-active">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
         <section className="surface-card">
           <h3 className="flex items-center gap-2 text-sm font-semibold text-[#f2f7f2]">
-            <Award className="h-4 w-4 text-[#9dff3f]" /> Selected Achievements
+            <Award className="h-4 w-4 text-[#9dff3f]" /> Achievements
           </h3>
           <div className="mt-3 space-y-2">
             {selectedAchievementItems.length > 0 ? (

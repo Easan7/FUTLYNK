@@ -12,7 +12,7 @@ export default function Navigation() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#1f2620] bg-[#0a0e0b]">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#243026] bg-[#0a0f0b]/96 backdrop-blur-sm">
       <div className="mx-auto flex w-full max-w-lg items-center justify-around px-2 pb-[max(0.45rem,env(safe-area-inset-bottom))] pt-2">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -23,8 +23,8 @@ export default function Navigation() {
               key={item.path}
               href={item.path}
               aria-current={isActive ? "page" : undefined}
-              className={`flex min-w-[72px] flex-col items-center gap-1 rounded-md px-2 py-2 transition-colors duration-200 ${
-                isActive ? "text-[#9dff3f]" : "text-[#77857b]"
+              className={`flex min-w-[72px] flex-col items-center gap-1 rounded-lg px-2 py-2 transition-all duration-200 ${
+                isActive ? "bg-[#182218] text-[#bff48d]" : "text-[#7d8a80] hover:bg-[#121914] hover:text-[#d0dbd3]"
               }`}
             >
               <Icon size={19} weight={isActive ? "fill" : "regular"} />

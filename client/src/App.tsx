@@ -5,6 +5,7 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import OnboardingFlow from "./components/OnboardingFlow";
 import Home from "./pages/Home";
 import GameDetails from "./pages/GameDetails";
 import CreateGroup from "./pages/CreateGroup";
@@ -43,13 +44,15 @@ function Router() {
 
 function App() {
   const [hasEntered, setHasEntered] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
           <Toaster />
-          {hasEntered ? <Router /> : <Login onEnter={() => setHasEntered(true)} />}
+          {hasEntered ? <Router /> : <Login onEnter={() => { setHasEntered(true); setShowOnboarding(true); }} />}
+          {hasEntered && showOnboarding ? <OnboardingFlow onFinish={() => setShowOnboarding(false)} /> : null}
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

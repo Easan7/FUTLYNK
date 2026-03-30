@@ -111,30 +111,31 @@ export default function Matchmaking() {
         </div>
       </header>
 
-      <main className="space-y-3 p-4">
+      <main className="space-y-4 p-4">
         <PitchOverlay variant="divider" />
         {featuredRoom ? (
-          <article className="surface-card pitch-lines relative overflow-hidden border-[#3a4c3c]">
+          <article className="surface-card pitch-lines relative overflow-hidden border-[#426043]">
             <PitchOverlay variant="card" />
             <div className="relative z-10 flex items-start justify-between gap-2">
               <div>
-                <p className="text-[11px] font-medium text-[#9faea4]">Top Match</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#9faea4]">Top Match</p>
                 <h2 className="mt-1 text-lg font-semibold text-[#f2f7f2]">{featuredRoom.location}</h2>
-                <p className="mt-1 text-xs text-[#98a69d]">
-                  {featuredRoom.date} · {featuredRoom.time} · ${featuredRoom.price}
+                <p className="mt-1 text-sm text-[#98a69d]">
+                  {featuredRoom.date} · {featuredRoom.time}
+                  {featuredRoom.priceVisible === false ? "" : ` · $${featuredRoom.price}`}
                 </p>
-                <p className="mt-1 text-[11px] text-[#b8c5bb]">
+                <p className="mt-1 text-sm text-[#b8c5bb]">
                   <span className="text-[#9dff3f]">{featuredRoom.fitLabel}</span> · {featuredRoom.fitReason}
                 </p>
                 <div className="mt-2 flex items-center gap-2">
                   {featuredRoom.allowedBand ? <SkillBadge level={featuredRoom.allowedBand} colored /> : <SkillBadge level="Hybrid" colored />}
+                  <span className="chip">
+                    {featuredRoom.playersJoined}/{featuredRoom.maxPlayers}
+                  </span>
                 </div>
               </div>
-              <span className="chip chip-active">
-                {featuredRoom.playersJoined}/{featuredRoom.maxPlayers}
-              </span>
             </div>
-            <Link href={`/game/${featuredRoom.id}?source=matchmaking`} className="btn-primary relative z-10 mt-3 w-full">
+            <Link href={`/game/${featuredRoom.id}?source=matchmaking`} className="btn-primary relative z-10 mt-4 w-full shadow-[0_10px_24px_rgba(157,255,63,0.2)]">
               Join Best Match
             </Link>
           </article>
@@ -144,15 +145,17 @@ export default function Matchmaking() {
           const fillPct = Math.round((room.playersJoined / room.maxPlayers) * 100);
 
           return (
-            <article key={room.id} className="surface-card relative overflow-hidden">
+            <article key={room.id} className="surface-card relative overflow-hidden border-[#2f3b32] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#435646] hover:bg-[#141c16]">
               <PitchOverlay variant="card" />
               <div className="flex items-start justify-between gap-2">
                 <div className="relative z-10">
-                  <h3 className="text-base font-semibold text-[#f2f7f2]">{room.location}</h3>
-                  <p className="mt-1 text-xs text-[#98a69d]">
-                    {room.date} · {room.time} · ${room.price}
+                  <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#8ea090]">Room Option</p>
+                  <h3 className="mt-1 text-lg font-semibold text-[#f2f7f2]">{room.location}</h3>
+                  <p className="mt-1 text-sm text-[#98a69d]">
+                    {room.date} · {room.time}
+                    {room.priceVisible === false ? "" : ` · $${room.price}`}
                   </p>
-                  <p className="mt-1 text-[11px] text-[#b8c5bb]">
+                  <p className="mt-1 text-sm text-[#b8c5bb]">
                     <span className="text-[#9dff3f]">{room.fitLabel}</span> · {room.fitReason}
                   </p>
                 </div>
@@ -163,7 +166,7 @@ export default function Matchmaking() {
                 )}
               </div>
 
-              <div className="relative z-10 mt-3 flex items-center justify-between text-xs text-[#9aa89f]">
+              <div className="relative z-10 mt-3 flex items-center justify-between text-sm text-[#9aa89f]">
                 <span className="inline-flex items-center gap-1">
                   <Users className="h-3.5 w-3.5" />
                   {room.playersJoined}/{room.maxPlayers} players

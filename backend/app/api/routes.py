@@ -81,11 +81,37 @@ class FeedbackItem(BaseModel):
     rated_user_id: str
     stars: int = Field(ge=1, le=5)
     flagged_sportsmanship: bool = False
+    tags: list[str] = Field(default_factory=list)
 
 
 class FeedbackSubmitBody(BaseModel):
     user_id: str = DEFAULT_USER_ID
     ratings: list[FeedbackItem]
+
+
+ALLOWED_FEEDBACK_TAGS = {
+    "Reliable",
+    "Team Player",
+    "Forward",
+    "Midfielder",
+    "Defender",
+    "Goalkeeper",
+    "Leader",
+    "Punctual",
+    "Technical",
+    "Fast",
+    "Calm",
+    "Defensive IQ",
+    "Supportive",
+    "Competitive",
+    "Fast Press",
+    "Calm Finisher",
+    "Wing Runner",
+    "Organizer",
+    "Learner",
+    "Energetic",
+    "Developing",
+}
 
 
 class GroupRecommendationInterestBody(BaseModel):
@@ -247,6 +273,17 @@ def _get_paid_room_ids(user_id: str) -> set[str]:
     except Exception:
         return set()
     return {row["game_id"] for row in rows}
+
+
+def _normalize_feedback_tags(tags: list[str]) -> list[str]:
+    normalized: list[str] = []
+    for raw in tags:
+        value = raw.strip()
+        if not value or value not in ALLOWED_FEEDBACK_TAGS:
+            continue
+        if value not in normalized:
+            normalized.append(value)
+    return normalized[:3]
 
 
 def _get_players_map() -> dict[str, dict[str, Any]]:
@@ -578,6 +615,8 @@ def get_groups(user_id: str = DEFAULT_USER_ID):
 
     groups = db.table("groups").select("*").in_("id", group_ids).order("created_at").execute().data or []
     members = db.table("group_members").select("group_id,user_id").in_("group_id", group_ids).execute().data or []
+    players = db.table("app_users").select("id,public_skill_band").in_("id", sorted({m["user_id"] for m in members})).execute().data or []
+    player_band_map = {p["id"]: p.get("public_skill_band") for p in players}
     unique_member_ids = sorted({m["user_id"] for m in members})
     availability_rows = (
         db.table("user_availability")
@@ -604,6 +643,19 @@ def get_groups(user_id: str = DEFAULT_USER_ID):
     for g in groups:
         overlap_slots = _derive_overlap_slots(group_members_map[g["id"]], availability_by_user)
         top_slot = overlap_slots[0]["slot"] if overlap_slots else "No overlap yet"
+        bands = [player_band_map.get(member_id) for member_id in group_members_map[g["id"]] if player_band_map.get(member_id)]
+        band_counts: dict[str, int] = defaultdict(int)
+        for band in bands:
+            band_counts[str(band)] += 1
+        if not band_counts:
+            skill_profile = "Mixed"
+        elif len(band_counts) == 1:
+            skill_profile = next(iter(band_counts.keys()))
+        else:
+            top_band = max(band_counts.items(), key=lambda item: item[1])[0]
+            total_members = max(1, len(bands))
+            dominance = band_counts[top_band] / total_members
+            skill_profile = f"{top_band}-heavy" if dominance >= 0.5 else "Mixed"
         formatted.append(
             {
                 "id": g["id"],
@@ -611,6 +663,7 @@ def get_groups(user_id: str = DEFAULT_USER_ID):
                 "memberCount": member_count[g["id"]],
                 "topOverlap": top_slot,
                 "topOverlapCount": overlap_slots[0]["count"] if overlap_slots else 0,
+                "skillProfile": skill_profile,
             }
         )
 
@@ -656,10 +709,13 @@ def get_group_detail(group_id: str, user_id: str = DEFAULT_USER_ID):
         if band in skill_band_spread:
             skill_band_spread[band] += 1
 
-    all_participants = db.table("game_participants").select("game_id,user_id").execute().data or []
+    all_participants = db.table("game_participants").select("game_id,user_id,joined_via_group_id").execute().data or []
     game_participants_map: dict[str, set[str]] = defaultdict(set)
+    joined_via_group_map: dict[str, set[str]] = defaultdict(set)
     for row in all_participants:
         game_participants_map[row["game_id"]].add(row["user_id"])
+        if row.get("joined_via_group_id") == group_id:
+            joined_via_group_map[row["game_id"]].add(row["user_id"])
 
     recommendations = []
     for game in games:
@@ -714,33 +770,89 @@ def get_group_detail(group_id: str, user_id: str = DEFAULT_USER_ID):
             db.table("group_game_interest_votes")
             .select("game_id,user_id,wants_to_join")
             .eq("group_id", group_id)
-            .eq("wants_to_join", True)
             .execute()
             .data
             or []
         )
     except Exception:
         interest_rows = []
-    interest_by_game: dict[str, set[str]] = defaultdict(set)
+    interest_yes_by_game: dict[str, set[str]] = defaultdict(set)
+    interest_no_by_game: dict[str, set[str]] = defaultdict(set)
     for row in interest_rows:
-        interest_by_game[row["game_id"]].add(row["user_id"])
+        game_key = row["game_id"]
+        user_key = row["user_id"]
+        if row.get("wants_to_join") is True:
+            interest_yes_by_game[game_key].add(user_key)
+        elif row.get("wants_to_join") is False:
+            interest_no_by_game[game_key].add(user_key)
+
+    upcoming_group_games: list[tuple[date, str, dict[str, Any]]] = []
+    today = date.today()
+    now_minutes = datetime.now().hour * 60 + datetime.now().minute
+    for game in games:
+        if game.get("status") != "open":
+            continue
+        game_date = game.get("game_date")
+        if not game_date:
+            continue
+        parsed_game_date = game_date if isinstance(game_date, date) else date.fromisoformat(str(game_date))
+        if parsed_game_date < today:
+            continue
+        if parsed_game_date == today:
+            start_minutes = _to_minutes(str(game.get("start_time") or "")[:5], default=0) or 0
+            if start_minutes <= now_minutes:
+                continue
+
+        joined_via_group_ids = sorted(joined_via_group_map.get(game["id"], set()))
+        if not joined_via_group_ids:
+            continue
+
+        joined_count = counts.get(game["id"], 0)
+        room = _game_to_room(game, joined_count)
+        room["priceVisible"] = not (
+            user_id in game_participants_map.get(game["id"], set()) and _is_high_fill(joined_count, int(room["maxPlayers"]))
+        )
+        upcoming_group_games.append(
+            (
+                parsed_game_date,
+                str(game.get("start_time") or ""),
+                {
+                    "room": room,
+                    "joinedMemberIds": joined_via_group_ids,
+                    "joinedMemberNames": [member_name_by_id[mid] for mid in joined_via_group_ids if mid in member_name_by_id],
+                },
+            )
+        )
+    upcoming_group_games.sort(key=lambda item: (item[0], item[1]))
 
     for rec in recommendations:
         eligible = rec["eligibleMemberIds"]
-        interested = sorted([uid for uid in interest_by_game.get(rec["room"]["id"], set()) if uid in eligible])
-        pending = [uid for uid in eligible if uid not in interested]
+        interested = sorted([uid for uid in interest_yes_by_game.get(rec["room"]["id"], set()) if uid in eligible])
+        declined = sorted([uid for uid in interest_no_by_game.get(rec["room"]["id"], set()) if uid in eligible])
         available_member_ids = rec["availability"]["canMemberIds"]
         already_joined_available = [uid for uid in available_member_ids if uid in rec["joinedMemberIds"]]
-        pending_from_available = [uid for uid in available_member_ids if uid not in already_joined_available and uid not in interested]
+        pending_from_available = [
+            uid for uid in available_member_ids if uid not in already_joined_available and uid not in interested and uid not in declined
+        ]
+        if user_id in already_joined_available or user_id in interested:
+            current_decision = "yes"
+        elif user_id in declined:
+            current_decision = "no"
+        else:
+            current_decision = "unset"
         rec["interest"] = {
             "interestedMemberIds": interested,
             "interestedNames": [member_name_by_id[mid] for mid in interested],
+            "declinedMemberIds": declined,
+            "declinedNames": [member_name_by_id[mid] for mid in declined],
             "pendingMemberIds": pending_from_available,
             "pendingNames": [member_name_by_id[mid] for mid in pending_from_available],
             "neededCount": len(available_member_ids),
             "interestedCount": len(interested) + len(already_joined_available),
+            "declinedCount": len(declined),
             "isReady": len(available_member_ids) > 0 and len(pending_from_available) == 0,
             "currentUserInterested": user_id in interested or user_id in already_joined_available,
+            "currentUserDecision": current_decision,
             "currentUserEligible": user_id in eligible,
         }
 
@@ -773,6 +885,7 @@ def get_group_detail(group_id: str, user_id: str = DEFAULT_USER_ID):
             for p in players
         ],
         "overlapSlots": overlap[:3],
+        "upcomingGroupGames": [item[2] for item in upcoming_group_games[:5]],
         "recommendations": recommendations[:3],
         "chat": [
             {
@@ -877,8 +990,7 @@ def set_group_recommendation_interest(group_id: str, room_id: str, body: GroupRe
         if capacity_left < len(eligible_ids):
             raise HTTPException(status_code=400, detail="Room no longer has enough capacity for auto-join")
         projected_total = len(participant_rows) + len(eligible_ids)
-        if _is_high_fill(projected_total, max_players):
-            raise HTTPException(status_code=400, detail="Auto-join requires payment flow. Join this room manually.")
+        payment_reminder = _is_high_fill(projected_total, max_players)
 
         db.table("game_participants").upsert(
             [
@@ -890,10 +1002,30 @@ def set_group_recommendation_interest(group_id: str, room_id: str, body: GroupRe
                 for member_id in eligible_ids
             ]
         ).execute()
+
+        # Verify all eligible members were inserted to avoid silent partial success.
+        joined_after = (
+            db.table("game_participants")
+            .select("user_id")
+            .eq("game_id", room_id)
+            .in_("user_id", eligible_ids)
+            .execute()
+            .data
+            or []
+        )
+        joined_after_ids = {row["user_id"] for row in joined_after}
+        if not set(eligible_ids).issubset(joined_after_ids):
+            missing = sorted(set(eligible_ids) - joined_after_ids)
+            raise HTTPException(
+                status_code=500,
+                detail=f"Auto-join incomplete. Missing users: {', '.join(missing)}",
+            )
         return {
             "ok": True,
             "autoJoined": True,
             "joinedUserIds": sorted(eligible_ids),
+            "paymentReminder": payment_reminder,
+            "paymentDueHours": 24 if payment_reminder else None,
         }
 
     return {
@@ -1045,6 +1177,23 @@ def get_profile(user_id: str = DEFAULT_USER_ID):
             }
             for game in joined_games
         ]
+
+    community_tags: list[str] = []
+    try:
+        tag_rows = (
+            db.table("player_tag_votes")
+            .select("tag")
+            .eq("rated_user_id", user_id)
+            .execute()
+            .data
+            or []
+        )
+        counts: dict[str, int] = defaultdict(int)
+        for row in tag_rows:
+            counts[str(row.get("tag") or "")] += 1
+        community_tags = sorted([tag for tag, count in counts.items() if tag and count > 5], key=lambda t: counts[t], reverse=True)
+    except Exception:
+        community_tags = []
     return {
         "profile": {
             "id": user["id"],
@@ -1060,6 +1209,7 @@ def get_profile(user_id: str = DEFAULT_USER_ID):
             "points": int(user.get("points") or 0),
             "walletBalance": float(user.get("wallet_balance") or 0),
             "recentMatches": recent_matches,
+            "communityTags": community_tags,
         }
     }
 
@@ -1341,6 +1491,32 @@ def feedback_game(game_id: str, user_id: str = DEFAULT_USER_ID):
 
     me = next((p for p in participants if p["user_id"] == user_id), None)
     my_group = me.get("joined_via_group_id") if me else None
+    participant_ids = [p["user_id"] for p in participants]
+
+    my_group_rows = (
+        db.table("group_members")
+        .select("group_id")
+        .eq("user_id", user_id)
+        .execute()
+        .data
+        or []
+    )
+    my_group_ids = [row["group_id"] for row in my_group_rows]
+    shared_users_with_me: set[str] = set()
+    if my_group_ids and participant_ids:
+        shared_rows = (
+            db.table("group_members")
+            .select("group_id,user_id")
+            .in_("group_id", my_group_ids)
+            .in_("user_id", participant_ids)
+            .execute()
+            .data
+            or []
+        )
+        for row in shared_rows:
+            shared_users_with_me.add(row["user_id"])
+    shared_users_with_me.discard(user_id)
+
     player_map = _get_players_map()
 
     players = []
@@ -1353,6 +1529,7 @@ def feedback_game(game_id: str, user_id: str = DEFAULT_USER_ID):
                 "id": p["user_id"],
                 "name": info["display_name"],
                 "joinedViaGroupId": p.get("joined_via_group_id"),
+                "canRate": p["user_id"] != user_id and p["user_id"] not in shared_users_with_me,
             }
         )
 
@@ -1364,6 +1541,7 @@ def feedback_game(game_id: str, user_id: str = DEFAULT_USER_ID):
         "time": _format_time(game["start_time"]),
         "currentUserJoinGroupId": my_group,
         "players": players,
+        "tagOptions": sorted(ALLOWED_FEEDBACK_TAGS),
     }
 
 
@@ -1373,6 +1551,47 @@ def submit_feedback(game_id: str, body: FeedbackSubmitBody):
         raise HTTPException(status_code=400, detail="No ratings provided")
 
     db = get_supabase()
+    participants = db.table("game_participants").select("user_id").eq("game_id", game_id).execute().data or []
+    participant_ids = {row["user_id"] for row in participants}
+    if body.user_id not in participant_ids:
+        raise HTTPException(status_code=403, detail="You did not participate in this game")
+
+    my_group_rows = (
+        db.table("group_members")
+        .select("group_id")
+        .eq("user_id", body.user_id)
+        .execute()
+        .data
+        or []
+    )
+    my_group_ids = [row["group_id"] for row in my_group_rows]
+    shared_users_with_me: set[str] = set()
+    if my_group_ids and participant_ids:
+        shared_rows = (
+            db.table("group_members")
+            .select("user_id")
+            .in_("group_id", my_group_ids)
+            .in_("user_id", list(participant_ids))
+            .execute()
+            .data
+            or []
+        )
+        shared_users_with_me = {row["user_id"] for row in shared_rows}
+        shared_users_with_me.discard(body.user_id)
+
+    rated_ids = [item.rated_user_id for item in body.ratings]
+    if body.user_id in rated_ids:
+        raise HTTPException(status_code=400, detail="You cannot rate yourself")
+    invalid_non_participants = [uid for uid in rated_ids if uid not in participant_ids]
+    if invalid_non_participants:
+        raise HTTPException(status_code=400, detail=f"Cannot rate non-participants: {', '.join(sorted(set(invalid_non_participants)))}")
+    blocked_shared_group = [uid for uid in rated_ids if uid in shared_users_with_me]
+    if blocked_shared_group:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot rate players from your group(s): {', '.join(sorted(set(blocked_shared_group)))}",
+        )
+
     payload = [
         {
             "game_id": game_id,
@@ -1384,6 +1603,27 @@ def submit_feedback(game_id: str, body: FeedbackSubmitBody):
         for item in body.ratings
     ]
     db.table("feedback_ratings").upsert(payload).execute()
+
+    try:
+        db.table("player_tag_votes").select("id").limit(1).execute()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"player_tag_votes table missing or unavailable: {exc}") from exc
+
+    for item in body.ratings:
+        tags = _normalize_feedback_tags(item.tags)
+        db.table("player_tag_votes").delete().eq("game_id", game_id).eq("rater_user_id", body.user_id).eq("rated_user_id", item.rated_user_id).execute()
+        if tags:
+            db.table("player_tag_votes").insert(
+                [
+                    {
+                        "game_id": game_id,
+                        "rater_user_id": body.user_id,
+                        "rated_user_id": item.rated_user_id,
+                        "tag": tag,
+                    }
+                    for tag in tags
+                ]
+            ).execute()
 
     already = (
         db.table("user_game_rewards")

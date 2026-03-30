@@ -4,6 +4,7 @@ import { ArrowLeft, MapPin, Send } from "lucide-react";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PitchOverlay from "@/components/PitchOverlay";
 import ProgressRing from "@/components/ProgressRing";
 import { apiGet, apiPost, DEFAULT_USER_ID } from "@/lib/api";
@@ -45,6 +46,7 @@ export default function GameDetails() {
   const [message, setMessage] = useState("");
   const [chat, setChat] = useState<Array<{ id: string; user: string; text: string }>>([]);
   const [isJoined, setIsJoined] = useState(false);
+  const [paymentPrompt, setPaymentPrompt] = useState<{ amount: number; walletBalance?: number } | null>(null);
 
   const loadDetail = async () => {
     try {
@@ -208,12 +210,11 @@ export default function GameDetails() {
 
             if (firstAttempt.requiresPayment) {
               const amount = Number(firstAttempt.amount ?? room.price).toFixed(2);
-              const confirmPay = window.confirm(`Room is near/full (>=80%). Pay $${amount} now to join?`);
-              if (!confirmPay) return;
-              await apiPost<JoinResponse>(`/api/v1/rooms/${roomId}/join`, {
-                user_id: DEFAULT_USER_ID,
-                pay_when_required: true,
+              setPaymentPrompt({
+                amount: Number(amount),
+                walletBalance: firstAttempt.walletBalance,
               });
+              return;
             }
 
             setIsJoined(true);
@@ -225,6 +226,50 @@ export default function GameDetails() {
           {isJoined ? "Leave Game" : "Join Game"}
         </button>
       </main>
+
+      <Dialog open={Boolean(paymentPrompt)} onOpenChange={(open) => { if (!open) setPaymentPrompt(null); }}>
+        <DialogContent className="border-[#2d372f] bg-[#0f1511]">
+          <DialogHeader>
+            <DialogTitle className="text-[#eef5ef]">Payment Required</DialogTitle>
+            <DialogDescription className="text-[#9faea3]">
+              This room is at or above 80% capacity. Confirm payment to join.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <div className="rounded-xl border border-[#304235] bg-[#172119] p-3">
+              <p className="text-[#9fb0a4]">Join Fee</p>
+              <p className="mt-1 text-lg font-semibold text-[#eef5ef]">${Number(paymentPrompt?.amount ?? 0).toFixed(2)}</p>
+              {paymentPrompt?.walletBalance !== undefined ? (
+                <p className="mt-1 text-[#9fb0a4]">Wallet: ${Number(paymentPrompt.walletBalance).toFixed(2)}</p>
+              ) : null}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button className="btn-secondary w-full text-sm" onClick={() => setPaymentPrompt(null)}>
+                Cancel
+              </button>
+              <button
+                className="btn-primary w-full text-sm"
+                onClick={async () => {
+                  try {
+                    await apiPost<JoinResponse>(`/api/v1/rooms/${roomId}/join`, {
+                      user_id: DEFAULT_USER_ID,
+                      pay_when_required: true,
+                    });
+                    setPaymentPrompt(null);
+                    setIsJoined(true);
+                    await loadDetail();
+                    toast.success("Joined room successfully");
+                  } catch (error) {
+                    toast.error(error instanceof Error ? error.message : "Unable to complete payment");
+                  }
+                }}
+              >
+                Pay & Join
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Navigation />
     </div>

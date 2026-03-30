@@ -38,12 +38,13 @@ export default function GameCard({
   const targetHref = href ?? `/game/${game.id}`;
 
   return (
-    <article className={cn("surface-card relative overflow-hidden", className)}>
+    <article className={cn("surface-card relative overflow-hidden border-[#2f3b32] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#435646] hover:bg-[#141c16]", className)}>
       <PitchOverlay variant="card" />
       <div className="flex items-start justify-between gap-3">
         <Link href={targetHref} className="relative z-10 min-w-0 flex-1">
-          <h3 className="truncate text-base font-semibold text-[#f2f7f2]">{game.location}</h3>
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[#9aa89f]">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#8fa093]">Game Room</p>
+          <h3 className="mt-1 truncate text-lg font-semibold text-[#f2f7f2]">{game.location}</h3>
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-[#9aa89f]">
             <span className="inline-flex items-center gap-1">
               <Calendar className="h-3.5 w-3.5" />
               {game.date}
@@ -56,9 +57,9 @@ export default function GameCard({
           <div className="mt-2 flex items-center gap-2">
             <SkillBadge level={game.skillLevel} colored />
             {game.priceVisible === false ? (
-              <span className="text-sm font-semibold text-[#95a39a]">Paid</span>
+              <span className="rounded-full border border-[#4e612f] bg-[#1f3017] px-2 py-0.5 text-sm font-semibold text-[#b8f28a]">Paid</span>
             ) : (
-              <span className="text-sm font-semibold text-[#f2f7f2]">${game.price ?? "-"}</span>
+              <span className="text-base font-semibold text-[#f2f7f2]">${game.price ?? "-"}</span>
             )}
           </div>
         </Link>
@@ -66,7 +67,7 @@ export default function GameCard({
         <span className="relative z-10 chip">{game.playersJoined}/{game.maxPlayers}</span>
       </div>
 
-      <div className="relative z-10 mt-3 flex items-center justify-between text-xs text-[#9eaca3]">
+      <div className="relative z-10 mt-3 flex items-center justify-between text-sm text-[#9eaca3]">
         <span className="inline-flex items-center gap-1">
           <Users className="h-3.5 w-3.5" />
           {game.playersJoined}/{game.maxPlayers} joined
