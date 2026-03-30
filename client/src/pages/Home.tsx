@@ -27,6 +27,7 @@ type HomeData = {
     date: string;
     time: string;
     price: number;
+    priceVisible?: boolean;
     playersJoined: number;
     maxPlayers: number;
     allowedBand: string | null;
@@ -90,7 +91,8 @@ export default function Home() {
                 <p className="text-[11px] font-medium text-[#9eada3]">Next Match</p>
                 <h2 className="mt-1 text-base font-semibold text-[#f2f7f2]">{nextGame.location}</h2>
                 <p className="mt-1 text-xs text-[#9aa79e]">
-                  {nextGame.date} · {nextGame.time} · ${nextGame.price}
+                  {nextGame.date} · {nextGame.time}
+                  {nextGame.priceVisible === false ? "" : ` · $${nextGame.price}`}
                 </p>
               </div>
               <span className="chip chip-active">
@@ -138,8 +140,7 @@ export default function Home() {
 
         <section className="surface-card pitch-lines">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="section-heading">Queue</h2>
-            <span className="text-xs text-[#91a097]">{Math.max(0, upcomingGames.length - 1)} upcoming</span>
+            <h2 className="section-heading">Upcoming</h2>
           </div>
           <PitchOverlay variant="divider" className="mb-3" />
 
@@ -153,6 +154,7 @@ export default function Home() {
                 playersJoined: room.playersJoined,
                 maxPlayers: room.maxPlayers,
                 price: room.price,
+                priceVisible: room.priceVisible,
                 skillLevel: toSkillLevel(room.allowedBand),
               };
 

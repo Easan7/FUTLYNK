@@ -25,6 +25,7 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"/game/:id"} component={GameDetails} />
       <Route path={"/create"} component={CreateGroup} />
+      <Route path={"/profile/:id"} component={Profile} />
       <Route path={"/profile"} component={Profile} />
       <Route path={"/matchmaking"} component={Matchmaking} />
       <Route path={"/friends"} component={Friends} />

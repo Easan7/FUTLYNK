@@ -14,6 +14,7 @@ export interface Game {
   playersJoined: number;
   maxPlayers: number;
   price?: number;
+  priceVisible?: boolean;
 }
 
 interface GameCardProps {
@@ -54,7 +55,11 @@ export default function GameCard({
           </div>
           <div className="mt-2 flex items-center gap-2">
             <SkillBadge level={game.skillLevel} colored />
-            <span className="text-sm font-semibold text-[#f2f7f2]">${game.price ?? "-"}</span>
+            {game.priceVisible === false ? (
+              <span className="text-sm font-semibold text-[#95a39a]">Paid</span>
+            ) : (
+              <span className="text-sm font-semibold text-[#f2f7f2]">${game.price ?? "-"}</span>
+            )}
           </div>
         </Link>
 

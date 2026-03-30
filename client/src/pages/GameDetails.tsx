@@ -16,6 +16,7 @@ type RoomDetailResponse = {
     time: string;
     distanceKm: number;
     price: number;
+    priceVisible?: boolean;
     maxPlayers: number;
     allowedBand: string | null;
   };
@@ -27,6 +28,14 @@ type RoomDetailResponse = {
   }>;
   chat: Array<{ id: string; user: string; text: string }>;
   isJoined: boolean;
+};
+
+type JoinResponse = {
+  ok: boolean;
+  joined: boolean;
+  requiresPayment?: boolean;
+  amount?: number;
+  walletBalance?: number;
 };
 
 export default function GameDetails() {
@@ -108,7 +117,9 @@ export default function GameDetails() {
             </div>
             <div className="surface-inner">
               <p className="text-[#8f9d93]">Price</p>
-              <p className="mt-1 text-sm text-[#edf3ee]">${room.price}/player</p>
+              <p className="mt-1 text-sm text-[#edf3ee]">
+                {room.priceVisible === false ? "Paid" : `$${room.price}/player`}
+              </p>
             </div>
           </div>
 
@@ -182,10 +193,32 @@ export default function GameDetails() {
         <button
           onClick={async () => {
             if (isJoined && !window.confirm("Leave this room?")) return;
-            await apiPost(`/api/v1/rooms/${roomId}/${isJoined ? "leave" : "join"}`, { user_id: DEFAULT_USER_ID });
-            setIsJoined((prev) => !prev);
+            if (isJoined) {
+              await apiPost(`/api/v1/rooms/${roomId}/leave`, { user_id: DEFAULT_USER_ID });
+              setIsJoined(false);
+              await loadDetail();
+              toast.success("You left this room");
+              return;
+            }
+
+            const firstAttempt = await apiPost<JoinResponse>(`/api/v1/rooms/${roomId}/join`, {
+              user_id: DEFAULT_USER_ID,
+              pay_when_required: false,
+            });
+
+            if (firstAttempt.requiresPayment) {
+              const amount = Number(firstAttempt.amount ?? room.price).toFixed(2);
+              const confirmPay = window.confirm(`Room is near/full (>=80%). Pay $${amount} now to join?`);
+              if (!confirmPay) return;
+              await apiPost<JoinResponse>(`/api/v1/rooms/${roomId}/join`, {
+                user_id: DEFAULT_USER_ID,
+                pay_when_required: true,
+              });
+            }
+
+            setIsJoined(true);
             await loadDetail();
-            toast.success(isJoined ? "You left this room" : "Joined room successfully");
+            toast.success("Joined room successfully");
           }}
           className={isJoined ? "btn-destructive w-full" : "btn-primary w-full"}
         >

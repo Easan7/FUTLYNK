@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import date, datetime
+import math
+import re
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
@@ -16,6 +18,11 @@ DEFAULT_USER_ID = "u-me"
 
 class UserRequest(BaseModel):
     user_id: str = DEFAULT_USER_ID
+
+
+class JoinRoomBody(BaseModel):
+    user_id: str = DEFAULT_USER_ID
+    pay_when_required: bool = False
 
 
 class CreateGroupRequest(BaseModel):
@@ -81,6 +88,11 @@ class FeedbackSubmitBody(BaseModel):
     ratings: list[FeedbackItem]
 
 
+class GroupRecommendationInterestBody(BaseModel):
+    user_id: str = DEFAULT_USER_ID
+    wants_to_join: bool = True
+
+
 def _time_ago(iso_value: str | None) -> str:
     if not iso_value:
         return "just now"
@@ -125,12 +137,116 @@ def _week_tag(date_value: str | date) -> str:
     return "This week" if diff <= 6 else "Next week"
 
 
+def _to_minutes(time_value: str | None, default: int | None = None) -> int | None:
+    if time_value is None:
+        return default
+    raw = str(time_value)[:5]
+    try:
+        parsed = datetime.strptime(raw, "%H:%M")
+    except ValueError:
+        return default
+    return parsed.hour * 60 + parsed.minute
+
+
+def _is_available_for_game(rule_rows: list[dict[str, Any]], game_date_value: str | date, game_time_value: str) -> bool:
+    if isinstance(game_date_value, date):
+        game_date = game_date_value
+    else:
+        game_date = date.fromisoformat(str(game_date_value))
+    game_day = game_date.strftime("%a")
+    game_time = _to_minutes(game_time_value)
+    if game_time is None:
+        return False
+
+    for row in rule_rows:
+        rule_type = row.get("rule_type")
+        if rule_type == "recurring":
+            weekdays = row.get("weekdays") or []
+            if game_day not in weekdays:
+                continue
+            start = _to_minutes(row.get("time_from"), 0)
+            end = _to_minutes(row.get("time_to"), 23 * 60 + 59)
+            if start is not None and end is not None and start <= game_time <= end:
+                return True
+        elif rule_type == "specific":
+            date_value = row.get("date_value")
+            if not date_value or str(date_value) != game_date.isoformat():
+                continue
+
+            exact_time = _to_minutes(row.get("time_value"))
+            if exact_time is not None and exact_time == game_time:
+                return True
+
+            start = _to_minutes(row.get("time_from"))
+            end = _to_minutes(row.get("time_to"))
+            if start is not None and end is not None and start <= game_time <= end:
+                return True
+
+    return False
+
+
+def _derive_overlap_slots(member_ids: list[str], availability_by_user: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
+    slot_to_members: dict[str, set[str]] = defaultdict(set)
+    for member_id in member_ids:
+        for row in availability_by_user.get(member_id, []):
+            if row.get("rule_type") == "recurring":
+                weekdays = row.get("weekdays") or []
+                start = str(row.get("time_from") or "00:00")[:5]
+                end = str(row.get("time_to") or "23:59")[:5]
+                for day in weekdays:
+                    slot_to_members[f"{day} {start}-{end}"].add(member_id)
+            elif row.get("rule_type") == "specific":
+                date_value = row.get("date_value")
+                time_value = row.get("time_value")
+                if date_value and time_value:
+                    slot_to_members[f"{date_value} {str(time_value)[:5]}"].add(member_id)
+
+    total_members = max(1, len(member_ids))
+    slots = [
+        {
+            "slot": slot,
+            "count": len(ids),
+            "memberIds": sorted(ids),
+            "percent": round((len(ids) / total_members) * 100),
+        }
+        for slot, ids in slot_to_members.items()
+    ]
+    slots.sort(key=lambda item: (item["count"], item["slot"]), reverse=True)
+    return slots
+
+
 def _require_user(user_id: str) -> dict[str, Any]:
     db = get_supabase()
     response = db.table("app_users").select("*").eq("id", user_id).limit(1).execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="User not found")
     return response.data[0]
+
+
+def _requires_join_payment(current_joined: int, max_players: int) -> bool:
+    threshold = max(1, math.ceil(max_players * 0.8))
+    return current_joined + 1 >= threshold
+
+
+def _is_high_fill(current_joined: int, max_players: int) -> bool:
+    threshold = max(1, math.ceil(max_players * 0.8))
+    return current_joined >= threshold
+
+
+def _get_paid_room_ids(user_id: str) -> set[str]:
+    try:
+        rows = (
+            get_supabase()
+            .table("room_join_payments")
+            .select("game_id")
+            .eq("user_id", user_id)
+            .execute()
+            .data
+            or []
+        )
+    except Exception:
+        return set()
+    return {row["game_id"] for row in rows}
 
 
 def _get_players_map() -> dict[str, dict[str, Any]]:
@@ -194,7 +310,14 @@ def home_data(user_id: str = DEFAULT_USER_ID):
         or []
     )
     game_ids = {m["game_id"] for m in memberships}
-    upcoming = [_game_to_room(g, counts.get(g["id"], 0)) for g in games if g["id"] in game_ids and g.get("status") == "open"]
+    upcoming: list[dict[str, Any]] = []
+    for game in games:
+        if game["id"] not in game_ids or game.get("status") != "open":
+            continue
+        joined = counts.get(game["id"], 0)
+        room = _game_to_room(game, joined)
+        room["priceVisible"] = not _is_high_fill(joined, room["maxPlayers"])
+        upcoming.append(room)
 
     pending_feedback = (
         db.table("games")
@@ -233,6 +356,12 @@ def home_data(user_id: str = DEFAULT_USER_ID):
 def discover_rooms(user_id: str = DEFAULT_USER_ID, use_availability: bool = True):
     user = _require_user(user_id)
     games, counts = _get_games_with_counts()
+    joined_rows = (
+        get_supabase().table("game_participants").select("game_id").eq("user_id", user_id).execute().data
+        or []
+    )
+    joined_game_ids = {row["game_id"] for row in joined_rows}
+    user_band = user.get("public_skill_band")
 
     recurring_rules = (
         get_supabase()
@@ -264,7 +393,14 @@ def discover_rooms(user_id: str = DEFAULT_USER_ID, use_availability: bool = True
     for game in games:
         if game.get("status") != "open":
             continue
+        if game["id"] in joined_game_ids:
+            continue
         if use_availability and not matches_availability(game):
+            continue
+        if counts.get(game["id"], 0) >= int(game.get("max_players") or 10):
+            continue
+        allowed_band = game.get("allowed_band")
+        if allowed_band and allowed_band != user_band:
             continue
         room = _game_to_room(game, counts.get(game["id"], 0))
         distance = abs(room["hiddenAvgRating"] - float(user.get("hidden_skill_rating") or 3.0))
@@ -324,9 +460,11 @@ def room_detail(room_id: str, user_id: str = DEFAULT_USER_ID):
     ]
 
     is_joined = any(p["user_id"] == user_id for p in participants)
+    room = _game_to_room(game, len(participants))
+    room["priceVisible"] = not (is_joined and _is_high_fill(len(participants), room["maxPlayers"]))
 
     return {
-        "room": _game_to_room(game, len(participants)),
+        "room": room,
         "roster": roster,
         "chat": chat,
         "isJoined": is_joined,
@@ -334,23 +472,78 @@ def room_detail(room_id: str, user_id: str = DEFAULT_USER_ID):
 
 
 @router.post("/rooms/{room_id}/join")
-def join_room(room_id: str, body: UserRequest):
+def join_room(room_id: str, body: JoinRoomBody):
     db = get_supabase()
-    game = db.table("games").select("id,max_players,status").eq("id", room_id).limit(1).execute().data
+    user = _require_user(body.user_id)
+    game = (
+        db.table("games")
+        .select("id,max_players,status,allowed_band,price")
+        .eq("id", room_id)
+        .limit(1)
+        .execute()
+        .data
+    )
     if not game:
         raise HTTPException(status_code=404, detail="Room not found")
     row = game[0]
     if row.get("status") != "open":
         raise HTTPException(status_code=400, detail="Room is not open")
+    allowed_band = row.get("allowed_band")
+    if allowed_band and allowed_band != user.get("public_skill_band"):
+        raise HTTPException(status_code=400, detail="Room skill band mismatch")
 
     participants = db.table("game_participants").select("user_id").eq("game_id", room_id).execute().data or []
     if any(p["user_id"] == body.user_id for p in participants):
-        return {"ok": True, "joined": True}
-    if len(participants) >= int(row.get("max_players") or 10):
+        return {"ok": True, "joined": True, "requiresPayment": False}
+    max_players = int(row.get("max_players") or 10)
+    if len(participants) >= max_players:
         raise HTTPException(status_code=400, detail="Room is full")
 
+    payment_required = _requires_join_payment(len(participants), max_players)
+    join_fee = float(row.get("price") or 0)
+    wallet_balance = float(user.get("wallet_balance") or 0)
+    if payment_required and not body.pay_when_required:
+        return {
+            "ok": False,
+            "joined": False,
+            "requiresPayment": True,
+            "amount": join_fee,
+            "walletBalance": wallet_balance,
+        }
+
+    if payment_required:
+        try:
+            db.table("room_join_payments").select("game_id").limit(1).execute()
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"room_join_payments table missing or unavailable: {exc}") from exc
+        if wallet_balance < join_fee:
+            raise HTTPException(status_code=400, detail="Insufficient wallet balance for this join")
+        next_balance = round(wallet_balance - join_fee, 2)
+        db.table("app_users").update({"wallet_balance": next_balance}).eq("id", body.user_id).execute()
+        db.table("wallet_transactions").insert(
+            {
+                "user_id": body.user_id,
+                "kind": "game_fee",
+                "amount": round(-join_fee, 2),
+                "note": f"Join fee for room {room_id}",
+            }
+        ).execute()
+        db.table("room_join_payments").upsert(
+            {
+                "game_id": room_id,
+                "user_id": body.user_id,
+                "amount": round(join_fee, 2),
+                "paid_at": datetime.utcnow().isoformat(),
+            }
+        ).execute()
+
     db.table("game_participants").insert({"game_id": room_id, "user_id": body.user_id}).execute()
-    return {"ok": True, "joined": True}
+    return {
+        "ok": True,
+        "joined": True,
+        "requiresPayment": False,
+        "walletBalance": round(float(user.get("wallet_balance") or 0) - (join_fee if payment_required else 0), 2),
+    }
 
 
 @router.post("/rooms/{room_id}/leave")
@@ -385,10 +578,11 @@ def get_groups(user_id: str = DEFAULT_USER_ID):
 
     groups = db.table("groups").select("*").in_("id", group_ids).order("created_at").execute().data or []
     members = db.table("group_members").select("group_id,user_id").in_("group_id", group_ids).execute().data or []
-    slots = (
-        db.table("group_availability_slots")
-        .select("group_id,slot_label")
-        .in_("group_id", group_ids)
+    unique_member_ids = sorted({m["user_id"] for m in members})
+    availability_rows = (
+        db.table("user_availability")
+        .select("user_id,rule_type,weekdays,date_value,time_from,time_to,time_value")
+        .in_("user_id", unique_member_ids)
         .execute()
         .data
         or []
@@ -398,20 +592,25 @@ def get_groups(user_id: str = DEFAULT_USER_ID):
     for row in members:
         member_count[row["group_id"]] += 1
 
-    slot_counts: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
-    for s in slots:
-        slot_counts[s["group_id"]][s["slot_label"]] += 1
+    group_members_map: dict[str, list[str]] = defaultdict(list)
+    for row in members:
+        group_members_map[row["group_id"]].append(row["user_id"])
+
+    availability_by_user: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for row in availability_rows:
+        availability_by_user[row["user_id"]].append(row)
 
     formatted = []
     for g in groups:
-        overlaps = sorted(slot_counts[g["id"]].items(), key=lambda t: t[1], reverse=True)
-        top_slot = overlaps[0][0] if overlaps else "Pending"
+        overlap_slots = _derive_overlap_slots(group_members_map[g["id"]], availability_by_user)
+        top_slot = overlap_slots[0]["slot"] if overlap_slots else "No overlap yet"
         formatted.append(
             {
                 "id": g["id"],
                 "name": g["name"],
                 "memberCount": member_count[g["id"]],
                 "topOverlap": top_slot,
+                "topOverlapCount": overlap_slots[0]["count"] if overlap_slots else 0,
             }
         )
 
@@ -430,37 +629,120 @@ def get_group_detail(group_id: str, user_id: str = DEFAULT_USER_ID):
     players = db.table("app_users").select("*").in_("id", member_ids).execute().data or []
     players_map = {p["id"]: p for p in players}
 
-    slots_rows = (
-        db.table("group_availability_slots")
-        .select("slot_label,user_id")
-        .eq("group_id", group_id)
+    availability_rows = (
+        db.table("user_availability")
+        .select("user_id,rule_type,weekdays,date_value,time_from,time_to,time_value")
+        .in_("user_id", member_ids)
         .execute()
         .data
         or []
     )
-    slot_groups: dict[str, list[str]] = defaultdict(list)
-    for row in slots_rows:
-        slot_groups[row["slot_label"]].append(row["user_id"])
-
-    overlap = [
-        {"slot": slot, "count": len(ids), "memberIds": ids}
-        for slot, ids in slot_groups.items()
-    ]
-    overlap.sort(key=lambda x: x["count"], reverse=True)
+    availability_by_user: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for row in availability_rows:
+        availability_by_user[row["user_id"]].append(row)
+    overlap = _derive_overlap_slots(member_ids, availability_by_user)
 
     games, counts = _get_games_with_counts()
     avg_skill = 3.0
     if players:
         avg_skill = sum(float(p.get("hidden_skill_rating") or 3.0) for p in players) / len(players)
+    avg_reliability = 0
+    if players:
+        avg_reliability = round(sum(int(p.get("reliability_score") or 0) for p in players) / len(players))
+    member_name_by_id = {p["id"]: p.get("display_name") or "Player" for p in players}
+    skill_band_spread = {"Beginner": 0, "Intermediate": 0, "Advanced": 0}
+    for player in players:
+        band = str(player.get("public_skill_band") or "")
+        if band in skill_band_spread:
+            skill_band_spread[band] += 1
+
+    all_participants = db.table("game_participants").select("game_id,user_id").execute().data or []
+    game_participants_map: dict[str, set[str]] = defaultdict(set)
+    for row in all_participants:
+        game_participants_map[row["game_id"]].add(row["user_id"])
 
     recommendations = []
     for game in games:
         if game.get("status") != "open":
             continue
+        if counts.get(game["id"], 0) >= int(game.get("max_players") or 10):
+            continue
         room = _game_to_room(game, counts.get(game["id"], 0))
+        joined_user_ids = game_participants_map.get(game["id"], set())
+        if user_id in joined_user_ids:
+            continue
+        can_member_ids = [
+            member_id
+            for member_id in member_ids
+            if _is_available_for_game(availability_by_user.get(member_id, []), game["game_date"], game["start_time"])
+        ]
+        cannot_member_ids = [member_id for member_id in member_ids if member_id not in can_member_ids]
+        can_count = len(can_member_ids)
+        if can_count < 2:
+            continue
+        eligible_member_ids = [mid for mid in can_member_ids if mid not in joined_user_ids]
+        if not eligible_member_ids:
+            continue
+        availability_pct = round((can_count / max(1, len(member_ids))) * 100)
         fit = max(50, round(100 - abs(avg_skill - room["hiddenAvgRating"]) * 24 - room["hiddenRatingSpread"] * 12))
-        recommendations.append({"room": room, "fitScore": fit})
-    recommendations.sort(key=lambda x: x["fitScore"], reverse=True)
+        combined_score = round(fit * 0.7 + availability_pct * 0.3)
+        recommendations.append(
+            {
+                "room": room,
+                "fitScore": fit,
+                "combinedScore": combined_score,
+                "availability": {
+                    "canCount": can_count,
+                    "cannotCount": len(cannot_member_ids),
+                    "percent": availability_pct,
+                    "canMemberIds": can_member_ids,
+                    "cannotMemberIds": cannot_member_ids,
+                    "canNames": [member_name_by_id[mid] for mid in can_member_ids],
+                    "cannotNames": [member_name_by_id[mid] for mid in cannot_member_ids],
+                },
+                "capacityLeft": max(0, int(room["maxPlayers"]) - int(room["playersJoined"])),
+                "roomType": room["allowedBand"] or "Hybrid",
+                "joinedMemberIds": [mid for mid in member_ids if mid in joined_user_ids],
+                "eligibleMemberIds": eligible_member_ids,
+            }
+        )
+    recommendations.sort(key=lambda x: (x["combinedScore"], x["fitScore"]), reverse=True)
+
+    interest_rows: list[dict[str, Any]] = []
+    try:
+        interest_rows = (
+            db.table("group_game_interest_votes")
+            .select("game_id,user_id,wants_to_join")
+            .eq("group_id", group_id)
+            .eq("wants_to_join", True)
+            .execute()
+            .data
+            or []
+        )
+    except Exception:
+        interest_rows = []
+    interest_by_game: dict[str, set[str]] = defaultdict(set)
+    for row in interest_rows:
+        interest_by_game[row["game_id"]].add(row["user_id"])
+
+    for rec in recommendations:
+        eligible = rec["eligibleMemberIds"]
+        interested = sorted([uid for uid in interest_by_game.get(rec["room"]["id"], set()) if uid in eligible])
+        pending = [uid for uid in eligible if uid not in interested]
+        available_member_ids = rec["availability"]["canMemberIds"]
+        already_joined_available = [uid for uid in available_member_ids if uid in rec["joinedMemberIds"]]
+        pending_from_available = [uid for uid in available_member_ids if uid not in already_joined_available and uid not in interested]
+        rec["interest"] = {
+            "interestedMemberIds": interested,
+            "interestedNames": [member_name_by_id[mid] for mid in interested],
+            "pendingMemberIds": pending_from_available,
+            "pendingNames": [member_name_by_id[mid] for mid in pending_from_available],
+            "neededCount": len(available_member_ids),
+            "interestedCount": len(interested) + len(already_joined_available),
+            "isReady": len(available_member_ids) > 0 and len(pending_from_available) == 0,
+            "currentUserInterested": user_id in interested or user_id in already_joined_available,
+            "currentUserEligible": user_id in eligible,
+        }
 
     messages = (
         db.table("messages")
@@ -476,6 +758,11 @@ def get_group_detail(group_id: str, user_id: str = DEFAULT_USER_ID):
 
     return {
         "group": {"id": groups[0]["id"], "name": groups[0]["name"], "memberIds": member_ids},
+        "summary": {
+            "avgReliability": avg_reliability,
+            "skillBandSpread": skill_band_spread,
+            "topOverlap": overlap[0]["slot"] if overlap else "No overlap yet",
+        },
         "members": [
             {
                 "id": p["id"],
@@ -496,6 +783,124 @@ def get_group_detail(group_id: str, user_id: str = DEFAULT_USER_ID):
             }
             for m in messages
         ],
+    }
+
+
+@router.post("/groups/{group_id}/recommendations/{room_id}/interest")
+def set_group_recommendation_interest(group_id: str, room_id: str, body: GroupRecommendationInterestBody):
+    db = get_supabase()
+    members = db.table("group_members").select("user_id").eq("group_id", group_id).execute().data or []
+    member_ids = [row["user_id"] for row in members]
+    if body.user_id not in member_ids:
+        raise HTTPException(status_code=403, detail="User is not a member of this group")
+
+    game_rows = (
+        db.table("games")
+        .select("id,status,max_players,game_date,start_time")
+        .eq("id", room_id)
+        .limit(1)
+        .execute()
+        .data
+        or []
+    )
+    if not game_rows:
+        raise HTTPException(status_code=404, detail="Room not found")
+    game = game_rows[0]
+    if game.get("status") != "open":
+        raise HTTPException(status_code=400, detail="Room is not open")
+
+    availability_rows = (
+        db.table("user_availability")
+        .select("user_id,rule_type,weekdays,date_value,time_from,time_to,time_value")
+        .in_("user_id", member_ids)
+        .execute()
+        .data
+        or []
+    )
+    availability_by_user: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for row in availability_rows:
+        availability_by_user[row["user_id"]].append(row)
+
+    participant_rows = db.table("game_participants").select("user_id").eq("game_id", room_id).execute().data or []
+    joined_ids = {row["user_id"] for row in participant_rows}
+    available_ids = [
+        member_id
+        for member_id in member_ids
+        if _is_available_for_game(availability_by_user.get(member_id, []), game["game_date"], game["start_time"])
+    ]
+    eligible_ids = [member_id for member_id in available_ids if member_id not in joined_ids]
+    if len(available_ids) < 2:
+        raise HTTPException(status_code=400, detail="Recommendation requires at least 2 available members")
+    if body.user_id not in eligible_ids:
+        raise HTTPException(status_code=400, detail="You are not eligible for this recommendation")
+
+    try:
+        db.table("group_game_interest_votes").upsert(
+            {
+                "group_id": group_id,
+                "game_id": room_id,
+                "user_id": body.user_id,
+                "wants_to_join": body.wants_to_join,
+                "updated_at": datetime.utcnow().isoformat(),
+            }
+        ).execute()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"group_game_interest_votes table missing or unavailable: {exc}",
+        ) from exc
+
+    interested_rows = (
+        db.table("group_game_interest_votes")
+        .select("user_id")
+        .eq("group_id", group_id)
+        .eq("game_id", room_id)
+        .eq("wants_to_join", True)
+        .in_("user_id", eligible_ids)
+        .execute()
+        .data
+        or []
+    )
+    interested_ids = {row["user_id"] for row in interested_rows}
+
+    if not body.wants_to_join:
+        return {
+            "ok": True,
+            "autoJoined": False,
+            "interestedCount": len(interested_ids),
+            "neededCount": len(eligible_ids),
+        }
+
+    if set(eligible_ids).issubset(interested_ids) and eligible_ids:
+        max_players = int(game.get("max_players") or 10)
+        capacity_left = max_players - len(participant_rows)
+        if capacity_left < len(eligible_ids):
+            raise HTTPException(status_code=400, detail="Room no longer has enough capacity for auto-join")
+        projected_total = len(participant_rows) + len(eligible_ids)
+        if _is_high_fill(projected_total, max_players):
+            raise HTTPException(status_code=400, detail="Auto-join requires payment flow. Join this room manually.")
+
+        db.table("game_participants").upsert(
+            [
+                {
+                    "game_id": room_id,
+                    "user_id": member_id,
+                    "joined_via_group_id": group_id,
+                }
+                for member_id in eligible_ids
+            ]
+        ).execute()
+        return {
+            "ok": True,
+            "autoJoined": True,
+            "joinedUserIds": sorted(eligible_ids),
+        }
+
+    return {
+        "ok": True,
+        "autoJoined": False,
+        "interestedCount": len(interested_ids),
+        "neededCount": len(eligible_ids),
     }
 
 
@@ -614,6 +1019,32 @@ def send_friend_request(body: FriendRequestBody):
 @router.get("/profile")
 def get_profile(user_id: str = DEFAULT_USER_ID):
     user = _require_user(user_id)
+    db = get_supabase()
+    memberships = db.table("game_participants").select("game_id").eq("user_id", user_id).execute().data or []
+    game_ids = [m["game_id"] for m in memberships]
+    recent_matches: list[dict[str, Any]] = []
+    if game_ids:
+        joined_games = (
+            db.table("games")
+            .select("id,location,game_date,start_time,status")
+            .in_("id", game_ids)
+            .lte("game_date", date.today().isoformat())
+            .order("game_date", desc=True)
+            .limit(6)
+            .execute()
+            .data
+            or []
+        )
+        recent_matches = [
+            {
+                "id": game["id"],
+                "location": game["location"],
+                "date": _format_date(game["game_date"]),
+                "time": _format_time(game["start_time"]),
+                "status": game.get("status") or "open",
+            }
+            for game in joined_games
+        ]
     return {
         "profile": {
             "id": user["id"],
@@ -628,19 +1059,48 @@ def get_profile(user_id: str = DEFAULT_USER_ID):
             "selectedAchievements": user.get("selected_achievements") or [],
             "points": int(user.get("points") or 0),
             "walletBalance": float(user.get("wallet_balance") or 0),
+            "recentMatches": recent_matches,
         }
     }
 
 
 @router.put("/profile")
 def update_profile(body: ProfileUpdateBody):
-    get_supabase().table("app_users").update(
+    display_name = body.display_name.strip()
+    username = body.username.strip()
+    if not display_name or len(display_name) < 2:
+        raise HTTPException(status_code=400, detail="Display name must be at least 2 characters")
+    if not username.startswith("@"):
+        username = f"@{username}"
+    if not re.fullmatch(r"@[A-Za-z0-9_]{3,20}", username):
+        raise HTTPException(status_code=400, detail="Username must be @ + 3-20 letters, numbers, or underscores")
+
+    db = get_supabase()
+    existing = (
+        db.table("app_users")
+        .select("id")
+        .eq("username", username)
+        .neq("id", body.user_id)
+        .limit(1)
+        .execute()
+        .data
+        or []
+    )
+    if existing:
+        raise HTTPException(status_code=409, detail="Username is already taken")
+
+    tags = [tag.strip() for tag in body.selected_tags if tag.strip()]
+    deduped_tags = list(dict.fromkeys(tags))[:6]
+    achievements = [value.strip() for value in body.selected_achievements if value.strip()]
+    deduped_achievements = list(dict.fromkeys(achievements))[:4]
+
+    db.table("app_users").update(
         {
-            "display_name": body.display_name.strip(),
-            "username": body.username.strip(),
+            "display_name": display_name,
+            "username": username,
             "avatar_id": body.avatar_id,
-            "selected_tags": body.selected_tags,
-            "selected_achievements": body.selected_achievements,
+            "selected_tags": deduped_tags,
+            "selected_achievements": deduped_achievements,
             "updated_at": datetime.utcnow().isoformat(),
         }
     ).eq("id", body.user_id).execute()

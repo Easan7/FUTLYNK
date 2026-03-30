@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "wouter";
 import { Search, UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
@@ -35,11 +36,22 @@ export default function Friends() {
   };
 
   useEffect(() => {
-    void load(search);
-  }, [search]);
+    if (showAddFriend && !search.trim()) {
+      setPeople([]);
+      return;
+    }
+    const timeout = window.setTimeout(() => {
+      void load(search);
+    }, 180);
+    return () => window.clearTimeout(timeout);
+  }, [search, showAddFriend]);
 
   const friends = useMemo(() => people.filter((p) => p.isFriend), [people]);
-  const filtered = showAddFriend ? people : friends;
+  const filtered = useMemo(() => {
+    if (!showAddFriend) return friends;
+    if (!search.trim()) return [];
+    return people.filter((p) => !p.isFriend);
+  }, [friends, people, search, showAddFriend]);
 
   const sendRequest = async (friendId: string, friendName: string) => {
     await apiPost("/api/v1/friends/requests", { user_id: DEFAULT_USER_ID, friend_id: friendId });
@@ -100,7 +112,8 @@ export default function Friends() {
           </section>
         )}
 
-        <section className="surface-card">
+        {!showAddFriend && (
+          <section className="surface-card">
           <h2 className="text-sm font-semibold text-[#f2f7f2]">Friend List</h2>
           <div className="mt-3 space-y-2">
             {friends.map((friend) => (
@@ -120,12 +133,17 @@ export default function Friends() {
                     <p className="mt-0.5 text-xs text-[#95a39a]">{friend.gamesPlayed} games</p>
                   </div>
                 </div>
-
-                <SkillBadge level={toSkillLevel(friend.publicSkillBand)} colored />
+                <div className="flex items-center gap-2">
+                  <SkillBadge level={toSkillLevel(friend.publicSkillBand)} colored />
+                  <Link href={`/profile/${friend.id}`} className="btn-secondary text-[11px]">
+                    View Profile
+                  </Link>
+                </div>
               </article>
             ))}
           </div>
-        </section>
+          </section>
+        )}
       </main>
 
       <Navigation />

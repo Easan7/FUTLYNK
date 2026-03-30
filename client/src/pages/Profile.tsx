@@ -1,13 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "wouter";
-import { Bell, CalendarDays, Clock3, Edit3, Users, Wallet } from "lucide-react";
+import { Link, useRoute } from "wouter";
+import { Award, Bell, CalendarDays, Edit3, History, Tag, Users, Wallet } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import SkillBadge from "@/components/SkillBadge";
 import type { SkillLevel } from "@/components/SkillBadge";
 import PitchOverlay from "@/components/PitchOverlay";
-import StatBlock from "@/components/StatBlock";
-import PlayerJourney3D from "@/components/profile3d/PlayerJourney3D";
-import type { Achievement3D } from "@/components/profile3d/shared/types";
 import { apiGet, DEFAULT_USER_ID } from "@/lib/api";
 
 const achievementsCatalog = [
@@ -19,13 +16,6 @@ const achievementsCatalog = [
   { id: "6", name: "Fair Play", description: "Sportsmanship recognized", category: "social", rarity: "common", shape: "shield" },
 ] as const;
 
-const matchHistory = [
-  { id: "m1", date: "Mar 20", venue: "Downtown Sports Arena", result: "W 8-6" },
-  { id: "m2", date: "Mar 16", venue: "Metro Futsal Complex", result: "L 5-7" },
-  { id: "m3", date: "Mar 12", venue: "Westgate Indoor Sports", result: "W 6-4" },
-  { id: "m4", date: "Mar 09", venue: "Eastside Court", result: "W 8-5" },
-];
-
 const toSkillLevel = (value: string | undefined): SkillLevel =>
   value === "Beginner" || value === "Intermediate" || value === "Advanced" || value === "Hybrid"
     ? value
@@ -33,6 +23,7 @@ const toSkillLevel = (value: string | undefined): SkillLevel =>
 
 type ProfilePayload = {
   profile: {
+    id: string;
     displayName: string;
     username: string;
     publicSkillBand: string;
@@ -42,37 +33,50 @@ type ProfilePayload = {
     selectedTags: string[];
     selectedAchievements: string[];
     points: number;
+    streakWeeks: number;
+    walletBalance: number;
+    recentMatches: Array<{ id: string; location: string; date: string; time: string; status: string }>;
   };
 };
 
+const avatarStyles: Record<string, { bg: string; ring: string; text: string }> = {
+  pitch: { bg: "bg-[#1f2a1f]", ring: "border-[#3f5a3f]", text: "text-[#dff0e1]" },
+  lime: { bg: "bg-[#26331f]", ring: "border-[#6ea63f]", text: "text-[#ecf9e0]" },
+  urban: { bg: "bg-[#222826]", ring: "border-[#3d4542]", text: "text-[#d8e3dc]" },
+  forest: { bg: "bg-[#1c2c20]", ring: "border-[#4f7c59]", text: "text-[#e0efe4]" },
+};
+
 export default function Profile() {
+  const [isFriendRoute, routeParams] = useRoute("/profile/:id");
+  const profileUserId = isFriendRoute ? routeParams?.id ?? DEFAULT_USER_ID : DEFAULT_USER_ID;
+  const isOwnProfile = profileUserId === DEFAULT_USER_ID;
   const [profile, setProfile] = useState<ProfilePayload["profile"] | null>(null);
 
   useEffect(() => {
     const load = async () => {
-      const payload = await apiGet<ProfilePayload>(`/api/v1/profile?user_id=${DEFAULT_USER_ID}`);
+      const payload = await apiGet<ProfilePayload>(`/api/v1/profile?user_id=${profileUserId}`);
       setProfile(payload.profile);
     };
 
     void load();
-  }, []);
+  }, [profileUserId]);
 
-  const achievements3d: Achievement3D[] = useMemo(() => {
-    const selected = profile?.selectedAchievements ?? ["1", "2", "5", "6"];
-    return achievementsCatalog.map((a) => ({
-      id: a.id,
-      name: a.name,
-      description: a.description,
-      unlocked: selected.includes(a.id),
-      unlockedDate: selected.includes(a.id) ? "Mar 2026" : undefined,
-      rarity: a.rarity as Achievement3D["rarity"],
-      category: a.category as Achievement3D["category"],
-      shape: a.shape as Achievement3D["shape"],
-    }));
+  const selectedAchievementItems = useMemo(() => {
+    const selected = profile?.selectedAchievements ?? [];
+    return achievementsCatalog.filter((a) => selected.includes(a.id));
   }, [profile?.selectedAchievements]);
 
   const displayName = profile?.displayName ?? "Alex Chen";
+  const username = profile?.username ?? "@alexchen";
   const selectedTags = profile?.selectedTags ?? ["Reliable", "Team Player", "Forward", "Punctual"];
+  const recentMatches = profile?.recentMatches ?? [];
+  const avatarStyle = avatarStyles[profile?.avatarId ?? "pitch"] ?? avatarStyles.pitch;
+  const initials = displayName
+    .split(" ")
+    .map((p) => p[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
     <div className="app-shell">
@@ -81,90 +85,134 @@ export default function Profile() {
         <div className="flex items-center justify-between">
           <h1 className="relative z-10 text-2xl font-semibold text-[#f2f7f2]">Profile</h1>
           <div className="relative z-10 flex items-center gap-2">
-            <Link href="/notifications" className="btn-secondary !min-h-10 !px-3" aria-label="Notifications">
-              <Bell className="h-4 w-4" />
-            </Link>
-            <Link href="/profile/edit" className="btn-secondary !min-h-10 !px-3" aria-label="Edit profile">
-              <Edit3 className="h-4 w-4" />
-            </Link>
+            {isOwnProfile ? (
+              <>
+                <Link href="/notifications" className="btn-secondary !min-h-10 !px-3" aria-label="Notifications">
+                  <Bell className="h-4 w-4" />
+                </Link>
+                <Link href="/profile/edit" className="btn-secondary !min-h-10 !px-3" aria-label="Edit profile">
+                  <Edit3 className="h-4 w-4" />
+                </Link>
+              </>
+            ) : (
+              <Link href="/friends" className="btn-secondary !min-h-10 !px-3 text-xs">
+                Back
+              </Link>
+            )}
           </div>
         </div>
 
-        <div className="relative z-10 mt-3 grid grid-cols-3 gap-2">
-          <Link href="/friends" className="btn-secondary w-full">
-            <Users className="h-4 w-4" /> Friends
-          </Link>
-          <Link href="/availability" className="btn-secondary w-full">
-            <CalendarDays className="h-4 w-4" /> Availability
-          </Link>
-          <Link href="/wallet" className="btn-primary w-full">
-            <Wallet className="h-4 w-4" /> Wallet
-          </Link>
-        </div>
+        {isOwnProfile ? (
+          <div className="relative z-10 mt-3 grid grid-cols-3 gap-2">
+            <Link href="/friends" className="btn-secondary w-full">
+              <Users className="h-4 w-4" /> Friends
+            </Link>
+            <Link href="/availability" className="btn-secondary w-full">
+              <CalendarDays className="h-4 w-4" /> Availability
+            </Link>
+            <Link href="/wallet" className="btn-primary w-full">
+              <Wallet className="h-4 w-4" /> Wallet
+            </Link>
+          </div>
+        ) : null}
       </header>
 
       <main className="space-y-3 p-4">
         <section className="surface-card pitch-lines">
           <div className="flex items-center gap-3">
-            <div className="grid h-14 w-14 place-items-center rounded-full border-2 border-[#3f5a3f] bg-[#1f2a1f] text-lg font-semibold text-[#dff0e1]">
-              {displayName
-                .split(" ")
-                .map((p) => p[0])
-                .join("")
-                .slice(0, 2)}
+            <div className={`grid h-14 w-14 place-items-center rounded-full border-2 text-lg font-semibold ${avatarStyle.bg} ${avatarStyle.ring} ${avatarStyle.text}`}>
+              {initials}
             </div>
             <div>
               <h2 className="text-lg font-semibold text-[#f2f7f2]">{displayName}</h2>
+              <p className="mt-0.5 text-xs text-[#96a39a]">{username}</p>
               <div className="mt-1 flex items-center gap-2">
                 <SkillBadge level={toSkillLevel(profile?.publicSkillBand)} colored />
-                <span className="text-xs text-[#93a198]">{selectedTags.slice(0, 3).join(" • ")}</span>
+                <span className="text-xs text-[#93a198]">{selectedTags.slice(0, 2).join(" • ")}</span>
               </div>
             </div>
           </div>
 
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            <StatBlock label="Games" value={profile?.gamesPlayed ?? 0} />
-            <StatBlock label="Reliability" value={`${profile?.reliabilityScore ?? 0}%`} />
-            <StatBlock label="Points" value={profile?.points ?? 0} subValue="FutPoints" />
+          <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 border-t border-[#2f372f] pt-3 text-sm">
+            <div className="flex items-center justify-between border-b border-[#222a23] py-1.5">
+              <span className="text-[#95a39a]">Games Played</span>
+              <span className="font-semibold text-[#edf3ee]">{profile?.gamesPlayed ?? 0}</span>
+            </div>
+            <div className="flex items-center justify-between border-b border-[#222a23] py-1.5">
+              <span className="text-[#95a39a]">Reliability</span>
+              <span className="font-semibold text-[#edf3ee]">{profile?.reliabilityScore ?? 0}%</span>
+            </div>
+            <div className="flex items-center justify-between border-b border-[#222a23] py-1.5">
+              <span className="text-[#95a39a]">Current Streak</span>
+              <span className="font-semibold text-[#edf3ee]">{profile?.streakWeeks ?? 0} weeks</span>
+            </div>
+            <div className="flex items-center justify-between border-b border-[#222a23] py-1.5">
+              <span className="text-[#95a39a]">FutPoints</span>
+              <span className="font-semibold text-[#9dff3f]">{profile?.points ?? 0}</span>
+            </div>
           </div>
+          <div className="mt-2 text-right text-[11px] text-[#96a39a]">Wallet Balance: ${Number(profile?.walletBalance ?? 0).toFixed(2)}</div>
         </section>
-
-        <PlayerJourney3D
-          cardData={{
-            name: displayName,
-            skill: profile?.publicSkillBand ?? "Intermediate",
-            tags: selectedTags,
-            games: profile?.gamesPlayed ?? 0,
-            reliability: profile?.reliabilityScore ?? 0,
-            sportsmanship: 94,
-            attendance: profile?.reliabilityScore ?? 0,
-            points: profile?.points ?? 0,
-          }}
-          achievements={achievements3d}
-          snapshot={{
-            strongestVenue: "Downtown Sports Arena",
-            lastResult: matchHistory[0]?.result ?? "W 0-0",
-            formLastFive: "W-W-L-W-D",
-            avgRating: 4.2,
-            groupGames: 12,
-            fairPlayScore: 94,
-            nextFocus: "Keep consistency in high-tempo midweek games",
-          }}
-        />
 
         <section className="surface-card">
           <h3 className="flex items-center gap-2 text-sm font-semibold text-[#f2f7f2]">
-            <Clock3 className="h-4 w-4 text-[#9dff3f]" /> Match Results
+            <Tag className="h-4 w-4 text-[#9dff3f]" /> Profile Tags
+          </h3>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {selectedTags.length > 0 ? (
+              selectedTags.map((tag) => (
+                <span key={tag} className="chip chip-active">
+                  {tag}
+                </span>
+              ))
+            ) : (
+              <p className="text-xs text-[#95a39a]">No tags selected yet.</p>
+            )}
+          </div>
+        </section>
+
+        <section className="surface-card">
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-[#f2f7f2]">
+            <Award className="h-4 w-4 text-[#9dff3f]" /> Selected Achievements
           </h3>
           <div className="mt-3 space-y-2">
-            {matchHistory.map((m) => (
-              <div key={m.id} className="surface-inner">
-                <p className="text-sm text-[#edf3ee]">{m.venue}</p>
-                <p className="mt-1 text-xs text-[#95a39a]">
-                  {m.date} · {m.result}
-                </p>
+            {selectedAchievementItems.length > 0 ? (
+              selectedAchievementItems.map((achievement) => (
+                <div key={achievement.id} className="surface-inner">
+                  <p className="text-sm font-semibold text-[#edf3ee]">{achievement.name}</p>
+                  <p className="mt-1 text-xs text-[#95a39a]">{achievement.description}</p>
+                </div>
+              ))
+            ) : (
+              <div className="surface-inner">
+                <p className="text-xs text-[#95a39a]">No achievements selected yet.</p>
               </div>
-            ))}
+            )}
+          </div>
+        </section>
+
+        <section className="surface-card">
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-[#f2f7f2]">
+            <History className="h-4 w-4 text-[#9dff3f]" /> Past Matches
+          </h3>
+          <div className="mt-3 space-y-2">
+            {recentMatches.length > 0 ? (
+              recentMatches.map((match) => (
+                <div key={match.id} className="surface-inner flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-[#eef4ef]">{match.location}</p>
+                    <p className="mt-0.5 text-xs text-[#95a39a]">
+                      {match.date} · {match.time}
+                    </p>
+                  </div>
+                  <span className="chip">{match.status === "completed" ? "Completed" : "Played"}</span>
+                </div>
+              ))
+            ) : (
+              <div className="surface-inner">
+                <p className="text-xs text-[#95a39a]">No past matches yet.</p>
+              </div>
+            )}
           </div>
         </section>
       </main>

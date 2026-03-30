@@ -33,17 +33,9 @@ export default function Matchmaking() {
   }, [useAvailability]);
 
   const evaluatedRooms = useMemo(() => {
-    return rooms
+    const rankedRooms = rooms
       .map((room) => ({
         ...room,
-        fitLabel:
-          room.fitScore >= 86
-            ? "Best fit for you"
-            : room.fitScore >= 76
-              ? "Highly balanced"
-              : room.fitScore >= 66
-                ? "Good fit"
-                : "Similar level players",
         fitReason:
           room.fitScore >= 86
             ? "Strong skill alignment and stable room balance"
@@ -54,6 +46,18 @@ export default function Matchmaking() {
                 : "Suitable room with comparable level players",
       }))
       .sort((a, b) => b.fitScore - a.fitScore);
+
+    return rankedRooms.map((room, index) => ({
+      ...room,
+      fitLabel:
+        index === 0
+          ? "Best fit for you"
+          : room.fitScore >= 82
+            ? "Strong match"
+            : room.fitScore >= 72
+              ? "Solid option"
+              : "Worth considering",
+    }));
   }, [rooms]);
 
   const filteredRooms = useMemo(() => {
@@ -74,8 +78,8 @@ export default function Matchmaking() {
     <div className="app-shell">
       <header className="app-header">
         <PitchOverlay variant="header" />
-        <h1 className="relative z-10 text-2xl font-semibold text-[#f2f7f2]">Search</h1>
-        <p className="relative z-10 mt-1 text-xs text-[#97a49b]">Find rooms by time, level, and player count.</p>
+        <h1 className="relative z-10 text-2xl font-semibold text-[#f2f7f2]">Find a Game</h1>
+        <p className="relative z-10 mt-1 text-xs text-[#97a49b]">Filter by type or venue</p>
 
         <div className="relative z-10 mt-3">
           <Input
@@ -122,6 +126,9 @@ export default function Matchmaking() {
                 <p className="mt-1 text-[11px] text-[#b8c5bb]">
                   <span className="text-[#9dff3f]">{featuredRoom.fitLabel}</span> · {featuredRoom.fitReason}
                 </p>
+                <div className="mt-2 flex items-center gap-2">
+                  {featuredRoom.allowedBand ? <SkillBadge level={featuredRoom.allowedBand} colored /> : <SkillBadge level="Hybrid" colored />}
+                </div>
               </div>
               <span className="chip chip-active">
                 {featuredRoom.playersJoined}/{featuredRoom.maxPlayers}

@@ -6,21 +6,45 @@ import Navigation from "@/components/Navigation";
 import SkillBadge from "@/components/SkillBadge";
 import { Input } from "@/components/ui/input";
 import PitchOverlay from "@/components/PitchOverlay";
-import ProgressRing from "@/components/ProgressRing";
 import { apiGet, apiPost, DEFAULT_USER_ID } from "@/lib/api";
 
 type GroupCard = {
   id: string;
   name: string;
   memberCount: number;
-  topOverlap: string;
 };
 
 type GroupDetail = {
   group: { id: string; name: string; memberIds: string[] };
+  summary: {
+    avgReliability: number;
+    skillBandSpread: { Beginner: number; Intermediate: number; Advanced: number };
+    topOverlap: string;
+  };
   members: Array<{ id: string; name: string; publicSkillBand: string }>;
-  overlapSlots: Array<{ slot: string; count: number }>;
-  recommendations: Array<{ room: any; fitScore: number }>;
+  recommendations: Array<{
+    room: any;
+    fitScore: number;
+    combinedScore: number;
+    roomType: string;
+    capacityLeft: number;
+    availability: {
+      canCount: number;
+      cannotCount: number;
+      percent: number;
+      canNames: string[];
+      cannotNames: string[];
+    };
+    interest: {
+      interestedNames: string[];
+      pendingNames: string[];
+      interestedCount: number;
+      neededCount: number;
+      isReady: boolean;
+      currentUserInterested: boolean;
+      currentUserEligible: boolean;
+    };
+  }>;
   chat: Array<{ id: string; user: string; text: string }>;
 };
 
@@ -65,7 +89,6 @@ export default function Groups() {
       groups.map((group) => ({
         group,
         skill: { profile: "Mixed" },
-        overlap: { slot: group.topOverlap },
       })),
     [groups]
   );
@@ -75,6 +98,24 @@ export default function Groups() {
     await apiPost(`/api/v1/groups/${selectedGroupId}/chat`, { user_id: DEFAULT_USER_ID, text: chatMessage });
     setChatMessage("");
     await loadDetail(selectedGroupId);
+  };
+
+  const setRecommendationInterest = async (roomId: string, wantsToJoin: boolean) => {
+    if (!selectedGroupId) return;
+    try {
+      const payload = await apiPost<{ autoJoined?: boolean; interestedCount?: number; neededCount?: number }>(
+        `/api/v1/groups/${selectedGroupId}/recommendations/${roomId}/interest`,
+        { user_id: DEFAULT_USER_ID, wants_to_join: wantsToJoin }
+      );
+      if (payload.autoJoined) {
+        toast.success("All available members confirmed. Group auto-joined this room.");
+      } else {
+        toast.success(wantsToJoin ? "Marked as available for this room." : "Removed your availability mark.");
+      }
+      await loadDetail(selectedGroupId);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update recommendation interest");
+    }
   };
 
   if (selectedGroupId) {
@@ -88,9 +129,9 @@ export default function Groups() {
     }
 
     const selectedGroup = detail.group;
-    const overlapSlots = detail.overlapSlots;
     const recommendations = detail.recommendations;
     const members = detail.members;
+    const summary = detail.summary;
 
     return (
       <div className="app-shell">
@@ -122,51 +163,81 @@ export default function Groups() {
                 </div>
               ))}
             </div>
-            <p className="mt-3 text-xs text-[#99a69d]">Skill profile: Mixed</p>
-          </section>
-
-          <section className="surface-card">
-            <h3 className="text-sm font-semibold text-[#f2f7f2]">Availability Overlap</h3>
-            <div className="mt-3 space-y-2">
-              {overlapSlots.map((slot) => (
-                <div key={slot.slot} className="surface-inner flex items-center justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-[#dce6de]">{slot.slot}</span>
-                      <span className="text-[#9dff3f]">
-                        {slot.count}/{selectedGroup.memberIds.length}
-                      </span>
-                    </div>
-                    <div className="mt-2 h-1.5 rounded-full bg-[#252d27]">
-                      <div
-                        className="h-full rounded-full bg-[#9dff3f]"
-                        style={{ width: `${(slot.count / selectedGroup.memberIds.length) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                  <ProgressRing
-                    size="sm"
-                    value={slot.count / selectedGroup.memberIds.length}
-                    label={`${Math.round((slot.count / selectedGroup.memberIds.length) * 100)}`}
-                  />
+            <div className="mt-3 rounded-xl border border-[#2d352f] bg-[#121814] p-3">
+              <p className="text-[11px] text-[#95a39a]">Skill Spread</p>
+              <div className="mt-2 grid grid-cols-3 gap-2 text-[11px]">
+                <div className="rounded-lg border border-[#2b342b] bg-[#151d17] px-2 py-2 text-center">
+                  <p className="text-[#95a39a]">Beginner</p>
+                  <p className="mt-1 text-sm font-semibold text-[#e9f1ea]">{summary.skillBandSpread.Beginner}</p>
                 </div>
-              ))}
+                <div className="rounded-lg border border-[#2b342b] bg-[#151d17] px-2 py-2 text-center">
+                  <p className="text-[#95a39a]">Intermediate</p>
+                  <p className="mt-1 text-sm font-semibold text-[#e9f1ea]">{summary.skillBandSpread.Intermediate}</p>
+                </div>
+                <div className="rounded-lg border border-[#2b342b] bg-[#151d17] px-2 py-2 text-center">
+                  <p className="text-[#95a39a]">Advanced</p>
+                  <p className="mt-1 text-sm font-semibold text-[#e9f1ea]">{summary.skillBandSpread.Advanced}</p>
+                </div>
+              </div>
+              <div className="mt-2 flex items-center justify-between rounded-lg border border-[#2b342b] bg-[#151d17] px-2 py-2 text-xs">
+                <span className="text-[#95a39a]">Group Reliability</span>
+                <span className="font-semibold text-[#e9f1ea]">{summary.avgReliability}%</span>
+              </div>
             </div>
           </section>
 
           <section className="surface-card">
             <h3 className="text-sm font-semibold text-[#f2f7f2]">Recommended Games</h3>
-            <div className="mt-3 space-y-2">
+            <div className="mt-3 space-y-3">
               {recommendations.map((item) => (
-                <div key={item.room.id} className="surface-inner">
-                  <div className="flex items-start justify-between gap-2">
+                <div key={item.room.id} className="rounded-2xl border border-[#2e3a31] bg-[#141b16] p-3">
+                  <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-[#edf3ee]">{item.room.location}</p>
-                      <p className="mt-1 text-xs text-[#98a69d]">
+                      <p className="text-base font-semibold text-[#edf3ee]">{item.room.location}</p>
+                      <p className="mt-1 text-sm text-[#a4b2a9]">
                         {item.room.date} · {item.room.time} · ${item.room.price}
                       </p>
+                      <p className="mt-1 text-xs text-[#b9c7bd]">
+                        {item.room.playersJoined}/{item.room.maxPlayers} players · {item.roomType}
+                      </p>
+                      <div className="mt-3 rounded-xl border border-[#3a4a3f] bg-[#18211c] p-3">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-semibold text-[#eef5ef]">Availability Match</span>
+                          <span className="rounded-full bg-[#9dff3f]/15 px-2 py-0.5 font-semibold text-[#9dff3f]">{item.availability.percent}%</span>
+                        </div>
+                        <div className="mt-3 h-2.5 rounded-full bg-[#28322b]">
+                          <div className="h-full rounded-full bg-[#9dff3f]" style={{ width: `${item.availability.percent}%` }} />
+                        </div>
+                        <p className="mt-2 text-xs text-[#b9c7bd]">
+                          <span className="font-semibold text-[#9dff3f]">{item.availability.canCount}</span> can make it ·{" "}
+                          <span className="font-semibold text-[#e3a5a5]">{item.availability.cannotCount}</span> can't
+                        </p>
+                        <p className="mt-1 text-xs text-[#9aa89f]">Can: {item.availability.canNames.join(", ") || "None"}</p>
+                        <p className="mt-1 text-xs text-[#9aa89f]">Can't: {item.availability.cannotNames.join(", ") || "None"}</p>
+                      </div>
+                      <p className="mt-3 text-xs text-[#9aa89f]">
+                        Interest: {item.interest.interestedCount}/{item.interest.neededCount} confirmed
+                        {item.interest.pendingNames.length > 0 ? ` · Waiting: ${item.interest.pendingNames.join(", ")}` : ""}
+                      </p>
+                      {item.interest.isReady ? <p className="mt-1 text-xs font-semibold text-[#9dff3f]">Ready to auto-join</p> : null}
                     </div>
                     {item.room.allowedBand ? <SkillBadge level={item.room.allowedBand} colored /> : <SkillBadge level="Hybrid" colored />}
+                  </div>
+                  <div className="mt-4 flex gap-2">
+                    <button
+                      onClick={() => void setRecommendationInterest(item.room.id, !item.interest.currentUserInterested)}
+                      className={item.interest.currentUserInterested ? "btn-secondary flex-1 text-sm" : "btn-primary flex-1 text-sm"}
+                      disabled={!item.interest.currentUserEligible}
+                    >
+                      {!item.interest.currentUserEligible
+                        ? "Not Eligible"
+                        : item.interest.currentUserInterested
+                          ? "Unmark Availability"
+                          : "I Can Make This"}
+                    </button>
+                    <Link href={`/game/${item.room.id}?source=group`} className="btn-secondary text-sm">
+                      View
+                    </Link>
                   </div>
                 </div>
               ))}
@@ -209,7 +280,7 @@ export default function Groups() {
         <div className="flex items-center justify-between">
           <div className="relative z-10">
             <h1 className="text-2xl font-semibold text-[#f2f7f2]">Groups</h1>
-            <p className="mt-1 text-xs text-[#96a39a]">Lightweight squads for planning games.</p>
+            <p className="mt-1 text-xs text-[#96a39a]">Plan and coordinate games with your friends</p>
           </div>
           <Link href="/create" className="btn-primary relative z-10 h-10 px-3 text-xs">
             <Plus className="mr-1 h-4 w-4" /> Create
@@ -218,7 +289,7 @@ export default function Groups() {
       </header>
 
       <main className="space-y-3 p-4">
-        {groupCards.map(({ group, skill, overlap }) => (
+        {groupCards.map(({ group, skill }) => (
           <button key={group.id} onClick={() => setSelectedGroupId(group.id)} className="surface-card w-full text-left">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -230,9 +301,9 @@ export default function Groups() {
             <div className="mt-3 flex items-center justify-between text-xs text-[#9aa89f]">
               <span className="inline-flex items-center gap-1">
                 <Users className="h-3.5 w-3.5" />
-                Next overlap
+                Group planning board
               </span>
-              <span>{overlap?.slot ?? "Pending"}</span>
+              <span>Open</span>
             </div>
           </button>
         ))}

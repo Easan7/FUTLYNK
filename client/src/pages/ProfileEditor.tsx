@@ -42,16 +42,35 @@ export default function ProfileEditor() {
   const [selectedTags, setSelectedTags] = useState<string[]>(["Reliable", "Team Player", "Forward", "Punctual"]);
   const [selectedAchievements, setSelectedAchievements] = useState<string[]>(["1", "2", "5"]);
   const [formError, setFormError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [initialState, setInitialState] = useState<{
+    displayName: string;
+    username: string;
+    avatar: string;
+    tags: string[];
+    achievements: string[];
+  } | null>(null);
 
   useEffect(() => {
     const load = async () => {
-      const payload = await apiGet<{ profile: any }>(`/api/v1/profile?user_id=${DEFAULT_USER_ID}`);
-      const p = payload.profile;
-      setDisplayName(p.displayName ?? "Alex Chen");
-      setUsername(p.username ?? "@alexchen");
-      setSelectedAvatar(p.avatarId ?? "pitch");
-      setSelectedTags(p.selectedTags ?? ["Reliable", "Team Player", "Forward", "Punctual"]);
-      setSelectedAchievements(p.selectedAchievements ?? ["1", "2", "5"]);
+      try {
+        const payload = await apiGet<{ profile: any }>(`/api/v1/profile?user_id=${DEFAULT_USER_ID}`);
+        const p = payload.profile;
+        setDisplayName(p.displayName ?? "Alex Chen");
+        setUsername(p.username ?? "@alexchen");
+        setSelectedAvatar(p.avatarId ?? "pitch");
+        setSelectedTags(p.selectedTags ?? ["Reliable", "Team Player", "Forward", "Punctual"]);
+        setSelectedAchievements(p.selectedAchievements ?? ["1", "2", "5"]);
+        setInitialState({
+          displayName: p.displayName ?? "Alex Chen",
+          username: p.username ?? "@alexchen",
+          avatar: p.avatarId ?? "pitch",
+          tags: p.selectedTags ?? ["Reliable", "Team Player", "Forward", "Punctual"],
+          achievements: p.selectedAchievements ?? ["1", "2", "5"],
+        });
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Failed to load profile");
+      }
     };
 
     void load();
@@ -59,6 +78,13 @@ export default function ProfileEditor() {
 
   const hasValidName = displayName.trim().length >= 2;
   const hasValidUsername = /^@[a-zA-Z0-9_]{3,20}$/.test(username);
+  const isDirty =
+    !initialState ||
+    initialState.displayName !== displayName ||
+    initialState.username !== username ||
+    initialState.avatar !== selectedAvatar ||
+    initialState.tags.join("|") !== selectedTags.join("|") ||
+    initialState.achievements.join("|") !== selectedAchievements.join("|");
 
   const save = async () => {
     setFormError("");
@@ -71,17 +97,26 @@ export default function ProfileEditor() {
       return;
     }
 
-    await apiPut("/api/v1/profile", {
-      user_id: DEFAULT_USER_ID,
-      display_name: displayName,
-      username,
-      avatar_id: selectedAvatar,
-      selected_tags: selectedTags,
-      selected_achievements: selectedAchievements,
-    });
+    try {
+      setSaving(true);
+      await apiPut("/api/v1/profile", {
+        user_id: DEFAULT_USER_ID,
+        display_name: displayName,
+        username,
+        avatar_id: selectedAvatar,
+        selected_tags: selectedTags,
+        selected_achievements: selectedAchievements,
+      });
 
-    toast.success("Profile updated");
-    setLocation("/profile");
+      toast.success("Profile updated");
+      setLocation("/profile");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update profile";
+      setFormError(message);
+      toast.error(message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const toggleTag = (tag: string) => {
@@ -122,17 +157,18 @@ export default function ProfileEditor() {
         <div className="flex items-center justify-between">
           <button
             onClick={() => {
-              if (window.confirm("Discard profile changes?")) {
+              if (!isDirty || window.confirm("Discard profile changes?")) {
                 setLocation("/profile");
               }
             }}
             className="btn-secondary text-xs"
+            disabled={saving}
           >
             <X className="h-4 w-4" /> Cancel
           </button>
           <h1 className="text-lg font-semibold text-[#f2f7f2]">Edit Profile</h1>
-          <button onClick={() => void save()} className="btn-primary text-xs" disabled={!hasValidName || !hasValidUsername}>
-            <Check className="h-4 w-4" /> Save
+          <button onClick={() => void save()} className="btn-primary text-xs" disabled={!hasValidName || !hasValidUsername || saving}>
+            <Check className="h-4 w-4" /> {saving ? "Saving..." : "Save"}
           </button>
         </div>
       </header>
