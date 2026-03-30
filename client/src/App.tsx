@@ -26,6 +26,7 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"/game/:id"} component={GameDetails} />
       <Route path={"/create"} component={CreateGroup} />
+      <Route path={"/profile/edit"} component={ProfileEditor} />
       <Route path={"/profile/:id"} component={Profile} />
       <Route path={"/profile"} component={Profile} />
       <Route path={"/matchmaking"} component={Matchmaking} />
@@ -33,7 +34,6 @@ function Router() {
       <Route path={"/groups"} component={Groups} />
       <Route path={"/feedback/:gameId"} component={PostGameFeedback} />
       <Route path={"/notifications"} component={Notifications} />
-      <Route path={"/profile/edit"} component={ProfileEditor} />
       <Route path={"/wallet"} component={Wallet} />
       <Route path={"/availability"} component={Availability} />
       <Route path={"/404"} component={NotFound} />

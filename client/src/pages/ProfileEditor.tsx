@@ -154,7 +154,7 @@ export default function ProfileEditor() {
     <div className="min-h-screen bg-[#070a08] pb-10">
       <header className="app-header">
         <PitchOverlay variant="header" />
-        <div className="flex items-center justify-between">
+        <div className="relative z-10 flex items-center justify-between">
           <button
             onClick={() => {
               if (!isDirty || window.confirm("Discard profile changes?")) {

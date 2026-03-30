@@ -8,9 +8,9 @@ interface PitchOverlayProps {
 }
 
 const variantClasses: Record<PitchOverlayVariant, string> = {
-  header: "absolute inset-0 opacity-35",
-  card: "absolute inset-0 opacity-30",
-  divider: "relative block h-3 w-full opacity-45",
+  header: "pointer-events-none absolute inset-0 opacity-35",
+  card: "pointer-events-none absolute inset-0 opacity-30",
+  divider: "pointer-events-none relative block h-3 w-full opacity-45",
 };
 
 export default function PitchOverlay({ variant = "card", className }: PitchOverlayProps) {
