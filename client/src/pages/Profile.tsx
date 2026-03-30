@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useRoute } from "wouter";
 import { Award, Bell, CalendarDays, Edit3, History, Tag, Users, Wallet } from "lucide-react";
 import Navigation from "@/components/Navigation";
+import FootballLoader from "@/components/FootballLoader";
 import SkillBadge from "@/components/SkillBadge";
 import type { SkillLevel } from "@/components/SkillBadge";
 import PitchOverlay from "@/components/PitchOverlay";
@@ -52,11 +53,17 @@ export default function Profile() {
   const profileUserId = isFriendRoute ? routeParams?.id ?? DEFAULT_USER_ID : DEFAULT_USER_ID;
   const isOwnProfile = profileUserId === DEFAULT_USER_ID;
   const [profile, setProfile] = useState<ProfilePayload["profile"] | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
-      const payload = await apiGet<ProfilePayload>(`/api/v1/profile?user_id=${profileUserId}`);
-      setProfile(payload.profile);
+      try {
+        setLoading(true);
+        const payload = await apiGet<ProfilePayload>(`/api/v1/profile?user_id=${profileUserId}`);
+        setProfile(payload.profile);
+      } finally {
+        setLoading(false);
+      }
     };
 
     void load();
@@ -79,6 +86,15 @@ export default function Profile() {
     .join("")
     .slice(0, 2)
     .toUpperCase();
+
+  if (loading && !profile) {
+    return (
+      <div className="app-shell">
+        <FootballLoader fullScreen label="Loading profile..." />
+        <Navigation />
+      </div>
+    );
+  }
 
   return (
     <div className="app-shell">

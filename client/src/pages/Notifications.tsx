@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { ArrowLeft, CalendarClock, Check, MessageCircle, ShieldCheck, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
+import FootballLoader from "@/components/FootballLoader";
 import PitchOverlay from "@/components/PitchOverlay";
 import StatBlock from "@/components/StatBlock";
 import { apiDelete, apiGet, apiPost, DEFAULT_USER_ID } from "@/lib/api";
@@ -19,10 +20,16 @@ type Notification = {
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const payload = await apiGet<{ notifications: Notification[] }>(`/api/v1/notifications?user_id=${DEFAULT_USER_ID}`);
-    setNotifications(payload.notifications ?? []);
+    try {
+      setLoading(true);
+      const payload = await apiGet<{ notifications: Notification[] }>(`/api/v1/notifications?user_id=${DEFAULT_USER_ID}`);
+      setNotifications(payload.notifications ?? []);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -48,6 +55,15 @@ export default function Notifications() {
     if (type === "integrity") return <ShieldCheck className="h-4 w-4 text-[#9dff3f]" />;
     return <CalendarClock className="h-4 w-4 text-[#9dff3f]" />;
   };
+
+  if (loading && notifications.length === 0) {
+    return (
+      <div className="app-shell">
+        <FootballLoader fullScreen label="Loading notifications..." />
+        <Navigation />
+      </div>
+    );
+  }
 
   return (
     <div className="app-shell">

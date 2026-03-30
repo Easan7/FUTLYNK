@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
-import { Bell, CalendarDays, Star } from "lucide-react";
+import { Bell } from "lucide-react";
+import { motion } from "framer-motion";
 import Navigation from "@/components/Navigation";
 import GameCard, { type Game } from "@/components/GameCard";
+import FootballLoader from "@/components/FootballLoader";
 import type { SkillLevel } from "@/components/SkillBadge";
 import { toast } from "sonner";
 import PitchOverlay from "@/components/PitchOverlay";
@@ -60,11 +62,25 @@ export default function Home() {
   const pendingRatings = data?.pendingRatings ?? [];
   const nextGame = upcomingGames[0];
 
+  if (loading && !data) {
+    return (
+      <div className="app-shell">
+        <FootballLoader fullScreen label="Loading your games..." />
+        <Navigation />
+      </div>
+    );
+  }
+
   return (
     <div className="app-shell">
       <header className="app-header">
         <PitchOverlay variant="header" />
-        <div className="flex items-center justify-between">
+        <motion.div
+          className="flex items-center justify-between"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 160, damping: 24 }}
+        >
           <div className="relative z-10">
             <p className="text-[11px] text-[#93a299]">Welcome back</p>
             <h1 className="text-2xl font-semibold text-[#f2f7f2]">My Games</h1>
@@ -72,20 +88,40 @@ export default function Home() {
           <Link href="/notifications" className="btn-secondary relative z-10 !min-h-10 !px-3" aria-label="Notifications">
             <Bell className="h-4 w-4" />
           </Link>
-        </div>
+        </motion.div>
 
-        <div className="relative z-10 mt-3 grid grid-cols-3 gap-2">
-          <StatBlock variant="card" label="Joined" value={upcomingGames.length} />
-          <StatBlock variant="card" label="Reliability" value={`${data?.currentUser?.reliabilityScore ?? 0}%`} />
-          <StatBlock variant="card" label="Streak" value={`${data?.currentUser?.streakWeeks ?? 0}w`} />
-        </div>
+        <motion.div
+          className="relative z-10 mt-3 grid grid-cols-3 gap-2"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.06, duration: 0.24, ease: "easeOut" }}
+        >
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.09 }}>
+            <StatBlock variant="card" label="Joined" value={upcomingGames.length} />
+          </motion.div>
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.13 }}>
+            <StatBlock variant="card" label="Reliability" value={`${data?.currentUser?.reliabilityScore ?? 0}%`} />
+          </motion.div>
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.17 }}>
+            <StatBlock variant="card" label="Streak" value={`${data?.currentUser?.streakWeeks ?? 0}w`} />
+          </motion.div>
+        </motion.div>
       </header>
 
       <main className="space-y-4 p-4">
-        {loading ? <section className="surface-card text-sm text-[#9aa79e]">Loading…</section> : null}
         {nextGame ? (
-          <section className="surface-card pitch-lines relative overflow-hidden">
+          <motion.section
+            className="surface-card pitch-lines relative overflow-hidden"
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 130, damping: 22, delay: 0.08 }}
+          >
             <PitchOverlay variant="card" />
+            <motion.div
+              className="pointer-events-none absolute -top-8 left-1/2 z-0 h-20 w-40 -translate-x-1/2 rounded-full bg-[#beff78]/12 blur-xl"
+              animate={{ opacity: [0.12, 0.3, 0.12], scale: [0.95, 1.03, 0.95] }}
+              transition={{ repeat: Infinity, duration: 2.8, ease: "easeInOut" }}
+            />
             <div className="relative z-10 flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#9eada3]">Next Match</p>
@@ -119,15 +155,26 @@ export default function Home() {
                 Leave Game
               </button>
             </div>
-          </section>
+          </motion.section>
         ) : null}
 
         {pendingRatings.length > 0 && (
-          <section className="surface-card">
+          <motion.section
+            className="surface-card"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.12, duration: 0.24, ease: "easeOut" }}
+          >
             <p className="text-sm font-semibold text-[#f2f7f2]">Rate Players</p>
             <div className="mt-3 space-y-2">
               {pendingRatings.map((item) => (
-                <div key={item.id} className="surface-inner flex items-center justify-between gap-2">
+                <motion.div
+                  key={item.id}
+                  className="surface-inner flex items-center justify-between gap-2"
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.22 }}
+                >
                   <div>
                     <p className="text-sm font-medium text-[#eef4ef]">{item.location}</p>
                     <p className="mt-1 text-sm text-[#9aa79e]">{item.date}</p>
@@ -135,13 +182,18 @@ export default function Home() {
                   <Link href={`/feedback/${item.id}`} className="btn-primary h-9 px-3 text-xs">
                     Rate
                   </Link>
-                </div>
+                </motion.div>
               ))}
             </div>
-          </section>
+          </motion.section>
         )}
 
-        <section className="surface-card pitch-lines">
+        <motion.section
+          className="surface-card pitch-lines"
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.16, duration: 0.24, ease: "easeOut" }}
+        >
           <div className="mb-3 flex items-center justify-between">
             <h2 className="section-heading">Upcoming</h2>
           </div>
@@ -186,7 +238,7 @@ export default function Home() {
               <p className="surface-inner text-sm text-[#9aa79e]">No additional upcoming games.</p>
             )}
           </div>
-        </section>
+        </motion.section>
       </main>
 
       <Navigation />

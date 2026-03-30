@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { ArrowLeft, ChevronDown, ChevronUp, MessageSquare, Plus } from "lucide-react";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
+import FootballLoader from "@/components/FootballLoader";
 import SkillBadge from "@/components/SkillBadge";
 import { Input } from "@/components/ui/input";
 import {
@@ -69,6 +70,8 @@ export default function Groups() {
   const [chatMessage, setChatMessage] = useState("");
   const [groups, setGroups] = useState<GroupCard[]>([]);
   const [detail, setDetail] = useState<GroupDetail | null>(null);
+  const [loadingGroups, setLoadingGroups] = useState(true);
+  const [loadingDetail, setLoadingDetail] = useState(false);
   const [activeRecommendationId, setActiveRecommendationId] = useState<string | null>(null);
   const [autoJoinPaymentReminder, setAutoJoinPaymentReminder] = useState<{
     roomId: string;
@@ -80,19 +83,25 @@ export default function Groups() {
 
   const loadGroups = async () => {
     try {
+      setLoadingGroups(true);
       const payload = await apiGet<{ groups: GroupCard[] }>(`/api/v1/groups?user_id=${DEFAULT_USER_ID}`);
       setGroups(payload.groups ?? []);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load groups");
+    } finally {
+      setLoadingGroups(false);
     }
   };
 
   const loadDetail = async (groupId: string) => {
     try {
+      setLoadingDetail(true);
       const payload = await apiGet<GroupDetail>(`/api/v1/groups/${groupId}?user_id=${DEFAULT_USER_ID}`);
       setDetail(payload);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load group details");
+    } finally {
+      setLoadingDetail(false);
     }
   };
 
@@ -159,10 +168,10 @@ export default function Groups() {
   };
 
   if (selectedGroupId) {
-    if (!detail) {
+    if (!detail || loadingDetail) {
       return (
         <div className="app-shell">
-          <main className="p-4 text-sm text-[#9aa79e]">Loading group...</main>
+          <FootballLoader fullScreen label="Loading group details..." />
           <Navigation />
         </div>
       );
@@ -484,6 +493,7 @@ export default function Groups() {
       </header>
 
       <main className="space-y-3 p-4">
+        {loadingGroups ? <FootballLoader label="Loading your groups..." /> : null}
         {groupCards.map(({ group, skill }) => (
           <button
             key={group.id}

@@ -128,13 +128,35 @@ export default function OnboardingFlow({ onFinish }: OnboardingFlowProps) {
   const slide = onboardingSlides[index];
   const isLast = index === onboardingSlides.length - 1;
   const progressText = useMemo(() => `${index + 1} / ${onboardingSlides.length}`, [index]);
+  const progressPct = ((index + 1) / onboardingSlides.length) * 100;
+
+  const goNext = () => (isLast ? onFinish() : setIndex((prev) => prev + 1));
+  const goPrev = () => setIndex((prev) => (prev > 0 ? prev - 1 : prev));
 
   return (
     <div
       className="fixed inset-0 z-[80] overflow-hidden transition-colors duration-300"
       style={{ backgroundColor: solidBackgroundByTheme[slide.theme] }}
     >
+      <motion.div
+        className="pointer-events-none absolute inset-0 opacity-[0.14]"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, rgba(190,255,120,0.16) 1px, transparent 1px), linear-gradient(to bottom, rgba(190,255,120,0.12) 1px, transparent 1px)",
+          backgroundSize: "28px 28px",
+        }}
+        animate={{ backgroundPosition: ["0px 0px", "0px 28px"] }}
+        transition={{ repeat: Infinity, duration: 10, ease: "linear" }}
+      />
       <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-8 pt-[max(1.2rem,env(safe-area-inset-top))]">
+        <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-[#2f472f]">
+          <motion.div
+            className="h-full rounded-full bg-[#beff78]"
+            initial={false}
+            animate={{ width: `${progressPct}%` }}
+            transition={{ type: "spring", stiffness: 140, damping: 26 }}
+          />
+        </div>
         <div className="flex items-center justify-between">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#d6ebd1]" style={{ fontFamily: '"Rajdhani","Barlow",sans-serif' }}>
             FUTLYNK
@@ -148,15 +170,26 @@ export default function OnboardingFlow({ onFinish }: OnboardingFlowProps) {
           <AnimatePresence mode="wait">
             <motion.div
               key={slide.id}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.28, ease: "easeOut" }}
+              initial={{ opacity: 0, y: 20, scale: 0.985 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -14, scale: 0.99 }}
+              transition={{ type: "spring", stiffness: 120, damping: 20 }}
               className="flex h-full flex-col"
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.08}
+              onDragEnd={(_, info) => {
+                if (info.offset.x < -70) goNext();
+                if (info.offset.x > 70) goPrev();
+              }}
             >
-              <div className="relative h-[45vh] min-h-[290px]">
+              <motion.div
+                className="relative h-[45vh] min-h-[290px]"
+                animate={{ y: [0, -4, 0] }}
+                transition={{ repeat: Infinity, duration: 3.2, ease: "easeInOut" }}
+              >
                 <SlideArt slide={slide} />
-              </div>
+              </motion.div>
 
               <div className="mt-3 text-center">
                 <h1
@@ -186,7 +219,7 @@ export default function OnboardingFlow({ onFinish }: OnboardingFlowProps) {
           </div>
 
           <button
-            onClick={() => (isLast ? onFinish() : setIndex((prev) => prev + 1))}
+            onClick={goNext}
             className="btn-primary w-full text-base shadow-[0_14px_30px_rgba(157,255,63,0.24)]"
             style={{ fontFamily: '"Rajdhani","Barlow",sans-serif' }}
           >

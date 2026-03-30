@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { Search, UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
+import FootballLoader from "@/components/FootballLoader";
 import { Input } from "@/components/ui/input";
 import SkillBadge from "@/components/SkillBadge";
 import type { SkillLevel } from "@/components/SkillBadge";
@@ -29,10 +30,18 @@ export default function Friends() {
   const [search, setSearch] = useState("");
   const [showAddFriend, setShowAddFriend] = useState(false);
   const [people, setPeople] = useState<Friend[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const load = async (q = "") => {
-    const payload = await apiGet<{ friends: Friend[] }>(`/api/v1/friends?user_id=${DEFAULT_USER_ID}&q=${encodeURIComponent(q)}`);
-    setPeople(payload.friends ?? []);
+    try {
+      setLoading(true);
+      const payload = await apiGet<{ friends: Friend[] }>(`/api/v1/friends?user_id=${DEFAULT_USER_ID}&q=${encodeURIComponent(q)}`);
+      setPeople(payload.friends ?? []);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to load friends");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -88,6 +97,7 @@ export default function Friends() {
       </header>
 
       <main className="space-y-3 p-4">
+        {loading && !showAddFriend ? <FootballLoader label="Loading friends..." /> : null}
         {showAddFriend && (
           <section className="surface-card">
             <h2 className="text-base font-semibold text-[#f2f7f2]">Add Friends</h2>

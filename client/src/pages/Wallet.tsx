@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { ArrowLeft, Gift, Ticket, Wallet as WalletIcon } from "lucide-react";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
+import FootballLoader from "@/components/FootballLoader";
 import PitchOverlay from "@/components/PitchOverlay";
 import StatBlock from "@/components/StatBlock";
 import { apiGet, apiPost, DEFAULT_USER_ID } from "@/lib/api";
@@ -16,10 +17,16 @@ type WalletData = {
 
 export default function Wallet() {
   const [data, setData] = useState<WalletData | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const payload = await apiGet<WalletData>(`/api/v1/wallet?user_id=${DEFAULT_USER_ID}`);
-    setData(payload);
+    try {
+      setLoading(true);
+      const payload = await apiGet<WalletData>(`/api/v1/wallet?user_id=${DEFAULT_USER_ID}`);
+      setData(payload);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -58,6 +65,15 @@ export default function Wallet() {
   const points = data?.points ?? 0;
   const vouchers = data?.vouchers ?? [];
   const activity = data?.activity ?? [];
+
+  if (loading && !data) {
+    return (
+      <div className="app-shell">
+        <FootballLoader fullScreen label="Loading wallet..." />
+        <Navigation />
+      </div>
+    );
+  }
 
   return (
     <div className="app-shell">

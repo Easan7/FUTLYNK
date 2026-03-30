@@ -1,5 +1,6 @@
 import { Calendar, Clock, Users } from "lucide-react";
 import { Link } from "wouter";
+import { motion } from "framer-motion";
 import SkillBadge from "./SkillBadge";
 import { cn } from "@/lib/utils";
 import type { SkillLevel } from "./SkillBadge";
@@ -38,7 +39,12 @@ export default function GameCard({
   const targetHref = href ?? `/game/${game.id}`;
 
   return (
-    <article className={cn("surface-card relative overflow-hidden border-[#2f3b32] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#435646] hover:bg-[#141c16]", className)}>
+    <motion.article
+      className={cn("surface-card relative overflow-hidden border-[#2f3b32] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#435646] hover:bg-[#141c16]", className)}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 140, damping: 24 }}
+    >
       <PitchOverlay variant="card" />
       <div className="flex items-start justify-between gap-3">
         <Link href={targetHref} className="relative z-10 min-w-0 flex-1">
@@ -75,8 +81,13 @@ export default function GameCard({
         <span>{playerPercentage}% filled</span>
       </div>
 
-      <div className="relative z-10 mt-2 h-1.5 rounded-full bg-[#252d27]">
-        <div className="h-full rounded-full bg-[#9dff3f]" style={{ width: `${playerPercentage}%` }} />
+      <div className="relative z-10 mt-2 h-1.5 overflow-hidden rounded-full bg-[#252d27]">
+        <motion.div
+          className="h-full rounded-full bg-[#9dff3f]"
+          initial={{ width: 0 }}
+          animate={{ width: `${playerPercentage}%` }}
+          transition={{ type: "spring", stiffness: 120, damping: 20, delay: 0.05 }}
+        />
       </div>
 
       {onAction ? (
@@ -104,6 +115,6 @@ export default function GameCard({
           {actionLabel}
         </Link>
       )}
-    </article>
+    </motion.article>
   );
 }

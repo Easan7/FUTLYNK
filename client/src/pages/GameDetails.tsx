@@ -3,6 +3,7 @@ import { Link, useRoute } from "wouter";
 import { ArrowLeft, MapPin, Send } from "lucide-react";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
+import FootballLoader from "@/components/FootballLoader";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PitchOverlay from "@/components/PitchOverlay";
@@ -79,7 +80,7 @@ export default function GameDetails() {
   if (!room) {
     return (
       <div className="app-shell">
-        <main className="p-4 text-sm text-[#9aa79e]">Loading room...</main>
+        <FootballLoader fullScreen label="Loading room..." />
         <Navigation />
       </div>
     );

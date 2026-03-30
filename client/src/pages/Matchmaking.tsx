@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { SlidersHorizontal, Users } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import SkillBadge from "@/components/SkillBadge";
+import FootballLoader from "@/components/FootballLoader";
 import { Input } from "@/components/ui/input";
 import PitchOverlay from "@/components/PitchOverlay";
 import { toast } from "sonner";
@@ -15,10 +16,12 @@ export default function Matchmaking() {
   const [query, setQuery] = useState("");
   const [useAvailability, setUseAvailability] = useState(true);
   const [rooms, setRooms] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
+        setLoading(true);
         const payload = await apiGet<{ rooms: any[] }>(
           `/api/v1/rooms/discover?user_id=${DEFAULT_USER_ID}&use_availability=${useAvailability}`
         );
@@ -26,6 +29,8 @@ export default function Matchmaking() {
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to load rooms";
         toast.error(message);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -73,6 +78,15 @@ export default function Matchmaking() {
       .filter((room) => (useAvailability ? room.matchingAvailability : true));
   }, [activeFilter, evaluatedRooms, query, useAvailability]);
   const featuredRoom = filteredRooms[0];
+
+  if (loading && rooms.length === 0) {
+    return (
+      <div className="app-shell">
+        <FootballLoader fullScreen label="Scanning nearby rooms..." />
+        <Navigation />
+      </div>
+    );
+  }
 
   return (
     <div className="app-shell">

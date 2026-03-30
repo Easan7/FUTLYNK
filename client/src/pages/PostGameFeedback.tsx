@@ -3,6 +3,7 @@ import { Link, useParams } from "wouter";
 import { ArrowLeft, Flag, Lock, Star } from "lucide-react";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
+import FootballLoader from "@/components/FootballLoader";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { apiGet, apiPost, DEFAULT_USER_ID } from "@/lib/api";
 
@@ -23,11 +24,17 @@ export default function PostGameFeedback() {
   const [tagsByPlayer, setTagsByPlayer] = useState<Record<string, string[]>>({});
   const [flaggedByPlayer, setFlaggedByPlayer] = useState<Record<string, boolean>>({});
   const [game, setGame] = useState<FeedbackGame | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
-      const payload = await apiGet<FeedbackGame>(`/api/v1/feedback/${gameId}?user_id=${DEFAULT_USER_ID}`);
-      setGame(payload);
+      try {
+        setLoading(true);
+        const payload = await apiGet<FeedbackGame>(`/api/v1/feedback/${gameId}?user_id=${DEFAULT_USER_ID}`);
+        setGame(payload);
+      } finally {
+        setLoading(false);
+      }
     };
 
     void load();
@@ -73,6 +80,15 @@ export default function PostGameFeedback() {
       description: "Points for this match were already claimed.",
     });
   };
+
+  if (loading && !game) {
+    return (
+      <div className="app-shell">
+        <FootballLoader fullScreen label="Loading feedback..." />
+        <Navigation />
+      </div>
+    );
+  }
 
   if (!game) {
     return (

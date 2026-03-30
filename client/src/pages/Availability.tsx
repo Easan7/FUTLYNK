@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { ArrowLeft, CalendarDays, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
+import FootballLoader from "@/components/FootballLoader";
 import { Input } from "@/components/ui/input";
 import PitchOverlay from "@/components/PitchOverlay";
 import { apiDelete, apiGet, apiPost, DEFAULT_USER_ID } from "@/lib/api";
@@ -27,18 +28,33 @@ export default function Availability() {
   const [specificTime, setSpecificTime] = useState("19:00");
   const [specificDates, setSpecificDates] = useState<Array<{ id: string; date: string; time: string }>>([]);
   const [inlineError, setInlineError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const payload = await apiGet<{ recurringRules: RecurringRule[]; specificDates: Array<{ id: string; date: string; time: string }> }>(
-      `/api/v1/availability?user_id=${DEFAULT_USER_ID}`
-    );
-    setRecurringRules(payload.recurringRules ?? []);
-    setSpecificDates(payload.specificDates ?? []);
+    try {
+      setLoading(true);
+      const payload = await apiGet<{ recurringRules: RecurringRule[]; specificDates: Array<{ id: string; date: string; time: string }> }>(
+        `/api/v1/availability?user_id=${DEFAULT_USER_ID}`
+      );
+      setRecurringRules(payload.recurringRules ?? []);
+      setSpecificDates(payload.specificDates ?? []);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     void load();
   }, []);
+
+  if (loading && recurringRules.length === 0 && specificDates.length === 0) {
+    return (
+      <div className="app-shell">
+        <FootballLoader fullScreen label="Loading availability..." />
+        <Navigation />
+      </div>
+    );
+  }
 
   const addRecurringRule = async () => {
     setInlineError("");
