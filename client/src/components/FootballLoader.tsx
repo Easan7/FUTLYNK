@@ -7,7 +7,7 @@ type FootballLoaderProps = {
 
 export default function FootballLoader({ label = "Loading...", fullScreen = false }: FootballLoaderProps) {
   const containerClass = fullScreen
-    ? "app-shell flex min-h-screen items-center justify-center p-6"
+    ? "app-shell flex min-h-[100dvh] items-center justify-center p-6"
     : "flex w-full items-center justify-center py-10";
 
   return (

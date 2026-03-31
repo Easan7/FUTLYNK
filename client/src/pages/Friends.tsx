@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import SkillBadge from "@/components/SkillBadge";
 import type { SkillLevel } from "@/components/SkillBadge";
 import PitchOverlay from "@/components/PitchOverlay";
-import { apiGet, apiPost, DEFAULT_USER_ID } from "@/lib/api";
+import { apiGet, apiPost, getCurrentUserId } from "@/lib/api";
 
 const toSkillLevel = (value: string): SkillLevel =>
   value === "Beginner" || value === "Intermediate" || value === "Advanced" || value === "Hybrid"
@@ -24,19 +24,27 @@ type Friend = {
   isOnline: boolean;
   isFriend: boolean;
   requestPending: boolean;
+  requestDirection?: "incoming" | "outgoing" | null;
 };
 
 export default function Friends() {
+  const currentUserId = getCurrentUserId();
   const [search, setSearch] = useState("");
   const [showAddFriend, setShowAddFriend] = useState(false);
   const [people, setPeople] = useState<Friend[]>([]);
+  const [incomingRequests, setIncomingRequests] = useState<Friend[]>([]);
+  const [outgoingRequests, setOutgoingRequests] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = async (q = "") => {
     try {
       setLoading(true);
-      const payload = await apiGet<{ friends: Friend[] }>(`/api/v1/friends?user_id=${DEFAULT_USER_ID}&q=${encodeURIComponent(q)}`);
+      const payload = await apiGet<{ friends: Friend[]; incomingRequests?: Friend[]; outgoingRequests?: Friend[] }>(
+        `/api/v1/friends?user_id=${currentUserId}&q=${encodeURIComponent(q)}`
+      );
       setPeople(payload.friends ?? []);
+      setIncomingRequests(payload.incomingRequests ?? []);
+      setOutgoingRequests(payload.outgoingRequests ?? []);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load friends");
     } finally {
@@ -63,8 +71,14 @@ export default function Friends() {
   }, [friends, people, search, showAddFriend]);
 
   const sendRequest = async (friendId: string, friendName: string) => {
-    await apiPost("/api/v1/friends/requests", { user_id: DEFAULT_USER_ID, friend_id: friendId });
+    await apiPost("/api/v1/friends/requests", { user_id: currentUserId, friend_id: friendId });
     toast.success(`Friend request sent to ${friendName}`);
+    await load(search);
+  };
+
+  const respondToRequest = async (friendId: string, action: "accept" | "reject", friendName: string) => {
+    await apiPost(`/api/v1/friends/requests/${friendId}/respond`, { user_id: currentUserId, action });
+    toast.success(action === "accept" ? `You are now friends with ${friendName}` : `Request from ${friendName} declined`);
     await load(search);
   };
 
@@ -98,6 +112,48 @@ export default function Friends() {
 
       <main className="space-y-3 p-4">
         {loading && !showAddFriend ? <FootballLoader label="Loading friends..." /> : null}
+        {!showAddFriend && (
+          <section className="surface-card">
+            <h2 className="text-base font-semibold text-[#f2f7f2]">Friend Requests</h2>
+            <div className="mt-3 space-y-2">
+              {incomingRequests.length === 0 ? (
+                <div className="surface-inner">
+                  <p className="text-sm text-[#95a39a]">No incoming requests right now.</p>
+                </div>
+              ) : (
+                incomingRequests.map((request) => (
+                  <div key={request.id} className="surface-inner flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm text-[#edf3ee]">{request.name}</p>
+                      <p className="mt-0.5 text-sm text-[#95a39a]">{request.gamesPlayed} games</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button className="btn-secondary text-xs" onClick={() => void respondToRequest(request.id, "reject", request.name)}>
+                        Decline
+                      </button>
+                      <button className="btn-primary text-xs" onClick={() => void respondToRequest(request.id, "accept", request.name)}>
+                        Accept
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            {outgoingRequests.length > 0 ? (
+              <div className="mt-3 border-t border-[#27322a] pt-3">
+                <p className="text-xs uppercase tracking-[0.08em] text-[#9aa79e]">Pending sent</p>
+                <div className="mt-2 space-y-2">
+                  {outgoingRequests.map((request) => (
+                    <div key={request.id} className="surface-inner flex items-center justify-between">
+                      <p className="text-sm text-[#d8e1da]">{request.name}</p>
+                      <span className="chip">Pending</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </section>
+        )}
         {showAddFriend && (
           <section className="surface-card">
             <h2 className="text-base font-semibold text-[#f2f7f2]">Add Friends</h2>
@@ -114,10 +170,10 @@ export default function Friends() {
                   </div>
                   <button
                     onClick={() => void sendRequest(friend.id, friend.name)}
-                    disabled={friend.requestPending || friend.isFriend}
-                    className={friend.requestPending || friend.isFriend ? "btn-secondary text-xs" : "btn-primary text-xs"}
+                    disabled={friend.requestPending || friend.isFriend || friend.requestDirection === "incoming"}
+                    className={friend.requestPending || friend.isFriend || friend.requestDirection === "incoming" ? "btn-secondary text-xs" : "btn-primary text-xs"}
                   >
-                    {friend.isFriend ? "Friend" : friend.requestPending ? "Requested" : "Add"}
+                    {friend.isFriend ? "Friend" : friend.requestDirection === "incoming" ? "Incoming" : friend.requestPending ? "Requested" : "Add"}
                   </button>
                 </div>
               ))}

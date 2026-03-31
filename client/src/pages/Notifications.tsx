@@ -6,7 +6,7 @@ import Navigation from "@/components/Navigation";
 import FootballLoader from "@/components/FootballLoader";
 import PitchOverlay from "@/components/PitchOverlay";
 import StatBlock from "@/components/StatBlock";
-import { apiDelete, apiGet, apiPost, DEFAULT_USER_ID } from "@/lib/api";
+import { apiDelete, apiGet, apiPost, getCurrentUserId } from "@/lib/api";
 
 type Notification = {
   id: string;
@@ -19,13 +19,14 @@ type Notification = {
 };
 
 export default function Notifications() {
+  const currentUserId = getCurrentUserId();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     try {
       setLoading(true);
-      const payload = await apiGet<{ notifications: Notification[] }>(`/api/v1/notifications?user_id=${DEFAULT_USER_ID}`);
+      const payload = await apiGet<{ notifications: Notification[] }>(`/api/v1/notifications?user_id=${currentUserId}`);
       setNotifications(payload.notifications ?? []);
     } finally {
       setLoading(false);
@@ -40,12 +41,12 @@ export default function Notifications() {
 
   const markRead = async (id: string) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-    await apiPost(`/api/v1/notifications/${id}/read`, { user_id: DEFAULT_USER_ID });
+    await apiPost(`/api/v1/notifications/${id}/read`, { user_id: currentUserId });
   };
 
   const removeNotification = async (id: string, message: string) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
-    await apiDelete(`/api/v1/notifications/${id}?user_id=${DEFAULT_USER_ID}`);
+    await apiDelete(`/api/v1/notifications/${id}?user_id=${currentUserId}`);
     toast.success(message);
   };
 

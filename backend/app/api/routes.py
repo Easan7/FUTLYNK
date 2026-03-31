@@ -4,9 +4,12 @@ from collections import defaultdict
 from datetime import date, datetime
 import math
 import re
+import time
 from typing import Any
+from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException
+import httpx
 from pydantic import BaseModel, Field
 
 from backend.app.schemas import PingResponse
@@ -39,6 +42,11 @@ class ChatMessageRequest(BaseModel):
 class FriendRequestBody(BaseModel):
     user_id: str = DEFAULT_USER_ID
     friend_id: str
+
+
+class FriendRequestRespondBody(BaseModel):
+    user_id: str = DEFAULT_USER_ID
+    action: str
 
 
 class ProfileUpdateBody(BaseModel):
@@ -89,6 +97,21 @@ class FeedbackSubmitBody(BaseModel):
     ratings: list[FeedbackItem]
 
 
+class SignupBody(BaseModel):
+    display_name: str
+    username: str
+    email: str | None = None
+
+
+class LoginBody(BaseModel):
+    identifier: str
+
+
+class SetSkillBandBody(BaseModel):
+    user_id: str
+    public_skill_band: str
+
+
 ALLOWED_FEEDBACK_TAGS = {
     "Reliable",
     "Team Player",
@@ -117,6 +140,21 @@ ALLOWED_FEEDBACK_TAGS = {
 class GroupRecommendationInterestBody(BaseModel):
     user_id: str = DEFAULT_USER_ID
     wants_to_join: bool = True
+
+
+def _normalize_username(username: str) -> str:
+    parsed = username.strip()
+    if not parsed.startswith("@"):
+        parsed = f"@{parsed}"
+    return parsed.lower()
+
+
+def _default_hidden_rating_for_band(public_skill_band: str) -> float:
+    if public_skill_band == "Beginner":
+        return 2.2
+    if public_skill_band == "Advanced":
+        return 4.1
+    return 3.2
 
 
 def _time_ago(iso_value: str | None) -> str:
@@ -292,6 +330,21 @@ def _get_players_map() -> dict[str, dict[str, Any]]:
     return {p["id"]: p for p in players}
 
 
+def _execute_with_retry(builder: Any, retries: int = 2):
+    last_error: Exception | None = None
+    for attempt in range(retries):
+        try:
+            return builder.execute()
+        except (httpx.RemoteProtocolError, httpx.ReadError, httpx.ConnectError, httpx.ReadTimeout) as exc:
+            last_error = exc
+            if attempt == retries - 1:
+                raise
+            time.sleep(0.15 * (attempt + 1))
+    if last_error:
+        raise last_error
+    raise RuntimeError("Query execution failed")
+
+
 def _get_games_with_counts() -> tuple[list[dict[str, Any]], dict[str, int]]:
     db = get_supabase()
     games = (
@@ -300,11 +353,13 @@ def _get_games_with_counts() -> tuple[list[dict[str, Any]], dict[str, int]]:
         .neq("status", "cancelled")
         .order("game_date")
         .order("start_time")
-        .execute()
+    )
+    games = (
+        _execute_with_retry(games)
         .data
         or []
     )
-    participants = db.table("game_participants").select("game_id").execute().data or []
+    participants = _execute_with_retry(db.table("game_participants").select("game_id")).data or []
     counts: dict[str, int] = defaultdict(int)
     for row in participants:
         counts[row["game_id"]] += 1
@@ -336,6 +391,86 @@ def ping() -> PingResponse:
     return PingResponse(message="pong")
 
 
+@router.post("/auth/signup")
+def signup(body: SignupBody):
+    display_name = body.display_name.strip()
+    username = _normalize_username(body.username)
+    email = (body.email or "").strip().lower() or None
+    if len(display_name) < 2:
+        raise HTTPException(status_code=400, detail="Display name must be at least 2 characters")
+    if not re.fullmatch(r"@[a-z0-9_]{3,20}", username):
+        raise HTTPException(status_code=400, detail="Username must be @ + 3-20 letters, numbers, or underscores")
+    if email and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+        raise HTTPException(status_code=400, detail="Invalid email format")
+
+    db = get_supabase()
+    existing_users = db.table("app_users").select("username,email").execute().data or []
+    for row in existing_users:
+        row_username = str(row.get("username") or "").strip().lower()
+        row_email = str(row.get("email") or "").strip().lower()
+        if row_username and row_username == username:
+            raise HTTPException(status_code=409, detail="Username is already taken")
+        if email and row_email and row_email == email:
+            raise HTTPException(status_code=409, detail="Email is already in use")
+
+    user_id = f"u-{uuid4().hex[:10]}"
+    db.table("app_users").insert(
+        {
+            "id": user_id,
+            "email": email,
+            "display_name": display_name,
+            "username": username,
+            "public_skill_band": "Beginner",
+            "hidden_skill_rating": _default_hidden_rating_for_band("Beginner"),
+            "reliability_score": 0,
+        }
+    ).execute()
+    return {"ok": True, "userId": user_id, "displayName": display_name}
+
+
+@router.post("/auth/login")
+def login(body: LoginBody):
+    identifier = body.identifier.strip().lower()
+    if not identifier:
+        raise HTTPException(status_code=400, detail="Username or email is required")
+
+    possible_username = _normalize_username(identifier)
+    db = get_supabase()
+    users = db.table("app_users").select("id,display_name,username,email").execute().data or []
+    matched = next(
+        (
+            row
+            for row in users
+            if str(row.get("email") or "").strip().lower() == identifier
+            or str(row.get("username") or "").strip().lower() == possible_username
+        ),
+        None,
+    )
+    if not matched:
+        raise HTTPException(status_code=404, detail="No account found for that username/email")
+    return {
+        "ok": True,
+        "userId": matched["id"],
+        "displayName": matched.get("display_name") or "Player",
+    }
+
+
+@router.post("/auth/skill-band")
+def set_skill_band(body: SetSkillBandBody):
+    if body.public_skill_band not in {"Beginner", "Intermediate", "Advanced"}:
+        raise HTTPException(status_code=400, detail="Invalid skill band")
+    _require_user(body.user_id)
+    rating = _default_hidden_rating_for_band(body.public_skill_band)
+    get_supabase().table("app_users").update(
+        {
+            "public_skill_band": body.public_skill_band,
+            "hidden_skill_rating": rating,
+            "updated_at": datetime.utcnow().isoformat(),
+        }
+    ).eq("id", body.user_id).execute()
+    return {"ok": True, "publicSkillBand": body.public_skill_band, "hiddenSkillRating": rating}
+
+
 @router.get("/app/home")
 def home_data(user_id: str = DEFAULT_USER_ID):
     user = _require_user(user_id)
@@ -356,16 +491,44 @@ def home_data(user_id: str = DEFAULT_USER_ID):
         room["priceVisible"] = not _is_high_fill(joined, room["maxPlayers"])
         upcoming.append(room)
 
-    pending_feedback = (
-        db.table("games")
-        .select("id,location,game_date")
-        .eq("status", "completed")
-        .order("game_date", desc=True)
-        .limit(3)
-        .execute()
-        .data
-        or []
-    )
+    completed_game_ids = []
+    if game_ids:
+        completed_rows = (
+            db.table("games")
+            .select("id")
+            .in_("id", sorted(game_ids))
+            .eq("status", "completed")
+            .execute()
+            .data
+            or []
+        )
+        completed_game_ids = [row["id"] for row in completed_rows]
+
+    already_rated_game_ids: set[str] = set()
+    if completed_game_ids:
+        rated_rows = (
+            db.table("feedback_ratings")
+            .select("game_id")
+            .eq("rater_user_id", user_id)
+            .in_("game_id", completed_game_ids)
+            .execute()
+            .data
+            or []
+        )
+        already_rated_game_ids = {row["game_id"] for row in rated_rows}
+
+    pending_feedback: list[dict[str, Any]] = []
+    if completed_game_ids:
+        pending_feedback = (
+            db.table("games")
+            .select("id,location,game_date")
+            .in_("id", completed_game_ids)
+            .order("game_date", desc=True)
+            .execute()
+            .data
+            or []
+        )
+        pending_feedback = [game for game in pending_feedback if game["id"] not in already_rated_game_ids][:3]
 
     return {
         "currentUser": {
@@ -390,7 +553,7 @@ def home_data(user_id: str = DEFAULT_USER_ID):
 
 
 @router.get("/rooms/discover")
-def discover_rooms(user_id: str = DEFAULT_USER_ID, use_availability: bool = True):
+def discover_rooms(user_id: str = DEFAULT_USER_ID, use_availability: bool = True, debug: bool = False):
     user = _require_user(user_id)
     games, counts = _get_games_with_counts()
     joined_rows = (
@@ -400,44 +563,58 @@ def discover_rooms(user_id: str = DEFAULT_USER_ID, use_availability: bool = True
     joined_game_ids = {row["game_id"] for row in joined_rows}
     user_band = user.get("public_skill_band")
 
-    recurring_rules = (
+    availability_rules = (
         get_supabase()
         .table("user_availability")
-        .select("weekdays,time_from,time_to")
+        .select("rule_type,weekdays,date_value,time_from,time_to,time_value")
         .eq("user_id", user_id)
-        .eq("rule_type", "recurring")
         .execute()
         .data
         or []
     )
+    has_availability_rules = len(availability_rules) > 0
 
     def matches_availability(game: dict[str, Any]) -> bool:
-        if not recurring_rules:
+        if not has_availability_rules:
             return bool(game.get("matching_availability"))
-        game_day = date.fromisoformat(str(game["game_date"])).strftime("%a")
-        game_time = str(game["start_time"])[:5]
-        for rule in recurring_rules:
-            days = rule.get("weekdays") or []
-            if game_day not in days:
-                continue
-            start = str(rule.get("time_from") or "00:00")[:5]
-            end = str(rule.get("time_to") or "23:59")[:5]
-            if start <= game_time <= end:
-                return True
-        return False
+        return _is_available_for_game(availability_rules, game["game_date"], game["start_time"])
 
     rooms = []
+    debug_rows: list[dict[str, Any]] = []
     for game in games:
+        exclusion_reasons: list[str] = []
         if game.get("status") != "open":
-            continue
+            exclusion_reasons.append("status-not-open")
         if game["id"] in joined_game_ids:
-            continue
+            exclusion_reasons.append("already-joined")
         if use_availability and not matches_availability(game):
-            continue
+            exclusion_reasons.append("availability-mismatch")
         if counts.get(game["id"], 0) >= int(game.get("max_players") or 10):
-            continue
+            exclusion_reasons.append("room-full")
         allowed_band = game.get("allowed_band")
         if allowed_band and allowed_band != user_band:
+            exclusion_reasons.append("skill-band-mismatch")
+
+        if debug:
+            debug_rows.append(
+                {
+                    "id": game.get("id"),
+                    "title": game.get("title"),
+                    "allowedBand": allowed_band,
+                    "userSkillBand": user_band,
+                    "status": game.get("status"),
+                    "joined": game["id"] in joined_game_ids,
+                    "playersJoined": counts.get(game["id"], 0),
+                    "maxPlayers": int(game.get("max_players") or 10),
+                    "useAvailability": use_availability,
+                    "matchingAvailabilityField": bool(game.get("matching_availability")),
+                    "hasUserAvailabilityRules": has_availability_rules,
+                    "excluded": len(exclusion_reasons) > 0,
+                    "reasons": exclusion_reasons,
+                }
+            )
+
+        if exclusion_reasons:
             continue
         room = _game_to_room(game, counts.get(game["id"], 0))
         distance = abs(room["hiddenAvgRating"] - float(user.get("hidden_skill_rating") or 3.0))
@@ -445,7 +622,21 @@ def discover_rooms(user_id: str = DEFAULT_USER_ID, use_availability: bool = True
         rooms.append(room)
 
     rooms.sort(key=lambda r: r["fitScore"], reverse=True)
-    return {"rooms": rooms}
+    response: dict[str, Any] = {"rooms": rooms, "userSkillBand": user_band}
+    if debug:
+        reason_counts: dict[str, int] = defaultdict(int)
+        for row in debug_rows:
+            for reason in row["reasons"]:
+                reason_counts[reason] += 1
+        response["debug"] = {
+            "summary": {
+                "totalGamesConsidered": len(games),
+                "returnedRooms": len(rooms),
+                "excludedByReason": dict(reason_counts),
+            },
+            "rooms": debug_rows,
+        }
+    return response
 
 
 @router.get("/rooms/{room_id}")
@@ -1085,12 +1276,18 @@ def get_friends(user_id: str = DEFAULT_USER_ID, q: str = ""):
 
     friend_ids = set()
     pending_ids = set()
+    incoming_ids = set()
+    outgoing_ids = set()
     for row in relationships:
         other = row["friend_id"] if row["user_id"] == user_id else row["user_id"]
         if row["status"] == "accepted":
             friend_ids.add(other)
         elif row["status"] == "pending":
             pending_ids.add(other)
+            if row.get("requested_by") == user_id:
+                outgoing_ids.add(other)
+            else:
+                incoming_ids.add(other)
 
     players = db.table("app_users").select("*").neq("id", user_id).order("display_name").execute().data or []
     if q.strip():
@@ -1108,9 +1305,30 @@ def get_friends(user_id: str = DEFAULT_USER_ID, q: str = ""):
                 "isOnline": bool(p.get("is_online") or False),
                 "isFriend": p["id"] in friend_ids,
                 "requestPending": p["id"] in pending_ids,
+                "requestDirection": "incoming" if p["id"] in incoming_ids else ("outgoing" if p["id"] in outgoing_ids else None),
             }
             for p in players
-        ]
+        ],
+        "incomingRequests": [
+            {
+                "id": p["id"],
+                "name": p["display_name"],
+                "publicSkillBand": p["public_skill_band"],
+                "gamesPlayed": int(p.get("games_played") or 0),
+            }
+            for p in players
+            if p["id"] in incoming_ids
+        ],
+        "outgoingRequests": [
+            {
+                "id": p["id"],
+                "name": p["display_name"],
+                "publicSkillBand": p["public_skill_band"],
+                "gamesPlayed": int(p.get("games_played") or 0),
+            }
+            for p in players
+            if p["id"] in outgoing_ids
+        ],
     }
 
 
@@ -1146,6 +1364,41 @@ def send_friend_request(body: FriendRequestBody):
     ).execute()
 
     return {"ok": True, "status": "pending"}
+
+
+@router.post("/friends/requests/{friend_id}/respond")
+def respond_friend_request(friend_id: str, body: FriendRequestRespondBody):
+    action = body.action.strip().lower()
+    if action not in {"accept", "reject"}:
+        raise HTTPException(status_code=400, detail="Action must be accept or reject")
+
+    db = get_supabase()
+    pending = (
+        db.table("friendships")
+        .select("id,user_id,friend_id,status,requested_by")
+        .or_(
+            f"and(user_id.eq.{body.user_id},friend_id.eq.{friend_id}),"
+            f"and(user_id.eq.{friend_id},friend_id.eq.{body.user_id})"
+        )
+        .eq("status", "pending")
+        .limit(1)
+        .execute()
+        .data
+        or []
+    )
+    if not pending:
+        raise HTTPException(status_code=404, detail="Pending request not found")
+
+    row = pending[0]
+    if row.get("requested_by") == body.user_id:
+        raise HTTPException(status_code=403, detail="You cannot respond to your own outgoing request")
+
+    if action == "accept":
+        db.table("friendships").update({"status": "accepted", "updated_at": datetime.utcnow().isoformat()}).eq("id", row["id"]).execute()
+        return {"ok": True, "status": "accepted"}
+
+    db.table("friendships").delete().eq("id", row["id"]).execute()
+    return {"ok": True, "status": "rejected"}
 
 
 @router.get("/profile")

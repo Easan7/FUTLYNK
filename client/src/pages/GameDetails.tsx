@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PitchOverlay from "@/components/PitchOverlay";
 import ProgressRing from "@/components/ProgressRing";
-import { apiGet, apiPost, DEFAULT_USER_ID } from "@/lib/api";
+import { apiGet, apiPost, getCurrentUserId } from "@/lib/api";
 
 type RoomDetailResponse = {
   room: {
@@ -41,6 +41,7 @@ type JoinResponse = {
 };
 
 export default function GameDetails() {
+  const currentUserId = getCurrentUserId();
   const [, params] = useRoute("/game/:id");
   const roomId = params?.id ?? "1";
   const [detail, setDetail] = useState<RoomDetailResponse | null>(null);
@@ -51,7 +52,7 @@ export default function GameDetails() {
 
   const loadDetail = async () => {
     try {
-      const payload = await apiGet<RoomDetailResponse>(`/api/v1/rooms/${roomId}?user_id=${DEFAULT_USER_ID}`);
+      const payload = await apiGet<RoomDetailResponse>(`/api/v1/rooms/${roomId}?user_id=${currentUserId}`);
       setDetail(payload);
       setChat(payload.chat);
       setIsJoined(payload.isJoined);
@@ -72,7 +73,7 @@ export default function GameDetails() {
 
   const sendMessage = async () => {
     if (!message.trim()) return;
-    await apiPost(`/api/v1/rooms/${roomId}/chat`, { user_id: DEFAULT_USER_ID, text: message });
+    await apiPost(`/api/v1/rooms/${roomId}/chat`, { user_id: currentUserId, text: message });
     setChat((prev) => [{ id: String(Date.now()), user: "You", text: message }, ...prev]);
     setMessage("");
   };
@@ -197,7 +198,7 @@ export default function GameDetails() {
           onClick={async () => {
             if (isJoined && !window.confirm("Leave this room?")) return;
             if (isJoined) {
-              await apiPost(`/api/v1/rooms/${roomId}/leave`, { user_id: DEFAULT_USER_ID });
+              await apiPost(`/api/v1/rooms/${roomId}/leave`, { user_id: currentUserId });
               setIsJoined(false);
               await loadDetail();
               toast.success("You left this room");
@@ -205,7 +206,7 @@ export default function GameDetails() {
             }
 
             const firstAttempt = await apiPost<JoinResponse>(`/api/v1/rooms/${roomId}/join`, {
-              user_id: DEFAULT_USER_ID,
+              user_id: currentUserId,
               pay_when_required: false,
             });
 
@@ -253,7 +254,7 @@ export default function GameDetails() {
                 onClick={async () => {
                   try {
                     await apiPost<JoinResponse>(`/api/v1/rooms/${roomId}/join`, {
-                      user_id: DEFAULT_USER_ID,
+                      user_id: currentUserId,
                       pay_when_required: true,
                     });
                     setPaymentPrompt(null);

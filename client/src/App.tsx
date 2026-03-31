@@ -6,6 +6,7 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import OnboardingFlow from "./components/OnboardingFlow";
+import SkillBandIntro from "./components/SkillBandIntro";
 import Home from "./pages/Home";
 import GameDetails from "./pages/GameDetails";
 import CreateGroup from "./pages/CreateGroup";
@@ -16,6 +17,7 @@ import Groups from "./pages/Groups";
 import PostGameFeedback from "./pages/PostGameFeedback";
 import Notifications from "./pages/Notifications";
 import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 import ProfileEditor from "./pages/ProfileEditor";
 import Wallet from "./pages/Wallet";
 import Availability from "./pages/Availability";
@@ -45,14 +47,40 @@ function Router() {
 function App() {
   const [hasEntered, setHasEntered] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showSkillBandStep, setShowSkillBandStep] = useState(false);
+  const [authScreen, setAuthScreen] = useState<"signup" | "login">("signup");
 
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
           <Toaster />
-          {hasEntered ? <Router /> : <Login onEnter={() => { setHasEntered(true); setShowOnboarding(true); }} />}
-          {hasEntered && showOnboarding ? <OnboardingFlow onFinish={() => setShowOnboarding(false)} /> : null}
+          {hasEntered ? (
+            <Router />
+          ) : authScreen === "signup" ? (
+            <Signup
+              onEnter={() => {
+                setHasEntered(true);
+                setShowOnboarding(true);
+                setShowSkillBandStep(false);
+              }}
+              onGoLogin={() => setAuthScreen("login")}
+            />
+          ) : (
+            <Login
+              onEnter={() => {
+                setHasEntered(true);
+                setShowOnboarding(false);
+                setShowSkillBandStep(false);
+              }}
+              onGoSignup={() => setAuthScreen("signup")}
+            />
+          )}
+          {hasEntered && showOnboarding ? <OnboardingFlow onFinish={() => {
+            setShowOnboarding(false);
+            setShowSkillBandStep(true);
+          }} /> : null}
+          {hasEntered && showSkillBandStep ? <SkillBandIntro onFinish={() => setShowSkillBandStep(false)} /> : null}
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

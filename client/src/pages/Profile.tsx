@@ -6,7 +6,7 @@ import FootballLoader from "@/components/FootballLoader";
 import SkillBadge from "@/components/SkillBadge";
 import type { SkillLevel } from "@/components/SkillBadge";
 import PitchOverlay from "@/components/PitchOverlay";
-import { apiGet, DEFAULT_USER_ID } from "@/lib/api";
+import { apiGet, getCurrentUserId } from "@/lib/api";
 
 const achievementsCatalog = [
   { id: "1", name: "10 Games", description: "Consistency milestone", category: "consistency", rarity: "common", shape: "coin" },
@@ -49,9 +49,10 @@ const avatarStyles: Record<string, { bg: string; ring: string; text: string }> =
 };
 
 export default function Profile() {
+  const currentUserId = getCurrentUserId();
   const [isFriendRoute, routeParams] = useRoute("/profile/:id");
-  const profileUserId = isFriendRoute ? routeParams?.id ?? DEFAULT_USER_ID : DEFAULT_USER_ID;
-  const isOwnProfile = profileUserId === DEFAULT_USER_ID;
+  const profileUserId = isFriendRoute ? routeParams?.id ?? currentUserId : currentUserId;
+  const isOwnProfile = profileUserId === currentUserId;
   const [profile, setProfile] = useState<ProfilePayload["profile"] | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -162,7 +163,9 @@ export default function Profile() {
             </div>
             <div className="flex items-center justify-between border-b border-[#222a23] py-2">
               <span className="text-[#95a39a]">Reliability</span>
-              <span className="font-semibold text-[#edf3ee]">{profile?.reliabilityScore ?? 0}%</span>
+              <span className="font-semibold text-[#edf3ee]">
+                {(profile?.gamesPlayed ?? 0) > 0 ? `${profile?.reliabilityScore ?? 0}%` : "Not rated yet"}
+              </span>
             </div>
             <div className="flex items-center justify-between border-b border-[#222a23] py-2">
               <span className="text-[#95a39a]">Current Streak</span>

@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import PitchOverlay from "@/components/PitchOverlay";
-import { apiGet, apiPost, DEFAULT_USER_ID } from "@/lib/api";
+import { apiGet, apiPost, getCurrentUserId } from "@/lib/api";
 
 type GroupCard = {
   id: string;
@@ -66,6 +66,7 @@ type GroupDetail = {
 };
 
 export default function Groups() {
+  const currentUserId = getCurrentUserId();
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [chatMessage, setChatMessage] = useState("");
   const [groups, setGroups] = useState<GroupCard[]>([]);
@@ -84,7 +85,7 @@ export default function Groups() {
   const loadGroups = async () => {
     try {
       setLoadingGroups(true);
-      const payload = await apiGet<{ groups: GroupCard[] }>(`/api/v1/groups?user_id=${DEFAULT_USER_ID}`);
+      const payload = await apiGet<{ groups: GroupCard[] }>(`/api/v1/groups?user_id=${currentUserId}`);
       setGroups(payload.groups ?? []);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load groups");
@@ -96,7 +97,7 @@ export default function Groups() {
   const loadDetail = async (groupId: string) => {
     try {
       setLoadingDetail(true);
-      const payload = await apiGet<GroupDetail>(`/api/v1/groups/${groupId}?user_id=${DEFAULT_USER_ID}`);
+      const payload = await apiGet<GroupDetail>(`/api/v1/groups/${groupId}?user_id=${currentUserId}`);
       setDetail(payload);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load group details");
@@ -130,7 +131,7 @@ export default function Groups() {
 
   const sendChat = async () => {
     if (!selectedGroupId || !chatMessage.trim()) return;
-    await apiPost(`/api/v1/groups/${selectedGroupId}/chat`, { user_id: DEFAULT_USER_ID, text: chatMessage });
+    await apiPost(`/api/v1/groups/${selectedGroupId}/chat`, { user_id: currentUserId, text: chatMessage });
     setChatMessage("");
     await loadDetail(selectedGroupId);
   };
@@ -146,7 +147,7 @@ export default function Groups() {
         paymentDueHours?: number | null;
       }>(
         `/api/v1/groups/${selectedGroupId}/recommendations/${roomId}/interest`,
-        { user_id: DEFAULT_USER_ID, wants_to_join: wantsToJoin }
+        { user_id: currentUserId, wants_to_join: wantsToJoin }
       );
       if (payload.autoJoined) {
         toast.success("All available members confirmed. Group auto-joined this room.");

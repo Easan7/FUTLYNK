@@ -1,5 +1,18 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+const SESSION_USER_KEY = "futlynk_session_user_id";
 export const DEFAULT_USER_ID = "u-me";
+
+export function getCurrentUserId(): string {
+  return localStorage.getItem(SESSION_USER_KEY) ?? DEFAULT_USER_ID;
+}
+
+export function setCurrentUserId(userId: string): void {
+  localStorage.setItem(SESSION_USER_KEY, userId);
+}
+
+export function clearCurrentUserId(): void {
+  localStorage.removeItem(SESSION_USER_KEY);
+}
 
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
@@ -41,4 +54,3 @@ export function apiPut<T>(path: string, body?: unknown): Promise<T> {
 export function apiDelete<T>(path: string): Promise<T> {
   return request<T>(path, "DELETE");
 }
-

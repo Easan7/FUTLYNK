@@ -12,8 +12,8 @@ export default function Navigation() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#243026] bg-[#0a0f0b]/96 backdrop-blur-sm">
-      <div className="mx-auto flex w-full max-w-lg items-center justify-around px-2 pb-[max(0.45rem,env(safe-area-inset-bottom))] pt-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#243026] bg-[#0a0f0b] [backface-visibility:hidden] [transform:translateZ(0)]">
+      <div className="mx-auto flex w-full max-w-lg items-center justify-around px-2 pb-[calc(env(safe-area-inset-bottom,0px)+0.55rem)] pt-2">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = location === item.path;

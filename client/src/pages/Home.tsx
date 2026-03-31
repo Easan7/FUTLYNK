@@ -9,7 +9,7 @@ import type { SkillLevel } from "@/components/SkillBadge";
 import { toast } from "sonner";
 import PitchOverlay from "@/components/PitchOverlay";
 import StatBlock from "@/components/StatBlock";
-import { apiGet, apiPost, DEFAULT_USER_ID } from "@/lib/api";
+import { apiGet, apiPost, getCurrentUserId } from "@/lib/api";
 
 const toSkillLevel = (value: string | null | undefined): SkillLevel =>
   value === "Beginner" || value === "Intermediate" || value === "Advanced" || value === "Hybrid"
@@ -21,6 +21,7 @@ type HomeData = {
     id: string;
     name: string;
     reliabilityScore: number;
+    gamesPlayed: number;
     streakWeeks: number;
   };
   upcomingGames: Array<{
@@ -38,13 +39,14 @@ type HomeData = {
 };
 
 export default function Home() {
+  const currentUserId = getCurrentUserId();
   const [data, setData] = useState<HomeData | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadHome = async () => {
     try {
       setLoading(true);
-      const payload = await apiGet<HomeData>(`/api/v1/app/home?user_id=${DEFAULT_USER_ID}`);
+      const payload = await apiGet<HomeData>(`/api/v1/app/home?user_id=${currentUserId}`);
       setData(payload);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to load home data";
@@ -100,7 +102,11 @@ export default function Home() {
             <StatBlock variant="card" label="Joined" value={upcomingGames.length} />
           </motion.div>
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.13 }}>
-            <StatBlock variant="card" label="Reliability" value={`${data?.currentUser?.reliabilityScore ?? 0}%`} />
+            <StatBlock
+              variant="card"
+              label="Reliability"
+              value={data?.currentUser?.gamesPlayed ? `${data.currentUser.reliabilityScore}%` : "Not rated"}
+            />
           </motion.div>
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.17 }}>
             <StatBlock variant="card" label="Streak" value={`${data?.currentUser?.streakWeeks ?? 0}w`} />
@@ -143,7 +149,7 @@ export default function Home() {
                 className="btn-secondary"
                 onClick={async () => {
                   if (!window.confirm("Leave this game?")) return;
-                  await apiPost(`/api/v1/rooms/${nextGame.id}/leave`, { user_id: DEFAULT_USER_ID });
+                  await apiPost(`/api/v1/rooms/${nextGame.id}/leave`, { user_id: currentUserId });
                   setData((prev) =>
                     prev
                       ? { ...prev, upcomingGames: prev.upcomingGames.filter((g) => g.id !== nextGame.id) }
@@ -222,7 +228,7 @@ export default function Home() {
                   actionVariant="secondary"
                   onAction={async () => {
                     if (!window.confirm("Leave this game?")) return;
-                    await apiPost(`/api/v1/rooms/${room.id}/leave`, { user_id: DEFAULT_USER_ID });
+                    await apiPost(`/api/v1/rooms/${room.id}/leave`, { user_id: currentUserId });
                     setData((prev) =>
                       prev
                         ? { ...prev, upcomingGames: prev.upcomingGames.filter((g) => g.id !== room.id) }

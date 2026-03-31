@@ -148,7 +148,7 @@ export default function OnboardingFlow({ onFinish }: OnboardingFlowProps) {
         animate={{ backgroundPosition: ["0px 0px", "0px 28px"] }}
         transition={{ repeat: Infinity, duration: 10, ease: "linear" }}
       />
-      <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pb-8 pt-[max(1.2rem,env(safe-area-inset-top))]">
+      <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-5 pb-8 pt-[max(1.2rem,env(safe-area-inset-top))]">
         <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-[#2f472f]">
           <motion.div
             className="h-full rounded-full bg-[#beff78]"

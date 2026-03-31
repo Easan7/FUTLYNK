@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import FootballLoader from "@/components/FootballLoader";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { apiGet, apiPost, DEFAULT_USER_ID } from "@/lib/api";
+import { apiGet, apiPost, getCurrentUserId } from "@/lib/api";
 
 type FeedbackGame = {
   id: string;
@@ -18,6 +18,7 @@ type FeedbackGame = {
 };
 
 export default function PostGameFeedback() {
+  const currentUserId = getCurrentUserId();
   const params = useParams<{ gameId: string }>();
   const gameId = params?.gameId ?? "c1";
   const [ratings, setRatings] = useState<Record<string, number>>({});
@@ -30,7 +31,7 @@ export default function PostGameFeedback() {
     const load = async () => {
       try {
         setLoading(true);
-        const payload = await apiGet<FeedbackGame>(`/api/v1/feedback/${gameId}?user_id=${DEFAULT_USER_ID}`);
+        const payload = await apiGet<FeedbackGame>(`/api/v1/feedback/${gameId}?user_id=${currentUserId}`);
         setGame(payload);
       } finally {
         setLoading(false);
@@ -43,7 +44,7 @@ export default function PostGameFeedback() {
   const splitPlayers = useMemo(() => {
     if (!game) return { eligible: [], sameGroup: [] };
 
-    const others = game.players.filter((p) => p.id !== DEFAULT_USER_ID);
+    const others = game.players.filter((p) => p.id !== currentUserId);
     const eligible = others.filter((p) => p.canRate === true);
     const sameGroup = others.filter((p) => p.canRate !== true);
 
@@ -65,7 +66,7 @@ export default function PostGameFeedback() {
     }));
 
     const result = await apiPost<{ awarded: boolean }>(`/api/v1/feedback/${game.id}/submit`, {
-      user_id: DEFAULT_USER_ID,
+      user_id: currentUserId,
       ratings: payload,
     });
 

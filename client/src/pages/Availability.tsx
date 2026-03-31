@@ -6,7 +6,7 @@ import Navigation from "@/components/Navigation";
 import FootballLoader from "@/components/FootballLoader";
 import { Input } from "@/components/ui/input";
 import PitchOverlay from "@/components/PitchOverlay";
-import { apiDelete, apiGet, apiPost, DEFAULT_USER_ID } from "@/lib/api";
+import { apiDelete, apiGet, apiPost, getCurrentUserId } from "@/lib/api";
 
 const weekdayKeys = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 
@@ -18,6 +18,7 @@ type RecurringRule = {
 };
 
 export default function Availability() {
+  const currentUserId = getCurrentUserId();
   const [availabilityMode, setAvailabilityMode] = useState<"recurring" | "specific">("recurring");
   const [selectedDays, setSelectedDays] = useState<string[]>(["Tue", "Thu"]);
   const [rangeFrom, setRangeFrom] = useState("19:00");
@@ -34,7 +35,7 @@ export default function Availability() {
     try {
       setLoading(true);
       const payload = await apiGet<{ recurringRules: RecurringRule[]; specificDates: Array<{ id: string; date: string; time: string }> }>(
-        `/api/v1/availability?user_id=${DEFAULT_USER_ID}`
+        `/api/v1/availability?user_id=${currentUserId}`
       );
       setRecurringRules(payload.recurringRules ?? []);
       setSpecificDates(payload.specificDates ?? []);
@@ -68,7 +69,7 @@ export default function Availability() {
     }
 
     await apiPost("/api/v1/availability/recurring", {
-      user_id: DEFAULT_USER_ID,
+      user_id: currentUserId,
       days: selectedDays,
       from_time: rangeFrom,
       to_time: rangeTo,
@@ -86,7 +87,7 @@ export default function Availability() {
     }
 
     await apiPost("/api/v1/availability/specific", {
-      user_id: DEFAULT_USER_ID,
+      user_id: currentUserId,
       date_value: specificDate,
       time_value: specificTime,
     });
@@ -98,7 +99,7 @@ export default function Availability() {
   };
 
   const removeRule = async (id: string) => {
-    await apiDelete(`/api/v1/availability/${id}?user_id=${DEFAULT_USER_ID}`);
+    await apiDelete(`/api/v1/availability/${id}?user_id=${currentUserId}`);
     await load();
   };
 

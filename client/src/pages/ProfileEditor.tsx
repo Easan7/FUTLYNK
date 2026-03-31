@@ -4,7 +4,7 @@ import { Check, Flame, ShieldCheck, Star, Target, Trophy, X } from "lucide-react
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import PitchOverlay from "@/components/PitchOverlay";
-import { apiGet, apiPut, DEFAULT_USER_ID } from "@/lib/api";
+import { apiGet, apiPut, getCurrentUserId } from "@/lib/api";
 
 const availableTags = [
   "Reliable",
@@ -34,6 +34,7 @@ const avatarOptions = [
 ] as const;
 
 export default function ProfileEditor() {
+  const currentUserId = getCurrentUserId();
   const [, setLocation] = useLocation();
 
   const [displayName, setDisplayName] = useState("Alex Chen");
@@ -54,7 +55,7 @@ export default function ProfileEditor() {
   useEffect(() => {
     const load = async () => {
       try {
-        const payload = await apiGet<{ profile: any }>(`/api/v1/profile?user_id=${DEFAULT_USER_ID}`);
+        const payload = await apiGet<{ profile: any }>(`/api/v1/profile?user_id=${currentUserId}`);
         const p = payload.profile;
         setDisplayName(p.displayName ?? "Alex Chen");
         setUsername(p.username ?? "@alexchen");
@@ -100,7 +101,7 @@ export default function ProfileEditor() {
     try {
       setSaving(true);
       await apiPut("/api/v1/profile", {
-        user_id: DEFAULT_USER_ID,
+        user_id: currentUserId,
         display_name: displayName,
         username,
         avatar_id: selectedAvatar,
@@ -151,7 +152,7 @@ export default function ProfileEditor() {
     .toUpperCase();
 
   return (
-    <div className="min-h-screen bg-[#070a08] pb-10">
+    <div className="min-h-[100dvh] bg-[#070a08] pb-10">
       <header className="app-header">
         <PitchOverlay variant="header" />
         <div className="relative z-10 flex items-center justify-between">

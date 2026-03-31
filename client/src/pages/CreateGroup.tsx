@@ -6,7 +6,7 @@ import Navigation from "@/components/Navigation";
 import { Input } from "@/components/ui/input";
 import SkillBadge from "@/components/SkillBadge";
 import type { SkillLevel } from "@/components/SkillBadge";
-import { apiGet, apiPost, DEFAULT_USER_ID } from "@/lib/api";
+import { apiGet, apiPost, getCurrentUserId } from "@/lib/api";
 
 const toSkillLevel = (value: string): SkillLevel =>
   value === "Beginner" || value === "Intermediate" || value === "Advanced" || value === "Hybrid"
@@ -21,6 +21,7 @@ type FriendOption = {
 };
 
 export default function CreateGroup() {
+  const currentUserId = getCurrentUserId();
   const [, setLocation] = useLocation();
   const [groupName, setGroupName] = useState("");
   const [search, setSearch] = useState("");
@@ -28,10 +29,18 @@ export default function CreateGroup() {
   const [nameError, setNameError] = useState("");
   const [memberError, setMemberError] = useState("");
   const [availableFriends, setAvailableFriends] = useState<FriendOption[]>([]);
+  const [currentUserName, setCurrentUserName] = useState("You");
+  const [currentUserSkillBand, setCurrentUserSkillBand] = useState("Intermediate");
 
   useEffect(() => {
     const loadFriends = async () => {
-      const payload = await apiGet<{ friends: any[] }>(`/api/v1/friends?user_id=${DEFAULT_USER_ID}`);
+      const [friendsPayload, profilePayload] = await Promise.all([
+        apiGet<{ friends: any[] }>(`/api/v1/friends?user_id=${currentUserId}`),
+        apiGet<{ profile: { displayName: string; publicSkillBand: string } }>(`/api/v1/profile?user_id=${currentUserId}`),
+      ]);
+      setCurrentUserName(profilePayload.profile.displayName || "You");
+      setCurrentUserSkillBand(profilePayload.profile.publicSkillBand || "Intermediate");
+      const payload = friendsPayload;
       const options = (payload.friends ?? [])
         .filter((f) => f.isFriend)
         .map((f) => ({
@@ -44,7 +53,7 @@ export default function CreateGroup() {
     };
 
     void loadFriends();
-  }, []);
+  }, [currentUserId]);
 
   const filtered = useMemo(
     () =>
@@ -73,7 +82,7 @@ export default function CreateGroup() {
     }
 
     await apiPost("/api/v1/groups", {
-      user_id: DEFAULT_USER_ID,
+      user_id: currentUserId,
       name: groupName,
       member_ids: selectedMembers.map((m) => m.id),
     });
@@ -152,12 +161,12 @@ export default function CreateGroup() {
         <section className="surface-card">
           <h2 className="text-sm font-semibold text-[#f2f7f2]">Selected Members</h2>
           <div className="mt-3 space-y-2">
-            {[{ id: DEFAULT_USER_ID, name: "Alex Chen (You)", publicSkillBand: "Intermediate" }, ...selectedMembers].map((member) => (
+            {[{ id: currentUserId, name: `${currentUserName} (You)`, publicSkillBand: currentUserSkillBand }, ...selectedMembers].map((member) => (
               <div key={member.id} className="surface-inner flex items-center justify-between gap-2">
                 <span className="text-sm text-[#e9f0ea]">{member.name}</span>
                 <div className="flex items-center gap-2">
                   <SkillBadge level={toSkillLevel(member.publicSkillBand)} colored />
-                  {member.id !== DEFAULT_USER_ID ? (
+                  {member.id !== currentUserId ? (
                     <button
                       onClick={() => setSelectedIds((prev) => prev.filter((id) => id !== member.id))}
                       className="btn-secondary !min-h-8 !px-2"

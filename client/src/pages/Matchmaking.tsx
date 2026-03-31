@@ -7,25 +7,28 @@ import FootballLoader from "@/components/FootballLoader";
 import { Input } from "@/components/ui/input";
 import PitchOverlay from "@/components/PitchOverlay";
 import { toast } from "sonner";
-import { apiGet, DEFAULT_USER_ID } from "@/lib/api";
+import { apiGet, getCurrentUserId } from "@/lib/api";
 
-type FilterKey = "all" | "intermediate" | "hybrid";
+type FilterKey = "all" | "skill-band" | "hybrid";
 
 export default function Matchmaking() {
+  const currentUserId = getCurrentUserId();
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const [query, setQuery] = useState("");
   const [useAvailability, setUseAvailability] = useState(true);
   const [rooms, setRooms] = useState<any[]>([]);
+  const [userSkillBand, setUserSkillBand] = useState<"Beginner" | "Intermediate" | "Advanced">("Intermediate");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
-        const payload = await apiGet<{ rooms: any[] }>(
-          `/api/v1/rooms/discover?user_id=${DEFAULT_USER_ID}&use_availability=${useAvailability}`
+        const payload = await apiGet<{ rooms: any[]; userSkillBand?: "Beginner" | "Intermediate" | "Advanced" }>(
+          `/api/v1/rooms/discover?user_id=${currentUserId}&use_availability=${useAvailability}`
         );
         setRooms(payload.rooms ?? []);
+        setUserSkillBand(payload.userSkillBand ?? "Intermediate");
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to load rooms";
         toast.error(message);
@@ -35,7 +38,7 @@ export default function Matchmaking() {
     };
 
     void load();
-  }, [useAvailability]);
+  }, [currentUserId, useAvailability]);
 
   const evaluatedRooms = useMemo(() => {
     const rankedRooms = rooms
@@ -68,15 +71,14 @@ export default function Matchmaking() {
   const filteredRooms = useMemo(() => {
     return evaluatedRooms
       .filter((room) => {
-        if (activeFilter === "intermediate") return room.allowedBand === "Intermediate";
+        if (activeFilter === "skill-band") return room.allowedBand === userSkillBand;
         if (activeFilter === "hybrid") return room.allowedBand === null;
         return true;
       })
       .filter((room) =>
         `${room.title} ${room.location}`.toLowerCase().includes(query.toLowerCase().trim())
-      )
-      .filter((room) => (useAvailability ? room.matchingAvailability : true));
-  }, [activeFilter, evaluatedRooms, query, useAvailability]);
+      );
+  }, [activeFilter, evaluatedRooms, query, useAvailability, userSkillBand]);
   const featuredRoom = filteredRooms[0];
 
   if (loading && rooms.length === 0) {
@@ -105,13 +107,13 @@ export default function Matchmaking() {
         </div>
 
         <div className="relative z-10 mt-3 flex items-center gap-2 overflow-x-auto">
-          {["all", "intermediate", "hybrid"].map((key) => (
+          {(["all", "skill-band", "hybrid"] as FilterKey[]).map((key) => (
             <button
               key={key}
               onClick={() => setActiveFilter(key as FilterKey)}
               className={`chip whitespace-nowrap ${activeFilter === key ? "chip-active" : ""}`}
             >
-              {key === "all" ? "All Rooms" : key === "intermediate" ? "Intermediate" : "Hybrid"}
+              {key === "all" ? "All Rooms" : key === "skill-band" ? userSkillBand : "Hybrid"}
             </button>
           ))}
 

@@ -6,7 +6,7 @@ import Navigation from "@/components/Navigation";
 import FootballLoader from "@/components/FootballLoader";
 import PitchOverlay from "@/components/PitchOverlay";
 import StatBlock from "@/components/StatBlock";
-import { apiGet, apiPost, DEFAULT_USER_ID } from "@/lib/api";
+import { apiGet, apiPost, getCurrentUserId } from "@/lib/api";
 
 type WalletData = {
   walletBalance: number;
@@ -16,13 +16,14 @@ type WalletData = {
 };
 
 export default function Wallet() {
+  const currentUserId = getCurrentUserId();
   const [data, setData] = useState<WalletData | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     try {
       setLoading(true);
-      const payload = await apiGet<WalletData>(`/api/v1/wallet?user_id=${DEFAULT_USER_ID}`);
+      const payload = await apiGet<WalletData>(`/api/v1/wallet?user_id=${currentUserId}`);
       setData(payload);
     } finally {
       setLoading(false);
@@ -34,14 +35,14 @@ export default function Wallet() {
   }, []);
 
   const handleTopup = async (amount: number) => {
-    await apiPost("/api/v1/wallet/topup", { user_id: DEFAULT_USER_ID, amount });
+    await apiPost("/api/v1/wallet/topup", { user_id: currentUserId, amount });
     toast.success(`Added $${amount}`);
     await load();
   };
 
   const handleRedeem = async (voucherId: string, code: string) => {
     const result = await apiPost<{ ok: boolean; reason?: string }>("/api/v1/wallet/redeem", {
-      user_id: DEFAULT_USER_ID,
+      user_id: currentUserId,
       voucher_id: voucherId,
     });
 
