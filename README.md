@@ -136,7 +136,6 @@ It helps players discover games, coordinate with groups, manage profiles, and ha
 
 - FastAPI + Pydantic
 - Supabase (Postgres)
-- Stripe API (server-side secret key)
 
 ## Local Development
 
@@ -230,15 +229,3 @@ dist/public
 - Required frontend env:
   - `VITE_API_BASE_URL=https://<backend-domain>`
 
-## Security / MVP Notes
-
-- This project is MVP-oriented and intentionally lightweight in auth.
-- Keep all server-side keys private (never in frontend env or committed source).
-- Rotate secrets if exposed during testing.
-
----
-
-If you want, this README can also be split into:
-- `README.md` (quickstart)
-- `docs/FEATURES.md` (full functional spec)
-- `docs/DEPLOY.md` (provider-specific deployment playbooks)
