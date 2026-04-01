@@ -23,6 +23,7 @@ export default function Wallet() {
   const [topupAmount, setTopupAmount] = useState(20);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [hasConfirmedStripeTopup, setHasConfirmedStripeTopup] = useState(false);
+  const [hasHandledStripeReturn, setHasHandledStripeReturn] = useState(false);
 
   const load = async () => {
     try {
@@ -42,6 +43,15 @@ export default function Wallet() {
     const params = new URLSearchParams(window.location.search);
     const topupState = params.get("topup");
     const sessionId = params.get("session_id");
+    if (hasHandledStripeReturn) return;
+
+    if (topupState === "cancel") {
+      toast.info("Top-up cancelled");
+      setHasHandledStripeReturn(true);
+      window.history.replaceState({}, "", window.location.pathname);
+      return;
+    }
+
     if (topupState !== "success" || !sessionId || hasConfirmedStripeTopup) return;
 
     const confirm = async () => {
@@ -60,11 +70,12 @@ export default function Wallet() {
         toast.error(error instanceof Error ? error.message : "Could not confirm Stripe payment");
       } finally {
         setHasConfirmedStripeTopup(true);
+        setHasHandledStripeReturn(true);
         window.history.replaceState({}, "", window.location.pathname);
       }
     };
     void confirm();
-  }, [currentUserId, hasConfirmedStripeTopup]);
+  }, [currentUserId, hasConfirmedStripeTopup, hasHandledStripeReturn]);
 
   const startStripeCheckout = async (amount: number) => {
     setTopupAmount(amount);
