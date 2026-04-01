@@ -35,6 +35,11 @@ class CreateGroupRequest(BaseModel):
     member_ids: list[str] = Field(default_factory=list)
 
 
+class AddGroupMembersRequest(BaseModel):
+    user_id: str = DEFAULT_USER_ID
+    member_ids: list[str] = Field(default_factory=list)
+
+
 class ChatMessageRequest(BaseModel):
     user_id: str = DEFAULT_USER_ID
     text: str
@@ -940,6 +945,7 @@ def get_group_detail(group_id: str, user_id: str = DEFAULT_USER_ID):
     groups = db.table("groups").select("*").eq("id", group_id).limit(1).execute().data or []
     if not groups:
         raise HTTPException(status_code=404, detail="Group not found")
+    group_row = groups[0]
 
     members = db.table("group_members").select("user_id").eq("group_id", group_id).execute().data or []
     member_ids = [m["user_id"] for m in members]
@@ -1146,7 +1152,13 @@ def get_group_detail(group_id: str, user_id: str = DEFAULT_USER_ID):
     )
 
     return {
-        "group": {"id": groups[0]["id"], "name": groups[0]["name"], "memberIds": member_ids},
+        "group": {
+            "id": group_row["id"],
+            "name": group_row["name"],
+            "memberIds": member_ids,
+            "createdBy": group_row.get("created_by"),
+            "isOwner": group_row.get("created_by") == user_id,
+        },
         "summary": {
             "avgReliability": avg_reliability,
             "skillBandSpread": skill_band_spread,
@@ -1350,6 +1362,46 @@ def create_group(body: CreateGroupRequest):
     ]
     db.table("group_members").insert(payload).execute()
     return {"ok": True, "groupId": group_id}
+
+
+@router.post("/groups/{group_id}/members")
+def add_group_members(group_id: str, body: AddGroupMembersRequest):
+    db = get_supabase()
+    groups = db.table("groups").select("id,created_by").eq("id", group_id).limit(1).execute().data or []
+    if not groups:
+        raise HTTPException(status_code=404, detail="Group not found")
+    group = groups[0]
+    if group.get("created_by") != body.user_id:
+        raise HTTPException(status_code=403, detail="Only the group creator can add members")
+
+    target_ids = sorted(set([member_id.strip() for member_id in body.member_ids if member_id.strip() and member_id.strip() != body.user_id]))
+    if not target_ids:
+        return {"ok": True, "addedCount": 0}
+
+    existing_members = (
+        db.table("group_members")
+        .select("user_id")
+        .eq("group_id", group_id)
+        .in_("user_id", target_ids)
+        .execute()
+        .data
+        or []
+    )
+    existing_member_ids = {row["user_id"] for row in existing_members}
+    new_member_ids = [member_id for member_id in target_ids if member_id not in existing_member_ids]
+    if not new_member_ids:
+        return {"ok": True, "addedCount": 0}
+
+    users = db.table("app_users").select("id").in_("id", new_member_ids).execute().data or []
+    valid_user_ids = {row["id"] for row in users}
+    insert_ids = [member_id for member_id in new_member_ids if member_id in valid_user_ids]
+    if not insert_ids:
+        raise HTTPException(status_code=400, detail="No valid users to add")
+
+    db.table("group_members").insert(
+        [{"group_id": group_id, "user_id": member_id, "role": "member"} for member_id in insert_ids]
+    ).execute()
+    return {"ok": True, "addedCount": len(insert_ids)}
 
 
 @router.post("/groups/{group_id}/chat")

@@ -24,7 +24,7 @@ type GroupCard = {
 };
 
 type GroupDetail = {
-  group: { id: string; name: string; memberIds: string[] };
+  group: { id: string; name: string; memberIds: string[]; createdBy?: string; isOwner?: boolean };
   summary: {
     avgReliability: number;
     skillBandSpread: { Beginner: number; Intermediate: number; Advanced: number };
@@ -67,6 +67,14 @@ type GroupDetail = {
   chat: Array<{ id: string; user: string; text: string }>;
 };
 
+type AddableFriend = {
+  id: string;
+  name: string;
+  publicSkillBand: string;
+  gamesPlayed: number;
+  isFriend: boolean;
+};
+
 export default function Groups() {
   const currentUserId = getCurrentUserId();
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
@@ -83,6 +91,10 @@ export default function Groups() {
   } | null>(null);
   const [upcomingExpanded, setUpcomingExpanded] = useState(false);
   const [recommendationsExpanded, setRecommendationsExpanded] = useState(false);
+  const [addMemberDialogOpen, setAddMemberDialogOpen] = useState(false);
+  const [friendQuery, setFriendQuery] = useState("");
+  const [addableFriends, setAddableFriends] = useState<AddableFriend[]>([]);
+  const [addingMemberId, setAddingMemberId] = useState<string | null>(null);
 
   const loadGroups = async () => {
     try {
@@ -170,6 +182,37 @@ export default function Groups() {
     }
   };
 
+  const loadAddableFriends = async (group: GroupDetail["group"]) => {
+    const payload = await apiGet<{ friends: AddableFriend[] }>(`/api/v1/friends?user_id=${currentUserId}&q=${encodeURIComponent(friendQuery)}`);
+    const existing = new Set(group.memberIds);
+    const candidates = (payload.friends ?? []).filter((friend) => friend.isFriend && !existing.has(friend.id));
+    setAddableFriends(candidates);
+  };
+
+  const addMemberToGroup = async (friendId: string) => {
+    if (!selectedGroupId) return;
+    try {
+      setAddingMemberId(friendId);
+      const result = await apiPost<{ ok: boolean; addedCount: number }>(`/api/v1/groups/${selectedGroupId}/members`, {
+        user_id: currentUserId,
+        member_ids: [friendId],
+      });
+      if (result.addedCount > 0) {
+        toast.success("Member added to group");
+      } else {
+        toast.info("User is already in this group");
+      }
+      await loadDetail(selectedGroupId);
+      if (detail) {
+        await loadAddableFriends(detail.group);
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to add member");
+    } finally {
+      setAddingMemberId(null);
+    }
+  };
+
   if (selectedGroupId) {
     if (!detail || loadingDetail) {
       return (
@@ -210,6 +253,18 @@ export default function Groups() {
               </div>
               <span className="chip border-[#35502f] bg-[#1d2f1d] text-[#bff48d]">{members.length} Members</span>
             </div>
+            {selectedGroup.isOwner ? (
+              <button
+                onClick={async () => {
+                  setFriendQuery("");
+                  await loadAddableFriends(selectedGroup);
+                  setAddMemberDialogOpen(true);
+                }}
+                className="btn-secondary mt-3 text-xs"
+              >
+                <Plus className="mr-1 h-4 w-4" /> Add Member
+              </button>
+            ) : null}
             <div className="mt-4 flex -space-x-2">
               {members.slice(0, 5).map((member) => (
                 <div
@@ -477,6 +532,59 @@ export default function Groups() {
               >
                 Open Room
               </Link>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={addMemberDialogOpen}
+          onOpenChange={(open) => {
+            setAddMemberDialogOpen(open);
+            if (open) {
+              void loadAddableFriends(selectedGroup);
+            }
+          }}
+        >
+          <DialogContent className="border-[#2d372f] bg-[#0f1511]">
+            <DialogHeader>
+              <DialogTitle className="text-[#eef5ef]">Add Members</DialogTitle>
+              <DialogDescription className="text-[#9faea3]">
+                Only the group creator can add friends after group creation.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <Input
+                value={friendQuery}
+                onChange={(e) => setFriendQuery(e.target.value)}
+                placeholder="Search friends"
+              />
+              <button
+                className="btn-secondary text-xs"
+                onClick={() => void loadAddableFriends(selectedGroup)}
+              >
+                Search
+              </button>
+              <div className="max-h-64 space-y-2 overflow-y-auto">
+                {addableFriends.length > 0 ? (
+                  addableFriends.map((friend) => (
+                    <div key={friend.id} className="surface-inner flex items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm text-[#edf3ee]">{friend.name}</p>
+                        <p className="text-xs text-[#95a39a]">{friend.publicSkillBand} · {friend.gamesPlayed} games</p>
+                      </div>
+                      <button
+                        onClick={() => void addMemberToGroup(friend.id)}
+                        className="btn-primary text-xs"
+                        disabled={addingMemberId === friend.id}
+                      >
+                        {addingMemberId === friend.id ? "Adding..." : "Add"}
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="surface-inner text-sm text-[#95a39a]">No eligible friends found to add.</div>
+                )}
+              </div>
             </div>
           </DialogContent>
         </Dialog>
