@@ -2,6 +2,10 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000
 const SESSION_USER_KEY = "futlynk_session_user_id";
 export const DEFAULT_USER_ID = "u-me";
 
+export function hasStoredSessionUser(): boolean {
+  return Boolean(localStorage.getItem(SESSION_USER_KEY));
+}
+
 export function getCurrentUserId(): string {
   return localStorage.getItem(SESSION_USER_KEY) ?? DEFAULT_USER_ID;
 }

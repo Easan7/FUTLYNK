@@ -38,9 +38,8 @@ export default function Signup({ onEnter, onGoLogin }: SignupProps) {
     <div className="min-h-[100dvh] bg-[#060907] px-4 pb-6 pt-[max(1.5rem,env(safe-area-inset-top))]">
       <div className="mx-auto flex min-h-[calc(100dvh-2rem)] w-full max-w-sm flex-col justify-center">
         <div className="mb-4">
-          <p className="text-[11px] font-medium tracking-[0.08em] text-[#8f9f95]">FUTSAL COORDINATION</p>
           <h1 className="mt-1 text-3xl font-semibold text-[#f2f7f2]">FutLynk</h1>
-          <p className="mt-2 text-sm text-[#a7b6ab]">Build your player profile and start coordinating better games.</p>
+          <p className="mt-2 text-sm text-[#a7b6ab]">Sign up for an account and start playing/coordinating games with ease</p>
         </div>
 
         <section className="mb-3 rounded-xl border border-[#355235] bg-[#132014] p-3">
@@ -48,7 +47,7 @@ export default function Signup({ onEnter, onGoLogin }: SignupProps) {
           <div className="mt-2 flex flex-wrap gap-2">
             <span className="chip chip-active">Smart Match Discovery</span>
             <span className="chip chip-active">Group Coordination</span>
-            <span className="chip chip-active">Profile + Ratings</span>
+            <span className="chip chip-active">Individual Profile</span>
           </div>
         </section>
 

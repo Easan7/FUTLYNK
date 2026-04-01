@@ -21,6 +21,7 @@ import Signup from "./pages/Signup";
 import ProfileEditor from "./pages/ProfileEditor";
 import Wallet from "./pages/Wallet";
 import Availability from "./pages/Availability";
+import { hasStoredSessionUser } from "./lib/api";
 
 function Router() {
   return (
@@ -45,7 +46,7 @@ function Router() {
 }
 
 function App() {
-  const [hasEntered, setHasEntered] = useState(false);
+  const [hasEntered, setHasEntered] = useState(() => hasStoredSessionUser());
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showSkillBandStep, setShowSkillBandStep] = useState(false);
   const [authScreen, setAuthScreen] = useState<"signup" | "login">("signup");

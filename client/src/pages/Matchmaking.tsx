@@ -137,7 +137,6 @@ export default function Matchmaking() {
         <PitchOverlay variant="divider" />
         {featuredRoom ? (
           <article className="surface-card pitch-lines relative overflow-hidden border-[#426043]">
-            <PitchOverlay variant="card" />
             <div className="relative z-10 flex items-start justify-between gap-2">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#9faea4]">Top Match</p>

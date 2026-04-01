@@ -122,7 +122,6 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ type: "spring", stiffness: 130, damping: 22, delay: 0.08 }}
           >
-            <PitchOverlay variant="card" />
             <motion.div
               className="pointer-events-none absolute -top-8 left-1/2 z-0 h-20 w-40 -translate-x-1/2 rounded-full bg-[#beff78]/12 blur-xl"
               animate={{ opacity: [0.12, 0.3, 0.12], scale: [0.95, 1.03, 0.95] }}
@@ -210,7 +209,7 @@ export default function Home() {
         )}
 
         <motion.section
-          className="surface-card pitch-lines"
+          className="surface-card"
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.16, duration: 0.24, ease: "easeOut" }}
