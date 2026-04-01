@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { Check, Flame, ShieldCheck, Star, Target, Trophy, X } from "lucide-react";
+import { Check, Flame, Lock, ShieldCheck, Star, Target, Trophy, X } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import PitchOverlay from "@/components/PitchOverlay";
@@ -35,6 +35,7 @@ const avatarOptions = [
 
 export default function ProfileEditor() {
   const currentUserId = getCurrentUserId();
+  const isDemoUser = currentUserId === "u-me";
   const [, setLocation] = useLocation();
 
   const [displayName, setDisplayName] = useState("Alex Chen");
@@ -121,6 +122,10 @@ export default function ProfileEditor() {
   };
 
   const toggleTag = (tag: string) => {
+    if (!isDemoUser) {
+      toast.info("Tags are unlocked by gameplay and ratings.");
+      return;
+    }
     if (selectedTags.includes(tag)) {
       setSelectedTags((prev) => prev.filter((t) => t !== tag));
       return;
@@ -133,6 +138,10 @@ export default function ProfileEditor() {
   };
 
   const toggleAchievement = (id: string) => {
+    if (!isDemoUser) {
+      toast.info("Achievements are unlocked automatically from match progress.");
+      return;
+    }
     if (selectedAchievements.includes(id)) {
       setSelectedAchievements((prev) => prev.filter((a) => a !== id));
       return;
@@ -216,11 +225,22 @@ export default function ProfileEditor() {
 
         <section className="surface-card">
           <h2 className="text-sm font-semibold text-[#f2f7f2]">Player Tags ({selectedTags.length}/6)</h2>
+          {!isDemoUser ? (
+            <p className="mt-2 inline-flex items-center gap-1 rounded-lg border border-[#3a3f35] bg-[#1a1e17] px-2 py-1 text-xs text-[#b7c2b4]">
+              <Lock className="h-3.5 w-3.5 text-[#9aa596]" />
+              Locked for new users. Earn tags via match ratings.
+            </p>
+          ) : null}
           <div className="mt-3 flex flex-wrap gap-2">
             {availableTags.map((tag) => {
               const active = selectedTags.includes(tag);
               return (
-                <button key={tag} onClick={() => toggleTag(tag)} className={`chip ${active ? "chip-active" : ""}`}>
+                <button
+                  key={tag}
+                  onClick={() => toggleTag(tag)}
+                  disabled={!isDemoUser}
+                  className={`chip ${active ? "chip-active" : ""} ${!isDemoUser ? "cursor-not-allowed opacity-55" : ""}`}
+                >
                   {tag}
                 </button>
               );
@@ -230,6 +250,12 @@ export default function ProfileEditor() {
 
         <section className="surface-card">
           <h2 className="text-sm font-semibold text-[#f2f7f2]">Achievements ({selectedAchievements.length}/4)</h2>
+          {!isDemoUser ? (
+            <p className="mt-2 inline-flex items-center gap-1 rounded-lg border border-[#3a3f35] bg-[#1a1e17] px-2 py-1 text-xs text-[#b7c2b4]">
+              <Lock className="h-3.5 w-3.5 text-[#9aa596]" />
+              Locked for new users. Achievements unlock from game milestones.
+            </p>
+          ) : null}
           <div className="mt-3 space-y-2">
             {availableAchievements.map((achievement) => {
               const active = selectedAchievements.includes(achievement.id);
@@ -238,7 +264,8 @@ export default function ProfileEditor() {
                 <button
                   key={achievement.id}
                   onClick={() => toggleAchievement(achievement.id)}
-                  className={`surface-inner w-full text-left ${active ? "border-[#88dd39]" : ""}`}
+                  disabled={!isDemoUser}
+                  className={`surface-inner w-full text-left ${active ? "border-[#88dd39]" : ""} ${!isDemoUser ? "cursor-not-allowed opacity-65" : ""}`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">

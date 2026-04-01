@@ -26,15 +26,16 @@ export default function Availability() {
   const [recurringRules, setRecurringRules] = useState<RecurringRule[]>([]);
 
   const [specificDate, setSpecificDate] = useState("");
-  const [specificTime, setSpecificTime] = useState("19:00");
-  const [specificDates, setSpecificDates] = useState<Array<{ id: string; date: string; time: string }>>([]);
+  const [specificFrom, setSpecificFrom] = useState("19:00");
+  const [specificTo, setSpecificTo] = useState("21:00");
+  const [specificDates, setSpecificDates] = useState<Array<{ id: string; date: string; from: string; to: string }>>([]);
   const [inlineError, setInlineError] = useState("");
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     try {
       setLoading(true);
-      const payload = await apiGet<{ recurringRules: RecurringRule[]; specificDates: Array<{ id: string; date: string; time: string }> }>(
+      const payload = await apiGet<{ recurringRules: RecurringRule[]; specificDates: Array<{ id: string; date: string; from: string; to: string }> }>(
         `/api/v1/availability?user_id=${currentUserId}`
       );
       setRecurringRules(payload.recurringRules ?? []);
@@ -85,15 +86,21 @@ export default function Availability() {
       setInlineError("Select a date first.");
       return;
     }
+    if (specificFrom >= specificTo) {
+      setInlineError("End time must be after start time.");
+      return;
+    }
 
     await apiPost("/api/v1/availability/specific", {
       user_id: currentUserId,
       date_value: specificDate,
-      time_value: specificTime,
+      from_time: specificFrom,
+      to_time: specificTo,
     });
 
     setSpecificDate("");
-    setSpecificTime("19:00");
+    setSpecificFrom("19:00");
+    setSpecificTo("21:00");
     toast.success("Specific date added");
     await load();
   };
@@ -204,9 +211,10 @@ export default function Availability() {
             </div>
           ) : (
             <div className="mt-3 space-y-2">
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <Input type="date" value={specificDate} onChange={(e) => setSpecificDate(e.target.value)} />
-                <Input type="time" value={specificTime} onChange={(e) => setSpecificTime(e.target.value)} />
+                <Input type="time" value={specificFrom} onChange={(e) => setSpecificFrom(e.target.value)} />
+                <Input type="time" value={specificTo} onChange={(e) => setSpecificTo(e.target.value)} />
               </div>
               <button onClick={() => void addSpecificDate()} className="btn-secondary text-xs">
                 <Plus className="mr-1 h-3.5 w-3.5" /> Add Date
@@ -217,7 +225,7 @@ export default function Availability() {
                   className="surface-inner flex items-center justify-between gap-2 text-xs text-[#d6dfd8]"
                 >
                   <span>
-                    {item.date} · {item.time}
+                    {item.date} · {item.from} - {item.to}
                   </span>
                   <button
                     className="btn-secondary !min-h-8 !px-2"

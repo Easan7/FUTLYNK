@@ -103,7 +103,8 @@ class RecurringAvailabilityBody(BaseModel):
 class SpecificAvailabilityBody(BaseModel):
     user_id: str = DEFAULT_USER_ID
     date_value: str
-    time_value: str
+    from_time: str
+    to_time: str
 
 
 class FeedbackItem(BaseModel):
@@ -209,6 +210,22 @@ def _band_after_rating(current_band: str | None, next_hidden_rating: float) -> s
     if next_hidden_rating >= 3.95:
         return "Advanced"
     return "Intermediate"
+
+
+def _group_skill_policy(member_bands: list[str]) -> tuple[str, str | None]:
+    normalized = [band for band in member_bands if band in {"Beginner", "Intermediate", "Advanced"}]
+    unique = sorted(set(normalized))
+    if len(unique) == 1:
+        return ("single", unique[0])
+    return ("mixed", None)
+
+
+def _is_room_allowed_for_group_policy(policy_type: str, policy_band: str | None, room_allowed_band: str | None) -> bool:
+    # Mixed groups should only be recommended Hybrid rooms.
+    if policy_type == "mixed":
+        return room_allowed_band is None
+    # Single-band groups can join Hybrid or their own exact band.
+    return room_allowed_band is None or room_allowed_band == policy_band
 
 
 def _time_ago(iso_value: str | None) -> str:
@@ -951,6 +968,8 @@ def get_group_detail(group_id: str, user_id: str = DEFAULT_USER_ID):
     if players:
         avg_reliability = round(sum(int(p.get("reliability_score") or 0) for p in players) / len(players))
     member_name_by_id = {p["id"]: p.get("display_name") or "Player" for p in players}
+    member_bands = [str(p.get("public_skill_band") or "") for p in players]
+    group_policy_type, group_policy_band = _group_skill_policy(member_bands)
     skill_band_spread = {"Beginner": 0, "Intermediate": 0, "Advanced": 0}
     for player in players:
         band = str(player.get("public_skill_band") or "")
@@ -970,6 +989,9 @@ def get_group_detail(group_id: str, user_id: str = DEFAULT_USER_ID):
         if game.get("status") != "open":
             continue
         if counts.get(game["id"], 0) >= int(game.get("max_players") or 10):
+            continue
+        room_allowed_band = game.get("allowed_band")
+        if not _is_room_allowed_for_group_policy(group_policy_type, group_policy_band, room_allowed_band):
             continue
         room = _game_to_room(game, counts.get(game["id"], 0))
         joined_user_ids = game_participants_map.get(game["id"], set())
@@ -1131,6 +1153,7 @@ def get_group_detail(group_id: str, user_id: str = DEFAULT_USER_ID):
             "topOverlap": overlap[0]["slot"] if overlap else "No overlap yet",
             "membersWithAvailability": members_with_availability,
             "recommendationNote": recommendation_note,
+            "recommendationPolicy": "hybrid-only" if group_policy_type == "mixed" else f"hybrid-or-{group_policy_band}",
         },
         "members": [
             {
@@ -1164,6 +1187,17 @@ def set_group_recommendation_interest(group_id: str, room_id: str, body: GroupRe
     if body.user_id not in member_ids:
         raise HTTPException(status_code=403, detail="User is not a member of this group")
 
+    group_players = (
+        db.table("app_users")
+        .select("id,public_skill_band")
+        .in_("id", member_ids)
+        .execute()
+        .data
+        or []
+    )
+    member_bands = [str(row.get("public_skill_band") or "") for row in group_players]
+    group_policy_type, group_policy_band = _group_skill_policy(member_bands)
+
     game_rows = (
         db.table("games")
         .select("id,status,max_players,game_date,start_time")
@@ -1178,6 +1212,12 @@ def set_group_recommendation_interest(group_id: str, room_id: str, body: GroupRe
     game = game_rows[0]
     if game.get("status") != "open":
         raise HTTPException(status_code=400, detail="Room is not open")
+    room_allowed_band = game.get("allowed_band")
+    if not _is_room_allowed_for_group_policy(group_policy_type, group_policy_band, room_allowed_band):
+        raise HTTPException(
+            status_code=400,
+            detail="Room does not match group skill policy (mixed groups: hybrid only; single-tier groups: hybrid or same tier)",
+        )
 
     availability_rows = (
         db.table("user_availability")
@@ -1951,7 +1991,8 @@ def get_availability(user_id: str = DEFAULT_USER_ID):
         {
             "id": str(r["id"]),
             "date": str(r.get("date_value") or ""),
-            "time": str(r.get("time_value") or "")[:5],
+            "from": str(r.get("time_from") or r.get("time_value") or "")[:5],
+            "to": str(r.get("time_to") or r.get("time_value") or "")[:5],
         }
         for r in rows
         if r.get("rule_type") == "specific"
@@ -1985,6 +2026,8 @@ def add_recurring(body: RecurringAvailabilityBody):
 
 @router.post("/availability/specific")
 def add_specific(body: SpecificAvailabilityBody):
+    if body.from_time >= body.to_time:
+        raise HTTPException(status_code=400, detail="End time must be after start time")
     inserted = (
         get_supabase()
         .table("user_availability")
@@ -1993,7 +2036,9 @@ def add_specific(body: SpecificAvailabilityBody):
                 "user_id": body.user_id,
                 "rule_type": "specific",
                 "date_value": body.date_value,
-                "time_value": body.time_value,
+                "time_from": body.from_time,
+                "time_to": body.to_time,
+                "time_value": None,
             }
         )
         .execute()

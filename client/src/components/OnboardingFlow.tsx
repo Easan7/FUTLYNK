@@ -148,7 +148,7 @@ export default function OnboardingFlow({ onFinish }: OnboardingFlowProps) {
         animate={{ backgroundPosition: ["0px 0px", "0px 28px"] }}
         transition={{ repeat: Infinity, duration: 10, ease: "linear" }}
       />
-      <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-5 pb-8 pt-[max(1.2rem,env(safe-area-inset-top))]">
+      <div className="relative mx-auto flex h-[100dvh] w-full max-w-md flex-col overflow-y-auto px-5 pb-[max(1.1rem,calc(env(safe-area-inset-bottom)+1.4rem))] pt-[max(1.2rem,env(safe-area-inset-top))]">
         <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-[#2f472f]">
           <motion.div
             className="h-full rounded-full bg-[#beff78]"
@@ -166,7 +166,7 @@ export default function OnboardingFlow({ onFinish }: OnboardingFlowProps) {
           </button>
         </div>
 
-        <div className="mt-6 flex-1">
+        <div className="mt-4 flex-1">
           <AnimatePresence mode="wait">
             <motion.div
               key={slide.id}
@@ -184,7 +184,7 @@ export default function OnboardingFlow({ onFinish }: OnboardingFlowProps) {
               }}
             >
               <motion.div
-                className="relative h-[45vh] min-h-[290px]"
+                className="relative h-[min(42vh,360px)] min-h-[220px]"
                 animate={{ y: [0, -4, 0] }}
                 transition={{ repeat: Infinity, duration: 3.2, ease: "easeInOut" }}
               >
@@ -206,7 +206,7 @@ export default function OnboardingFlow({ onFinish }: OnboardingFlowProps) {
           </AnimatePresence>
         </div>
 
-        <div className="mt-5">
+        <div className="mt-4">
           <div className="mb-4 flex items-center justify-center gap-2.5">
             {onboardingSlides.map((item, dotIndex) => (
               <span
