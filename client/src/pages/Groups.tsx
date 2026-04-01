@@ -29,6 +29,8 @@ type GroupDetail = {
     avgReliability: number;
     skillBandSpread: { Beginner: number; Intermediate: number; Advanced: number };
     topOverlap: string;
+    membersWithAvailability?: number;
+    recommendationNote?: string;
   };
   members: Array<{ id: string; name: string; publicSkillBand: string }>;
   upcomingGroupGames: Array<{
@@ -295,11 +297,8 @@ export default function Groups() {
               {recommendationsExpanded ? <ChevronUp className="h-4 w-4 text-[#9fb0a4]" /> : <ChevronDown className="h-4 w-4 text-[#9fb0a4]" />}
             </button>
             {recommendationsExpanded ? <div className="mt-4 space-y-4">
-              {recommendations.map((item) => (
-                <div
-                  key={item.room.id}
-                  className="group/reco rounded-2xl border border-[#2e3a31] bg-[#141b16] p-4 transition-all duration-200 hover:border-[#425646] hover:bg-[#172018]"
-                >
+              {recommendations.length > 0 ? recommendations.map((item) => (
+                <div key={item.room.id} className="group/reco rounded-2xl border border-[#2e3a31] bg-[#141b16] p-4 transition-all duration-200 hover:border-[#425646] hover:bg-[#172018]">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#8ca08f]">Room Recommendation</p>
@@ -339,7 +338,16 @@ export default function Groups() {
                     </Link>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div className="rounded-xl border border-[#2b352d] bg-[#141a15] px-3 py-3 text-sm text-[#94a297]">
+                  <p>{summary.recommendationNote || "No recommendations right now."}</p>
+                  {typeof summary.membersWithAvailability === "number" ? (
+                    <p className="mt-1 text-xs text-[#839287]">
+                      Members with availability: {summary.membersWithAvailability}/{members.length}
+                    </p>
+                  ) : null}
+                </div>
+              )}
             </div> : null}
           </section>
 

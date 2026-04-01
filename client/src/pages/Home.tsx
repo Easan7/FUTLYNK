@@ -164,6 +164,21 @@ export default function Home() {
           </motion.section>
         ) : null}
 
+        {!nextGame ? (
+          <motion.section
+            className="surface-card"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.24, ease: "easeOut" }}
+          >
+            <p className="text-sm font-semibold text-[#f2f7f2]">No upcoming games yet</p>
+            <p className="mt-1 text-sm text-[#9aa79e]">Find open rooms that match your level and lock your next match.</p>
+            <Link href="/matchmaking" className="btn-primary mt-3 text-sm">
+              Find Games
+            </Link>
+          </motion.section>
+        ) : null}
+
         {pendingRatings.length > 0 && (
           <motion.section
             className="surface-card"
@@ -241,7 +256,9 @@ export default function Home() {
             })}
 
             {upcomingGames.length <= 1 && (
-              <p className="surface-inner text-sm text-[#9aa79e]">No additional upcoming games.</p>
+              <p className="surface-inner text-sm text-[#9aa79e]">
+                {upcomingGames.length === 0 ? "No upcoming games right now." : "No additional upcoming games."}
+              </p>
             )}
           </div>
         </motion.section>

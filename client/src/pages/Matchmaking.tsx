@@ -18,17 +18,23 @@ export default function Matchmaking() {
   const [useAvailability, setUseAvailability] = useState(true);
   const [rooms, setRooms] = useState<any[]>([]);
   const [userSkillBand, setUserSkillBand] = useState<"Beginner" | "Intermediate" | "Advanced">("Intermediate");
+  const [hasAvailabilityRules, setHasAvailabilityRules] = useState<boolean>(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
-        const payload = await apiGet<{ rooms: any[]; userSkillBand?: "Beginner" | "Intermediate" | "Advanced" }>(
+        const payload = await apiGet<{
+          rooms: any[];
+          userSkillBand?: "Beginner" | "Intermediate" | "Advanced";
+          hasAvailabilityRules?: boolean;
+        }>(
           `/api/v1/rooms/discover?user_id=${currentUserId}&use_availability=${useAvailability}`
         );
         setRooms(payload.rooms ?? []);
         setUserSkillBand(payload.userSkillBand ?? "Intermediate");
+        setHasAvailabilityRules(Boolean(payload.hasAvailabilityRules ?? true));
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to load rooms";
         toast.error(message);
@@ -203,7 +209,11 @@ export default function Matchmaking() {
 
         {filteredRooms.length === 0 && (
           <section className="surface-card">
-            <p className="text-sm text-[#9aa79e]">No rooms found for current filters.</p>
+            <p className="text-sm text-[#9aa79e]">
+              {useAvailability && !hasAvailabilityRules
+                ? "No rooms shown. Add availability first, or turn off Use My Availability."
+                : "No rooms found for current filters."}
+            </p>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <button
                 className="btn-secondary text-xs"

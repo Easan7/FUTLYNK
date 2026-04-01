@@ -575,8 +575,10 @@ def discover_rooms(user_id: str = DEFAULT_USER_ID, use_availability: bool = True
     has_availability_rules = len(availability_rules) > 0
 
     def matches_availability(game: dict[str, Any]) -> bool:
+        # Strict behavior: if user turned on availability matching but has no rules,
+        # return no games until availability is configured.
         if not has_availability_rules:
-            return bool(game.get("matching_availability"))
+            return False
         return _is_available_for_game(availability_rules, game["game_date"], game["start_time"])
 
     rooms = []
@@ -622,7 +624,7 @@ def discover_rooms(user_id: str = DEFAULT_USER_ID, use_availability: bool = True
         rooms.append(room)
 
     rooms.sort(key=lambda r: r["fitScore"], reverse=True)
-    response: dict[str, Any] = {"rooms": rooms, "userSkillBand": user_band}
+    response: dict[str, Any] = {"rooms": rooms, "userSkillBand": user_band, "hasAvailabilityRules": has_availability_rules}
     if debug:
         reason_counts: dict[str, int] = defaultdict(int)
         for row in debug_rows:
@@ -885,6 +887,7 @@ def get_group_detail(group_id: str, user_id: str = DEFAULT_USER_ID):
     for row in availability_rows:
         availability_by_user[row["user_id"]].append(row)
     overlap = _derive_overlap_slots(member_ids, availability_by_user)
+    members_with_availability = sum(1 for member_id in member_ids if availability_by_user.get(member_id))
 
     games, counts = _get_games_with_counts()
     avg_skill = 3.0
@@ -954,6 +957,13 @@ def get_group_detail(group_id: str, user_id: str = DEFAULT_USER_ID):
             }
         )
     recommendations.sort(key=lambda x: (x["combinedScore"], x["fitScore"]), reverse=True)
+    recommendation_note = ""
+    if len(member_ids) < 2:
+        recommendation_note = "Need at least 2 members in the group for recommendations."
+    elif members_with_availability < 2:
+        recommendation_note = "Not enough members have availability set. Add availability for at least 2 members."
+    elif not recommendations:
+        recommendation_note = "Schedules have low overlap right now. Update availability to unlock recommendations."
 
     interest_rows: list[dict[str, Any]] = []
     try:
@@ -1065,6 +1075,8 @@ def get_group_detail(group_id: str, user_id: str = DEFAULT_USER_ID):
             "avgReliability": avg_reliability,
             "skillBandSpread": skill_band_spread,
             "topOverlap": overlap[0]["slot"] if overlap else "No overlap yet",
+            "membersWithAvailability": members_with_availability,
+            "recommendationNote": recommendation_note,
         },
         "members": [
             {

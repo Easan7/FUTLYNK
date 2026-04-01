@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useRoute } from "wouter";
-import { Award, Bell, CalendarDays, Edit3, History, Tag, Users, Wallet } from "lucide-react";
+import { Award, Bell, CalendarDays, Edit3, History, LogOut, Tag, Users, Wallet } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import FootballLoader from "@/components/FootballLoader";
 import SkillBadge from "@/components/SkillBadge";
 import type { SkillLevel } from "@/components/SkillBadge";
 import PitchOverlay from "@/components/PitchOverlay";
-import { apiGet, getCurrentUserId } from "@/lib/api";
+import { apiGet, clearCurrentUserId, getCurrentUserId } from "@/lib/api";
 
 const achievementsCatalog = [
   { id: "1", name: "10 Games", description: "Consistency milestone", category: "consistency", rarity: "common", shape: "coin" },
@@ -251,6 +251,21 @@ export default function Profile() {
             )}
           </div>
         </section>
+
+        {isOwnProfile ? (
+          <section className="surface-card">
+            <button
+              className="btn-secondary w-full text-sm"
+              onClick={() => {
+                clearCurrentUserId();
+                window.location.reload();
+              }}
+            >
+              <LogOut className="mr-1 h-4 w-4" />
+              Sign Out
+            </button>
+          </section>
+        ) : null}
       </main>
 
       <Navigation />
