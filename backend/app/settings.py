@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     supabase_url: str = ""
     supabase_anon_key: str = ""
     supabase_service_role_key: str = ""
+    stripe_secret_key: str = ""
+    stripe_publishable_key: str = ""
+    frontend_base_url: str = "http://localhost:3000"
 
     @field_validator("allowed_origins", mode="before")
     @classmethod

@@ -13,6 +13,7 @@ import httpx
 from pydantic import BaseModel, Field
 
 from backend.app.schemas import PingResponse
+from backend.app.settings import get_settings
 from backend.app.supabase_client import get_supabase
 
 router = APIRouter(prefix="/api/v1", tags=["api"])
@@ -65,6 +66,26 @@ class MarkNotificationBody(BaseModel):
 class TopupBody(BaseModel):
     user_id: str = DEFAULT_USER_ID
     amount: float
+
+
+class StripeCheckoutBody(BaseModel):
+    user_id: str = DEFAULT_USER_ID
+    amount: float
+
+
+class StripeIntentBody(BaseModel):
+    user_id: str = DEFAULT_USER_ID
+    amount: float
+
+
+class StripeConfirmBody(BaseModel):
+    user_id: str = DEFAULT_USER_ID
+    session_id: str
+
+
+class StripeIntentConfirmBody(BaseModel):
+    user_id: str = DEFAULT_USER_ID
+    payment_intent_id: str
 
 
 class RedeemBody(BaseModel):
@@ -155,6 +176,39 @@ def _default_hidden_rating_for_band(public_skill_band: str) -> float:
     if public_skill_band == "Advanced":
         return 4.1
     return 3.2
+
+
+def _normalize_star_score(avg_stars: float) -> float:
+    # Convert 1-5 stars to a 0-1 score.
+    return max(0.0, min(1.0, (avg_stars - 1.0) / 4.0))
+
+
+def _expected_score(current_rating: float, room_baseline_rating: float) -> float:
+    # Elo-like expected score on a 1-5 rating scale.
+    spread = 0.7
+    return 1.0 / (1.0 + math.pow(10.0, (room_baseline_rating - current_rating) / spread))
+
+
+def _dynamic_k(prior_rated_matches: int, raters_in_game: int) -> float:
+    # Heavier weight for newer players; dampen as match history grows.
+    base_k = 0.22
+    history_factor = 1.0 / math.sqrt(1.0 + (prior_rated_matches / 6.0))
+    sample_factor = max(0.5, min(1.0, raters_in_game / 3.0))
+    return max(0.04, base_k * history_factor * sample_factor)
+
+
+def _band_after_rating(current_band: str | None, next_hidden_rating: float) -> str:
+    band = current_band or "Intermediate"
+    # Hysteresis thresholds reduce rapid band flapping.
+    if band == "Beginner":
+        return "Intermediate" if next_hidden_rating >= 2.95 else "Beginner"
+    if band == "Advanced":
+        return "Intermediate" if next_hidden_rating < 3.7 else "Advanced"
+    if next_hidden_rating < 2.7:
+        return "Beginner"
+    if next_hidden_rating >= 3.95:
+        return "Advanced"
+    return "Intermediate"
 
 
 def _time_ago(iso_value: str | None) -> str:
@@ -1627,6 +1681,215 @@ def topup_wallet(body: TopupBody):
     return {"ok": True, "walletBalance": next_balance}
 
 
+@router.post("/wallet/topup/checkout")
+def create_wallet_topup_checkout(body: StripeCheckoutBody):
+    if body.amount <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be positive")
+
+    _require_user(body.user_id)
+    settings = get_settings()
+    stripe_key = settings.stripe_secret_key.strip()
+    if not stripe_key:
+        raise HTTPException(status_code=500, detail="Stripe test key is not configured")
+
+    amount_cents = int(round(body.amount * 100))
+    if amount_cents < 50:
+        raise HTTPException(status_code=400, detail="Minimum top-up is $0.50")
+
+    frontend_base = settings.frontend_base_url.rstrip("/")
+    success_url = f"{frontend_base}/wallet?topup=success&session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{frontend_base}/wallet?topup=cancel"
+
+    payload = {
+        "mode": "payment",
+        "success_url": success_url,
+        "cancel_url": cancel_url,
+        "line_items[0][quantity]": "1",
+        "line_items[0][price_data][currency]": "sgd",
+        "line_items[0][price_data][unit_amount]": str(amount_cents),
+        "line_items[0][price_data][product_data][name]": "FUTLYNK Wallet Top-up",
+        "metadata[user_id]": body.user_id,
+        "metadata[topup_amount]": f"{body.amount:.2f}",
+    }
+    try:
+        response = httpx.post(
+            "https://api.stripe.com/v1/checkout/sessions",
+            data=payload,
+            headers={"Authorization": f"Bearer {stripe_key}"},
+            timeout=20.0,
+        )
+        response.raise_for_status()
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=502, detail=f"Stripe checkout session failed: {exc}") from exc
+
+    data = response.json()
+    return {"ok": True, "checkoutUrl": data.get("url"), "sessionId": data.get("id")}
+
+
+@router.post("/wallet/topup/intent")
+def create_wallet_topup_intent(body: StripeIntentBody):
+    if body.amount <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be positive")
+    _require_user(body.user_id)
+
+    settings = get_settings()
+    stripe_key = settings.stripe_secret_key.strip()
+    if not stripe_key:
+        raise HTTPException(status_code=500, detail="Stripe test key is not configured")
+
+    amount_cents = int(round(body.amount * 100))
+    if amount_cents < 50:
+        raise HTTPException(status_code=400, detail="Minimum top-up is $0.50")
+
+    payload = {
+        "amount": str(amount_cents),
+        "currency": "sgd",
+        "automatic_payment_methods[enabled]": "true",
+        "metadata[user_id]": body.user_id,
+        "metadata[topup_amount]": f"{body.amount:.2f}",
+        "description": "FUTLYNK wallet top-up",
+    }
+    try:
+        response = httpx.post(
+            "https://api.stripe.com/v1/payment_intents",
+            data=payload,
+            headers={"Authorization": f"Bearer {stripe_key}"},
+            timeout=20.0,
+        )
+        response.raise_for_status()
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=502, detail=f"Stripe payment intent failed: {exc}") from exc
+
+    data = response.json()
+    return {
+        "ok": True,
+        "paymentIntentId": data.get("id"),
+        "clientSecret": data.get("client_secret"),
+    }
+
+
+@router.post("/wallet/topup/confirm")
+def confirm_wallet_topup(body: StripeConfirmBody):
+    if not body.session_id.strip():
+        raise HTTPException(status_code=400, detail="Missing session_id")
+
+    user = _require_user(body.user_id)
+    settings = get_settings()
+    stripe_key = settings.stripe_secret_key.strip()
+    if not stripe_key:
+        raise HTTPException(status_code=500, detail="Stripe test key is not configured")
+
+    db = get_supabase()
+    note = f"Stripe checkout {body.session_id}"
+    existing = (
+        db.table("wallet_transactions")
+        .select("id")
+        .eq("user_id", body.user_id)
+        .eq("note", note)
+        .limit(1)
+        .execute()
+        .data
+        or []
+    )
+    if existing:
+        return {"ok": True, "alreadyProcessed": True, "walletBalance": float(user.get("wallet_balance") or 0)}
+
+    try:
+        response = httpx.get(
+            f"https://api.stripe.com/v1/checkout/sessions/{body.session_id}",
+            headers={"Authorization": f"Bearer {stripe_key}"},
+            timeout=20.0,
+        )
+        response.raise_for_status()
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=502, detail=f"Stripe session verification failed: {exc}") from exc
+
+    session = response.json()
+    metadata = session.get("metadata") or {}
+    if metadata.get("user_id") != body.user_id:
+        raise HTTPException(status_code=403, detail="Stripe session does not belong to this user")
+    if session.get("payment_status") != "paid":
+        return {"ok": False, "paid": False}
+
+    amount_total = int(session.get("amount_total") or 0)
+    amount = round(amount_total / 100.0, 2)
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="Invalid Stripe payment amount")
+
+    next_balance = round(float(user.get("wallet_balance") or 0) + amount, 2)
+    db.table("app_users").update({"wallet_balance": next_balance}).eq("id", body.user_id).execute()
+    db.table("wallet_transactions").insert(
+        {
+            "user_id": body.user_id,
+            "kind": "topup",
+            "amount": amount,
+            "note": note,
+        }
+    ).execute()
+    return {"ok": True, "paid": True, "walletBalance": next_balance, "amount": amount}
+
+
+@router.post("/wallet/topup/confirm-intent")
+def confirm_wallet_topup_intent(body: StripeIntentConfirmBody):
+    if not body.payment_intent_id.strip():
+        raise HTTPException(status_code=400, detail="Missing payment_intent_id")
+
+    user = _require_user(body.user_id)
+    settings = get_settings()
+    stripe_key = settings.stripe_secret_key.strip()
+    if not stripe_key:
+        raise HTTPException(status_code=500, detail="Stripe test key is not configured")
+
+    db = get_supabase()
+    note = f"Stripe intent {body.payment_intent_id}"
+    existing = (
+        db.table("wallet_transactions")
+        .select("id")
+        .eq("user_id", body.user_id)
+        .eq("note", note)
+        .limit(1)
+        .execute()
+        .data
+        or []
+    )
+    if existing:
+        return {"ok": True, "alreadyProcessed": True, "walletBalance": float(user.get("wallet_balance") or 0)}
+
+    try:
+        response = httpx.get(
+            f"https://api.stripe.com/v1/payment_intents/{body.payment_intent_id}",
+            headers={"Authorization": f"Bearer {stripe_key}"},
+            timeout=20.0,
+        )
+        response.raise_for_status()
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=502, detail=f"Stripe intent verification failed: {exc}") from exc
+
+    intent = response.json()
+    metadata = intent.get("metadata") or {}
+    if metadata.get("user_id") != body.user_id:
+        raise HTTPException(status_code=403, detail="Stripe intent does not belong to this user")
+    if intent.get("status") != "succeeded":
+        return {"ok": False, "paid": False}
+
+    amount_received = int(intent.get("amount_received") or intent.get("amount") or 0)
+    amount = round(amount_received / 100.0, 2)
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="Invalid Stripe payment amount")
+
+    next_balance = round(float(user.get("wallet_balance") or 0) + amount, 2)
+    db.table("app_users").update({"wallet_balance": next_balance}).eq("id", body.user_id).execute()
+    db.table("wallet_transactions").insert(
+        {
+            "user_id": body.user_id,
+            "kind": "topup",
+            "amount": amount,
+            "note": note,
+        }
+    ).execute()
+    return {"ok": True, "paid": True, "walletBalance": next_balance, "amount": amount}
+
+
 @router.post("/wallet/redeem")
 def redeem_voucher(body: RedeemBody):
     db = get_supabase()
@@ -1890,6 +2153,89 @@ def submit_feedback(game_id: str, body: FeedbackSubmitBody):
                 ]
             ).execute()
 
+    # Elo-like hidden rating updates for rated players.
+    rated_user_ids = sorted(set(rated_ids))
+    game_meta = (
+        db.table("games")
+        .select("hidden_avg_rating")
+        .eq("id", game_id)
+        .limit(1)
+        .execute()
+        .data
+        or []
+    )
+    room_baseline = float(game_meta[0].get("hidden_avg_rating") or 3.0) if game_meta else 3.0
+
+    current_game_feedback = (
+        db.table("feedback_ratings")
+        .select("rated_user_id,stars")
+        .eq("game_id", game_id)
+        .in_("rated_user_id", rated_user_ids)
+        .execute()
+        .data
+        or []
+    )
+    stars_by_user: dict[str, list[int]] = defaultdict(list)
+    for row in current_game_feedback:
+        stars_by_user[row["rated_user_id"]].append(int(row["stars"]))
+
+    prior_feedback_rows = (
+        db.table("feedback_ratings")
+        .select("rated_user_id,game_id")
+        .in_("rated_user_id", rated_user_ids)
+        .neq("game_id", game_id)
+        .execute()
+        .data
+        or []
+    )
+    prior_games_by_user: dict[str, set[str]] = defaultdict(set)
+    for row in prior_feedback_rows:
+        prior_games_by_user[row["rated_user_id"]].add(str(row["game_id"]))
+
+    rated_users = (
+        db.table("app_users")
+        .select("id,hidden_skill_rating,public_skill_band")
+        .in_("id", rated_user_ids)
+        .execute()
+        .data
+        or []
+    )
+    rated_user_map = {row["id"]: row for row in rated_users}
+    rating_updates: list[dict[str, Any]] = []
+    for rated_user_id in rated_user_ids:
+        user_row = rated_user_map.get(rated_user_id)
+        if not user_row:
+            continue
+        stars = stars_by_user.get(rated_user_id, [])
+        if not stars:
+            continue
+        avg_stars = sum(stars) / len(stars)
+        actual = _normalize_star_score(avg_stars)
+        current_hidden = float(user_row.get("hidden_skill_rating") or _default_hidden_rating_for_band(user_row.get("public_skill_band") or "Intermediate"))
+        expected = _expected_score(current_hidden, room_baseline)
+        prior_match_count = len(prior_games_by_user.get(rated_user_id, set()))
+        k = _dynamic_k(prior_match_count, len(stars))
+        next_hidden = max(1.5, min(4.8, current_hidden + k * (actual - expected)))
+        next_hidden = round(next_hidden, 3)
+        next_band = _band_after_rating(user_row.get("public_skill_band"), next_hidden)
+        db.table("app_users").update(
+            {
+                "hidden_skill_rating": next_hidden,
+                "public_skill_band": next_band,
+                "updated_at": datetime.utcnow().isoformat(),
+            }
+        ).eq("id", rated_user_id).execute()
+        rating_updates.append(
+            {
+                "userId": rated_user_id,
+                "from": round(current_hidden, 3),
+                "to": next_hidden,
+                "k": round(k, 4),
+                "priorRatedMatches": prior_match_count,
+                "band": next_band,
+            }
+        )
+
     already = (
         db.table("user_game_rewards")
         .select("game_id")
@@ -1902,7 +2248,7 @@ def submit_feedback(game_id: str, body: FeedbackSubmitBody):
     )
 
     if already:
-        return {"ok": True, "awarded": False}
+        return {"ok": True, "awarded": False, "ratingUpdates": rating_updates}
 
     user = _require_user(body.user_id)
     next_points = int(user.get("points") or 0) + 50
@@ -1917,4 +2263,4 @@ def submit_feedback(game_id: str, body: FeedbackSubmitBody):
         }
     ).execute()
 
-    return {"ok": True, "awarded": True, "points": next_points}
+    return {"ok": True, "awarded": True, "points": next_points, "ratingUpdates": rating_updates}

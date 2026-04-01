@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, Gift, QrCode, ShieldCheck, Ticket, Wallet as WalletIcon } from "lucide-react";
+import { ArrowLeft, Gift, Ticket, Wallet as WalletIcon } from "lucide-react";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import FootballLoader from "@/components/FootballLoader";
 import PitchOverlay from "@/components/PitchOverlay";
 import StatBlock from "@/components/StatBlock";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { apiGet, apiPost, getCurrentUserId } from "@/lib/api";
 
 type WalletData = {
@@ -21,13 +20,9 @@ export default function Wallet() {
   const currentUserId = getCurrentUserId();
   const [data, setData] = useState<WalletData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [topupDialogOpen, setTopupDialogOpen] = useState(false);
   const [topupAmount, setTopupAmount] = useState(20);
-  const [paymentMethod, setPaymentMethod] = useState<"paynow" | "card">("paynow");
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardExpiry, setCardExpiry] = useState("");
-  const [cardCvc, setCardCvc] = useState("");
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [hasConfirmedStripeTopup, setHasConfirmedStripeTopup] = useState(false);
 
   const load = async () => {
     try {
@@ -43,31 +38,51 @@ export default function Wallet() {
     void load();
   }, []);
 
-  const handleTopup = async (amount: number) => {
-    await apiPost("/api/v1/wallet/topup", { user_id: currentUserId, amount });
-    toast.success(`Added $${amount}`);
-    await load();
-  };
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const topupState = params.get("topup");
+    const sessionId = params.get("session_id");
+    if (topupState !== "success" || !sessionId || hasConfirmedStripeTopup) return;
 
-  const openTopupDialog = (amount: number) => {
-    setTopupAmount(amount);
-    setTopupDialogOpen(true);
-  };
-
-  const runMockPayment = async () => {
-    if (topupAmount <= 0 || isProcessingPayment) return;
-    if (paymentMethod === "card") {
-      const digits = cardNumber.replace(/\s+/g, "");
-      if (digits.length < 12 || !cardExpiry.trim() || cardCvc.trim().length < 3) {
-        toast.error("Enter valid card details");
-        return;
+    const confirm = async () => {
+      try {
+        const result = await apiPost<{ ok: boolean; paid?: boolean; alreadyProcessed?: boolean; amount?: number }>(
+          "/api/v1/wallet/topup/confirm",
+          { user_id: currentUserId, session_id: sessionId }
+        );
+        if (result.ok && (result.paid || result.alreadyProcessed)) {
+          toast.success(result.alreadyProcessed ? "Top-up already applied" : `Top-up successful (+$${(result.amount ?? 0).toFixed(2)})`);
+          await load();
+        } else {
+          toast.info("Payment not completed yet");
+        }
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Could not confirm Stripe payment");
+      } finally {
+        setHasConfirmedStripeTopup(true);
+        window.history.replaceState({}, "", window.location.pathname);
       }
-    }
+    };
+    void confirm();
+  }, [currentUserId, hasConfirmedStripeTopup]);
+
+  const startStripeCheckout = async (amount: number) => {
+    setTopupAmount(amount);
+    if (amount <= 0 || isProcessingPayment) return;
     setIsProcessingPayment(true);
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-    await handleTopup(topupAmount);
-    setIsProcessingPayment(false);
-    setTopupDialogOpen(false);
+    try {
+      const session = await apiPost<{ checkoutUrl?: string }>("/api/v1/wallet/topup/checkout", {
+        user_id: currentUserId,
+        amount,
+      });
+      if (!session.checkoutUrl) {
+        throw new Error("Stripe checkout URL missing");
+      }
+      window.location.href = session.checkoutUrl;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not start Stripe checkout");
+      setIsProcessingPayment(false);
+    }
   };
 
   const handleRedeem = async (voucherId: string, code: string) => {
@@ -132,11 +147,34 @@ export default function Wallet() {
           </div>
           <div className="mt-3 grid grid-cols-3 gap-2">
             {[10, 20, 50].map((amount) => (
-              <button key={amount} onClick={() => openTopupDialog(amount)} className="btn-primary !px-2 text-xs">
+              <button
+                key={amount}
+                onClick={() => void startStripeCheckout(amount)}
+                className="btn-primary !px-2 text-xs"
+                disabled={isProcessingPayment}
+              >
                 +${amount}
               </button>
             ))}
           </div>
+          <div className="mt-3 flex gap-2">
+            <Input
+              type="number"
+              min={1}
+              step={1}
+              value={topupAmount}
+              onChange={(e) => setTopupAmount(Math.max(1, Number(e.target.value) || 1))}
+              className="h-10"
+            />
+            <button
+              onClick={() => void startStripeCheckout(topupAmount)}
+              className="btn-secondary text-xs"
+              disabled={isProcessingPayment}
+            >
+              {isProcessingPayment ? "Redirecting..." : "Top Up via Stripe"}
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-[#95a39a]">Top-up redirects to Stripe Checkout (test mode).</p>
         </section>
 
         <section className="surface-card">
@@ -189,85 +227,6 @@ export default function Wallet() {
           </div>
         </section>
       </main>
-
-      <Dialog open={topupDialogOpen} onOpenChange={(open) => !isProcessingPayment && setTopupDialogOpen(open)}>
-        <DialogContent className="border-[#2d372f] bg-[#0f1511]">
-          <DialogHeader>
-            <DialogTitle className="text-[#eef5ef]">Add Funds</DialogTitle>
-            <DialogDescription className="text-[#9faea3]">
-              Complete your top-up using PayNow or Card payment (mocked for MVP demo).
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="rounded-xl border border-[#2f3a31] bg-[#141b16] p-3">
-              <p className="text-xs uppercase tracking-[0.08em] text-[#8ea194]">Amount</p>
-              <Input
-                type="number"
-                min={1}
-                step={1}
-                value={topupAmount}
-                onChange={(e) => setTopupAmount(Math.max(1, Number(e.target.value) || 1))}
-                className="mt-2 h-10"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => setPaymentMethod("paynow")}
-                className={`rounded-xl border px-3 py-2 text-left ${paymentMethod === "paynow" ? "border-[#5e8b2c] bg-[#1f3117]" : "border-[#2f3a31] bg-[#141b16]"}`}
-              >
-                <p className="text-sm font-semibold text-[#eef5ef]">PayNow</p>
-                <p className="mt-1 text-xs text-[#9aa99f]">Instant transfer</p>
-              </button>
-              <button
-                onClick={() => setPaymentMethod("card")}
-                className={`rounded-xl border px-3 py-2 text-left ${paymentMethod === "card" ? "border-[#5e8b2c] bg-[#1f3117]" : "border-[#2f3a31] bg-[#141b16]"}`}
-              >
-                <p className="text-sm font-semibold text-[#eef5ef]">Card</p>
-                <p className="mt-1 text-xs text-[#9aa99f]">Visa / Mastercard</p>
-              </button>
-            </div>
-
-            {paymentMethod === "paynow" ? (
-              <div className="rounded-xl border border-[#2f3a31] bg-[#141b16] p-3">
-                <div className="flex items-center gap-2 text-[#d7e5d9]">
-                  <QrCode className="h-4 w-4 text-[#9dff3f]" />
-                  <p className="text-sm font-semibold">Scan to Pay (Mock)</p>
-                </div>
-                <div className="mt-3 grid place-items-center rounded-lg border border-dashed border-[#415146] bg-[#101712] p-6">
-                  <div className="grid h-24 w-24 place-items-center rounded-md border border-[#3d4d42] bg-[#17211a]">
-                    <QrCode className="h-10 w-10 text-[#9dff3f]" />
-                  </div>
-                </div>
-                <p className="mt-2 text-xs text-[#9aa99f]">UEN: T24FUTLYNKMVP · Reference: WALLET TOPUP</p>
-              </div>
-            ) : (
-              <div className="rounded-xl border border-[#2f3a31] bg-[#141b16] p-3">
-                <p className="text-sm font-semibold text-[#eef5ef]">Card Details</p>
-                <div className="mt-2 space-y-2">
-                  <Input placeholder="Card Number" value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} />
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input placeholder="MM/YY" value={cardExpiry} onChange={(e) => setCardExpiry(e.target.value)} />
-                    <Input placeholder="CVC" value={cardCvc} onChange={(e) => setCardCvc(e.target.value)} />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="rounded-xl border border-[#2f3a31] bg-[#141b16] px-3 py-2">
-              <p className="text-sm text-[#dce8de]">Total to add: <span className="font-semibold text-[#9dff3f]">${topupAmount.toFixed(2)}</span></p>
-              <p className="mt-1 inline-flex items-center gap-1 text-xs text-[#98a79d]">
-                <ShieldCheck className="h-3.5 w-3.5" /> Secure checkout UI (mocked)
-              </p>
-            </div>
-
-            <button onClick={() => void runMockPayment()} disabled={isProcessingPayment} className="btn-primary w-full">
-              {isProcessingPayment ? "Processing Payment..." : `Pay $${topupAmount.toFixed(2)}`}
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <Navigation />
     </div>

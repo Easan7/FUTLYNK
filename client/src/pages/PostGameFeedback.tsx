@@ -24,6 +24,7 @@ export default function PostGameFeedback() {
   const [ratings, setRatings] = useState<Record<string, number>>({});
   const [tagsByPlayer, setTagsByPlayer] = useState<Record<string, string[]>>({});
   const [flaggedByPlayer, setFlaggedByPlayer] = useState<Record<string, boolean>>({});
+  const [expandedTagsByPlayer, setExpandedTagsByPlayer] = useState<Record<string, boolean>>({});
   const [game, setGame] = useState<FeedbackGame | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -106,6 +107,7 @@ export default function PostGameFeedback() {
   }
 
   const tagOptions = game.tagOptions ?? [];
+  const defaultVisibleTags = 6;
 
   const togglePlayerTag = (playerId: string, tag: string) => {
     setTagsByPlayer((prev) => {
@@ -189,7 +191,7 @@ export default function PostGameFeedback() {
                   <div className="mt-3">
                     <p className="text-sm text-[#95a39a]">Assign tags (optional, up to 3)</p>
                     <div className="mt-2 flex flex-wrap gap-1.5">
-                      {tagOptions.map((tag) => {
+                      {(expandedTagsByPlayer[player.id] ? tagOptions : tagOptions.slice(0, defaultVisibleTags)).map((tag) => {
                         const active = (tagsByPlayer[player.id] ?? []).includes(tag);
                         return (
                           <button key={tag} onClick={() => togglePlayerTag(player.id, tag)} className={`chip ${active ? "chip-active" : ""}`}>
@@ -197,6 +199,19 @@ export default function PostGameFeedback() {
                           </button>
                         );
                       })}
+                      {tagOptions.length > defaultVisibleTags ? (
+                        <button
+                          onClick={() =>
+                            setExpandedTagsByPlayer((prev) => ({
+                              ...prev,
+                              [player.id]: !prev[player.id],
+                            }))
+                          }
+                          className="chip"
+                        >
+                          {expandedTagsByPlayer[player.id] ? "Show fewer" : `+${tagOptions.length - defaultVisibleTags} more`}
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 </article>
