@@ -15,7 +15,7 @@ export default function Matchmaking() {
   const currentUserId = getCurrentUserId();
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const [query, setQuery] = useState("");
-  const [useAvailability, setUseAvailability] = useState(true);
+  const [useAvailability, setUseAvailability] = useState(false);
   const [rooms, setRooms] = useState<any[]>([]);
   const [userSkillBand, setUserSkillBand] = useState<"Beginner" | "Intermediate" | "Advanced">("Intermediate");
   const [hasAvailabilityRules, setHasAvailabilityRules] = useState<boolean>(true);
